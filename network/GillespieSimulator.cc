@@ -1,6 +1,6 @@
 /*******************************************************************/
 //
-// Class GillespieGraph
+// Class GillespieSimulator
 // --------------------
 //
 // This is a graph implementation using the Gillespie algorithm
@@ -15,29 +15,29 @@
 #include <boost/random.hpp>
 
 #include "RandomGenerator.hh"
-#include "GillespieGraph.hh"
+#include "GillespieSimulator.hh"
 
 /******************************************************************/
-// GillespieGraph constructor
+// GillespieSimulator constructor
 // creates the random generator for event selection
 /******************************************************************/
-GillespieGraph::GillespieGraph()
+GillespieSimulator::GillespieSimulator()
    : randGen(new mt19937Uniform())
 {
 }
 
 /******************************************************************/
-// GillespieGraph destructor
+// GillespieSimulator destructor
 /******************************************************************/
-GillespieGraph::~GillespieGraph()
+GillespieSimulator::~GillespieSimulator()
 {
 }
 
 /******************************************************************/
-// GillespieGraph::initialize
+// GillespieSimulator::initialize
 // initializes the graph with the rates for the possible processes
 /******************************************************************/
-void GillespieGraph::initialize(const Model& model)
+void GillespieSimulator::initialize(const Model& model)
 {
    vertex_iterator vi, vi_end;
    for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
@@ -46,11 +46,11 @@ void GillespieGraph::initialize(const Model& model)
 }
 
 /******************************************************************/
-// GillespieGraph::updateState
+// GillespieSimulator::updateState
 // updates the state of the graph by advancing one time step
 // and choosing an event to process
 /******************************************************************/
-void GillespieGraph::updateState(const Model& model)
+void GillespieSimulator::updateState(const Model& model)
 {
    // draw a random number from [0,1)
    double randNo = (*randGen)();

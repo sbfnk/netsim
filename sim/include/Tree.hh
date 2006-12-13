@@ -17,6 +17,11 @@ class Tree
    public:
       Tree(): lastLeaf(0), topBin(0) {;}
 
+      /******************************************************************/
+      // Tree::pickRandomElement
+      // picks a random vertex from the tree, based on a random number
+      // between 0 and 1
+      /******************************************************************/
       T& pickRandomElement(double& randNo)
       {
          // check if we have a topBin (if not we either have no vertex
@@ -60,6 +65,10 @@ class Tree
       // reverse map from elements to leaves
       std::vector<Leaf<T>*> leaves;
 
+      /******************************************************************/
+      // Tree::addLeaf
+      // adds an item to the Tree
+      /******************************************************************/
       void addLeaf(double rateSum, T leafItem)
       {
          // create the new leaf with given elementNumber (position in the
@@ -100,16 +109,23 @@ class Tree
       Bin* topBin; // top Bin of the tree
 };
 
+/******************************************************************/
+// generateTree
+// generates a tree from a graph
+/******************************************************************/
 template <class T, class Graph, class ratesPropertyMap, class indexPropertyMap>
 void generateTree(Tree<T>& t, const Graph& g,
                   ratesPropertyMap rates, indexPropertyMap indices)
 {
    typedef typename boost::graph_traits<Graph>::vertex_iterator
       vertex_iterator;
+   
    vertex_iterator vi, vi_end;
    for (tie(vi, vi_end) = vertices(g);
         vi != vi_end; ++vi) {
+      // add item to tree
       t.addLeaf(get(rates, *vi), get(indices, *vi));
+      // update rate sum
       t.leaves.back()->updateRateSum(get(rates, *vi));
    }
 }

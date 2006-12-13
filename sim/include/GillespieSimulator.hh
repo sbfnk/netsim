@@ -1,5 +1,5 @@
-#ifndef GILLESPIEGRAPH_HH
-#define GILLESPIEGRAPH_HH
+#ifndef GILLESPIESIMULATOR_HH
+#define GILLESPIESIMULATOR_HH
 
 #include "Tree.hh"
 #include "Model.hh"
@@ -11,7 +11,7 @@ class RandomGenerator;
 typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
                               Vertex, Edge> gillespie_graph;
 
-class GillespieGraph
+class GillespieSimulator
 {
 
       // type definitions for easy access of boost graph properties
@@ -26,8 +26,8 @@ class GillespieGraph
 
    public:
       
-      GillespieGraph();
-      ~GillespieGraph();
+      GillespieSimulator();
+      ~GillespieSimulator();
       
       void initialize(const Model& model);
       void updateState(const Model& model);

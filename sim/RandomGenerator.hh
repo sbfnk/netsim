@@ -1,3 +1,8 @@
+/******************************************************************/
+// RandomGenerator.hh
+// implements random generators to be used by the simulation
+/******************************************************************/
+
 #ifndef RANDOMGENERATOR_HH
 #define RANDOMGENERATOR_HH
 

@@ -1,3 +1,7 @@
+/******************************************************************/
+// main.cc
+// contains the main simulation program
+/******************************************************************/
 #include <iostream>
 #include <string>
 #include <map>
@@ -9,7 +13,7 @@
 #include <math.h>
 
 #include "Vertex.hh"
-#include "GillespieGraph.hh"
+#include "GillespieSimulator.hh"
 #include "Tree.hh"
 #include "RandomGenerator.hh"
 #include "lattice.hh"
@@ -33,9 +37,11 @@ struct latticeOptions {
 
 int main(int argc, char* argv[])
 {
+   /******************************************************************/
+   // read parameters
+   /******************************************************************/
    std::string topology;
    
-   // Declare the supported options.
    po::options_description main_options
     ("Usage: simulate -p params_file [options]... \n\nAllowed options:");
 
@@ -121,14 +127,18 @@ int main(int argc, char* argv[])
       topology = vm["topology"].as<std::string>();
    }
 
-   GillespieGraph* gGraph = new GillespieGraph();
-   gillespie_graph& g = gGraph->graph;
-   Tree<unsigned int>& t = gGraph->tree;
+   GillespieSimulator* gSim = new GillespieSimulator();
+   gillespie_graph& g = gSim->graph;
+   Tree<unsigned int>& t = gSim->tree;
    unsigned int steps = vm["steps"].as<unsigned int>();
 
    if (topology == "lattice") {
       partial_options.add(main_options).add(lattice_options);
       
+      /******************************************************************/
+      // read lattice specific
+      /******************************************************************/
+
       latticeOptions opt;
       if (vm.count("length")) {
          opt.sideLength = vm["length"].as<unsigned int>();
@@ -183,6 +193,9 @@ int main(int argc, char* argv[])
       opt.Rm = vm["Rm"].as<unsigned int>();
 
    
+      /******************************************************************/
+      // generate lattice with desired properties 
+      /******************************************************************/
       boost::mt19937 gen;
       boost::generate_lattice(g,opt.dimensions,opt.sideLength);
       boost::graph_traits<gillespie_graph>::vertex_descriptor v;
@@ -258,12 +271,18 @@ int main(int argc, char* argv[])
             }
          }
       }
-      gGraph->initialize(m);
+      /******************************************************************/
+      // initalize GillespieSimulator
+      /******************************************************************/
+      gSim->initialize(m);
       generateTree(t,g,get(&Vertex::rateSum, g),get(boost::vertex_index, g));
       boost::print_lattice(g, opt.sideLength);
-      
+
+      /******************************************************************/
+      // run simulation
+      /******************************************************************/
       for (unsigned int i=0; i<steps; i++) {
-         gGraph->updateState(m);
+         gSim->updateState(m);
          boost::print_lattice(g, opt.sideLength);
       }
       
