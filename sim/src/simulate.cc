@@ -39,6 +39,8 @@ int main(int argc, char* argv[])
    // read parameters
    /******************************************************************/
    std::string topology;
+   unsigned int steps;
+   unsigned int outputSteps;
    
    po::options_description main_options
     ("Usage: simulate -p params_file [options]... \n\nAllowed options:");
@@ -57,6 +59,8 @@ int main(int argc, char* argv[])
        "network topology\n(lattice,random)")
       ("steps,s", po::value<unsigned int>()->default_value(100),
        "number of steps")
+      ("output,o", po::value<unsigned int>()->default_value(1),
+       "display status every N steps (0 for status display only at beginning and end")
       ;
 
    po::options_description lattice_options
@@ -128,7 +132,9 @@ int main(int argc, char* argv[])
    GillespieSimulator* gSim = new GillespieSimulator();
    gillespie_graph& g = gSim->graph;
    Tree<unsigned int>& t = gSim->tree;
-   unsigned int steps = vm["steps"].as<unsigned int>();
+
+   steps = vm["steps"].as<unsigned int>();
+   outputSteps = vm["output"].as<unsigned int>();
 
    if (topology == "lattice") {
       partial_options.add(main_options).add(lattice_options);
@@ -245,9 +251,13 @@ int main(int argc, char* argv[])
       for (unsigned int i=0; i<steps; i++) {
          gSim->updateState(m);
          std::cout << "time elapsed: " << gSim->getTime() << std::endl;
-         boost::print_lattice(g, opt.sideLength);
+         if ((outputSteps > 0) && ((i+1)%outputSteps == 0)) {
+            boost::print_lattice(g, opt.sideLength);
+         }
       }
       
+      std::cout << "Final status:" << std::endl;
+      boost::print_lattice(g, opt.sideLength);
    } else {
       std::cout << "ERROR: unknown topology: " << topology << std::endl;
       std::cout << std::endl;

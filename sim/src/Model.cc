@@ -221,25 +221,25 @@ void VertexState::print(std::ostream& os) const
    if (info == Informed) {
       switch (disease) {
        case Susceptible:
-        os << "s";
+        os << "\033[01;34m" << "s" << "\033[0m";
         break;
        case Infected:
-        os << "i";
+        os << "\033[01;31m" << "i" << "\033[0m";
         break;
        case Recovered:
-        os << "r";
+        os << "\033[01;32m" << "r" << "\033[0m";
         break;
       }
    } else {
       switch (disease) {
        case Susceptible:
-        os << "S";
+        os << "\033[00;34m" << "S" << "\033[0m";
         break;
        case Infected:
-        os << "I";
+        os << "\033[00;31m" << "I" << "\033[0m";
         break;
        case Recovered:
-        os << "R";
+        os << "\033[00;32m" << "R" << "\033[0m";
         break;
       }
    }      
