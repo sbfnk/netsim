@@ -1,0 +1,67 @@
+#------ GNU g++ -----------------------------------------------------
+
+CC         = g++
+CPPFLAGS     = -Wall -O3 -g
+
+LINKER      = g++
+LDFLAGS     = -lboost_program_options
+
+#------ Intel icpc  --------------------------------------------------
+
+#CC         = icpc
+#CPPFLAGS     = -g -Wall
+#OPTFLAGS   = -O3 -ipo -fnsplit -ip -ftz -funroll-loops
+#OPTFLAGS   = -static
+#OPTFLAGS   = -fast / -mp / 
+#OPTFLAGS   = 
+
+#LINKER      = icpc
+#LDFLAGS   = -lm -lscs -lmkl 
+#LDFLAGS   = -i-dynamic/static
+#LDFLAGS     = 
+
+#--------------------------------------------------------------------
+
+MAKEDEPEND  = makedepend
+DEPENDFLAGS = -m 
+
+#--------------------------------------------------------------------
+
+SOURCES     = main.cc GillespieGraph.cc Bin.cc Model.cc
+OBJECTS     = $(SOURCES:.cc=.o)
+
+EXEC        = simulate
+#--------------------------------------------------------------------
+
+all:  $(EXEC)
+
+$(EXEC): $(OBJECTS) 
+	@echo ... linking:
+	$(LINKER) $(LDFLAGS) $(OPTFLAGS) $(CPPFLAGS) $(OBJECTS) -o $@
+	@echo
+
+%.o : %.cc
+	@echo ... compiling $<:
+	$(CC) -c $(CPPFLAGS) $(OPTFLAGS) $< -o $@
+	@echo
+
+depend:
+	$(MAKEDEPEND) $(DEPENDFLAGS) *.cc
+
+clean:
+	@echo ... cleaning $(OBJECTS) $(EXEC)
+	@rm -f $(OBJECTS) $(EXEC)
+	@echo ... done
+
+cleaner:
+	@echo '... cleaning also *~'
+	@rm -f $(OBJECTS) *~
+	@echo ... done
+
+#-------------------------------------------------------------------
+# DO NOT DELETE
+
+GillespieGraph.o: Vertex.hh Model.hh GillespieGraph.hh Tree.hh \
+	RandomGenerator.hh
+main.cc: Vertex.hh GillespieGraph.hh Tree.hh Bin.hh lattice.hh \
+	RandomGenerator.hh
