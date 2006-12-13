@@ -32,12 +32,15 @@ class GillespieSimulator
       void initialize(const Model& model);
       void updateState(const Model& model);
 
+      double getTime() { return time; };
+
       gillespie_graph graph; // contains the adjacency structure
       Tree<unsigned int> tree; // contains the tree structure
 
    private:
 
       RandomGenerator* randGen; // random generator
+      double time;
       
 };
 

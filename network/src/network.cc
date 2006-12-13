@@ -24,15 +24,13 @@ struct latticeOptions {
 
       latticeOptions()
          : sideLength(0),
-           dimensions(0),
-           base(Susceptible, Uninformed),
-           Sp(0),Sm(0),Ip(0),Im(0),Rp(0),Rm(0)
+           dimensions(0)
       {;}
       
       unsigned int sideLength;
       unsigned int dimensions;
       VertexState base;
-      unsigned int Sp,Sm,Ip,Im,Rp,Rm;
+      std::map<VertexState, unsigned int> init;
 };
 
 int main(int argc, char* argv[])
@@ -157,40 +155,36 @@ int main(int argc, char* argv[])
          std::cout << partial_options << std::endl;
          return 1;
       }
-      std::string base = vm["base"].as<std::string>();
-      if (base == "Sp") {
-         opt.base.setDisease(Susceptible);
-         opt.base.setInfo(Informed);
-         opt.Sp = 0;
-      } else if (base == "Sm") {
-         opt.base.setDisease(Susceptible);
-         opt.base.setInfo(Uninformed);
-         opt.Sm = 0;
-      } else if (base == "Ip") {
-         opt.base.setDisease(Infected);
-         opt.base.setInfo(Informed);
-         opt.Ip = 0;
-      } else if (base == "Im") {
-         opt.base.setDisease(Infected);
-         opt.base.setInfo(Uninformed);
-         opt.Im = 0;
-      } else if (base == "Rp") {
-         opt.base.setDisease(Recovered);
-         opt.base.setInfo(Informed);
-         opt.Rp = 0;
-      } else if (base == "Rm") {
-         opt.base.setDisease(Recovered);
-         opt.base.setInfo(Uninformed);
-         opt.Rm = 0;
-      } else {
-         std::cout << "ERROR: unknown base state: " << base << std::endl;
+      opt.init.insert(std::make_pair(VertexState(Susceptible, Informed),
+                                     vm["Sp"].as<unsigned int>()));
+      opt.init.insert(std::make_pair(VertexState(Susceptible, Uninformed),
+                                     vm["Sm"].as<unsigned int>()));
+      opt.init.insert(std::make_pair(VertexState(Infected, Informed),
+                                     vm["Ip"].as<unsigned int>()));
+      opt.init.insert(std::make_pair(VertexState(Infected, Uninformed),
+                                     vm["Im"].as<unsigned int>()));
+      opt.init.insert(std::make_pair(VertexState(Recovered, Informed),
+                                     vm["Rp"].as<unsigned int>()));
+      opt.init.insert(std::make_pair(VertexState(Recovered, Uninformed),
+                                     vm["Rm"].as<unsigned int>()));
+
+      std::string baseString = vm["base"].as<std::string>();
+      if (baseString.length() > 1) {
+         if (baseString[0] == 'S') {
+            opt.base.setDisease(Susceptible);
+         } else if (baseString[0] == 'I') {
+            opt.base.setDisease(Infected);
+         } else if (baseString[0] == 'R') {
+            opt.base.setDisease(Recovered);
+         }
+         if (baseString[1] == 'p') {
+            opt.base.setInfo(Informed);
+         } else if (baseString[1] == 'm') {
+            opt.base.setInfo(Uninformed);
+         }
       }
-      opt.Sp = vm["Sp"].as<unsigned int>();
-      opt.Sm = vm["Sm"].as<unsigned int>();
-      opt.Ip = vm["Ip"].as<unsigned int>();
-      opt.Im = vm["Sm"].as<unsigned int>();
-      opt.Rp = vm["Rp"].as<unsigned int>();
-      opt.Rm = vm["Rm"].as<unsigned int>();
+
+      opt.init[opt.base] = 0;
 
    
       /******************************************************************/
@@ -198,84 +192,51 @@ int main(int argc, char* argv[])
       /******************************************************************/
       boost::mt19937 gen;
       boost::generate_lattice(g,opt.dimensions,opt.sideLength);
-      boost::graph_traits<gillespie_graph>::vertex_descriptor v;
-      unsigned int N = static_cast<int>(pow(opt.sideLength, opt.dimensions));
+
+      /******************************************************************/
+      // set vertex states 
+      /******************************************************************/
       
-      if (opt.Sp+opt.Sm+opt.Ip+opt.Im+opt.Rp+opt.Rm > N) {
+      unsigned int N = static_cast<int>(pow(opt.sideLength, opt.dimensions));
+
+      unsigned int initSum = 0;
+      for (std::map<VertexState, unsigned int>::iterator it = opt.init.begin();
+           it != opt.init.end(); it++) {
+         initSum += (*it).second;
+      }
+      
+      if (initSum > N) {
          std::cout << "Error: number of vertices to select randomly"
                    << " higher than number of total vertices" << std::endl;
       }
-      for (unsigned int i=0; i<opt.Sp; i++) {
-         bool inserted = false;
-         while (!inserted) {
-            v = boost::random_vertex(g, gen);
-            if (g[v].state == opt.base) {
-               g[v].state.setDisease(Susceptible);
-               g[v].state.setInfo(Informed);
-               inserted = true;
+
+      std::cout << "Setting base to " << opt.base << std::endl;
+      boost::graph_traits<gillespie_graph>::vertex_iterator vi, vi_end;
+      for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+         g[*vi].state = opt.base;
+      }
+
+      boost::graph_traits<gillespie_graph>::vertex_descriptor v;
+      for (std::map<VertexState, unsigned int>::iterator it = opt.init.begin();
+           it != opt.init.end(); it++) {
+         for (unsigned int i=0; i<(*it).second; i++) {
+            bool inserted = false;
+            while (!inserted) {
+               v = boost::random_vertex(g, gen);
+               if (g[v].state == opt.base) {
+                  g[v].state = (*it).first;
+                  inserted = true;
+               }
             }
          }
       }
-      for (unsigned int i=0; i<opt.Sm; i++) {
-         bool inserted = false;
-         while (!inserted) {
-            v = boost::random_vertex(g, gen);
-            if (g[v].state == opt.base) {
-               g[v].state.setDisease(Susceptible);
-               g[v].state.setInfo(Uninformed);
-               inserted = true;
-            }
-         }
-      }
-      for (unsigned int i=0; i<opt.Ip; i++) {
-         bool inserted = false;
-         while (!inserted) {
-            v = boost::random_vertex(g, gen);
-            if (g[v].state == opt.base) {
-               g[v].state.setDisease(Infected);
-               g[v].state.setInfo(Informed);
-               inserted = true;
-            }
-         }
-      }
-      for (unsigned int i=0; i<opt.Im; i++) {
-         bool inserted = false;
-         while (!inserted) {
-            v = boost::random_vertex(g, gen);
-            if (g[v].state == opt.base) {
-               g[v].state.setDisease(Infected);
-               g[v].state.setInfo(Uninformed);
-               inserted = true;
-            }
-         }
-      }
-      for (unsigned int i=0; i<opt.Rp; i++) {
-         bool inserted = false;
-         while (!inserted) {
-            v = boost::random_vertex(g, gen);
-            if (g[v].state == opt.base) {
-               g[v].state.setDisease(Recovered);
-               g[v].state.setInfo(Informed);
-               inserted = true;
-            }
-         }
-      }
-      for (unsigned int i=0; i<opt.Rm; i++) {
-         bool inserted = false;
-         while (!inserted) {
-            v = boost::random_vertex(g, gen);
-            if (g[v].state == opt.base) {
-               g[v].state.setDisease(Recovered);
-               g[v].state.setInfo(Uninformed);
-               inserted = true;
-            }
-         }
-      }
+      
       /******************************************************************/
       // initalize GillespieSimulator
       /******************************************************************/
       gSim->initialize(m);
       generateTree(t,g,get(&Vertex::rateSum, g),get(boost::vertex_index, g));
+      std::cout << "time elapsed: " << gSim->getTime() << std::endl;
       boost::print_lattice(g, opt.sideLength);
 
       /******************************************************************/
@@ -283,6 +244,7 @@ int main(int argc, char* argv[])
       /******************************************************************/
       for (unsigned int i=0; i<steps; i++) {
          gSim->updateState(m);
+         std::cout << "time elapsed: " << gSim->getTime() << std::endl;
          boost::print_lattice(g, opt.sideLength);
       }
       

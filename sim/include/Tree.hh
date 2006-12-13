@@ -36,9 +36,6 @@ class Tree
                // and make randNo a random number in [0, eventBin->rateSum),
                // which the leafBin can use to pick its own event
                randNo *= rateSum;
-               // **** debugging printout ****
-               std::cout << "rateSum: " << rateSum << " randNo: " << randNo
-                         << std::endl;
 
                Leaf<T>* pickedLeaf =
                   dynamic_cast<Leaf<T>*>(topBin->pickBin(randNo));

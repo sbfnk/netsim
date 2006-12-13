@@ -22,7 +22,8 @@
 // creates the random generator for event selection
 /******************************************************************/
 GillespieSimulator::GillespieSimulator()
-   : randGen(new mt19937Uniform())
+   : randGen(new mt19937Uniform()),
+     time(0.)
 {
 }
 
@@ -52,9 +53,13 @@ void GillespieSimulator::initialize(const Model& model)
 /******************************************************************/
 void GillespieSimulator::updateState(const Model& model)
 {
-   // draw a random number from [0,1)
+   // draw a random number from [0,1) for the timestep advance
    double randNo = (*randGen)();
+   randNo *= tree.getTopBin()->getRateSum();
+   time += (1/randNo);
 
+   // draw another random number from [0,1) for picking the event
+   randNo = (*randGen)();
    unsigned int eventVertex = tree.pickRandomElement(randNo);
    if (eventVertex >= 0) {
       // process vertex event
@@ -72,11 +77,7 @@ void GillespieSimulator::updateState(const Model& model)
          return;
       }
       it--;
-      // debugging printout
-      std::cout << "GillespieVertex::processEvent: node "
-                << reinterpret_cast<void*>(this) << " turns from "
-                << graph[v].state << " to " << (*it).newState
-                << std::endl;
+
       // process the change of state
       graph[v].state = (*it).newState;
 

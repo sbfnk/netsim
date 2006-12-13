@@ -13,6 +13,7 @@
 #define MODEL_HH
 
 #include <list>
+#include <string>
 
 enum diseaseStates  {Susceptible,Infected,Recovered};
 enum infoStates {Uninformed, Informed};
@@ -35,6 +36,13 @@ class VertexState
       bool operator==(const VertexState& rhs) const
       { return disease==rhs.getDisease() && info == rhs.getInfo(); }
 
+      VertexState& operator=(const VertexState& rhs) 
+      { setDisease(rhs.getDisease()); setInfo(rhs.getInfo()); return *this; }
+
+      bool operator<(const VertexState& rhs) const
+      { return ((getInfo() < rhs.getInfo()) ||
+            (getInfo() == rhs.getInfo() && getDisease() < rhs.getDisease())); }
+      
       void print(std::ostream& os) const;
 
    private:
