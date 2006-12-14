@@ -15,7 +15,7 @@
 #include <list>
 #include <string>
 
-enum diseaseStates  {Susceptible,Infected,Recovered};
+enum diseaseStates {Susceptible,Infected,Recovered};
 enum infoStates {Uninformed, Informed};
 enum edgeTypes {Disease, Information};
 
@@ -43,6 +43,8 @@ class VertexState
       { return ((getInfo() < rhs.getInfo()) ||
             (getInfo() == rhs.getInfo() && getDisease() < rhs.getDisease())); }
       
+      void set(std::string s);
+      std::string getString() const;
       void print(std::ostream& os) const;
 
    private:

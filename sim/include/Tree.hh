@@ -22,7 +22,7 @@ class Tree
       // picks a random vertex from the tree, based on a random number
       // between 0 and 1
       /******************************************************************/
-      T& pickRandomElement(double& randNo)
+      T* pickRandomElement(double& randNo)
       {
          // check if we have a topBin (if not we either have no vertex
          // or something else is seriously wrong)
@@ -52,7 +52,7 @@ class Tree
             std::cout << "Could not find top bin." << std::endl;
          }
          // we should never end up here
-         return *(new T);
+         return 0;
       }
 
       Bin* getTopBin() { return topBin; }

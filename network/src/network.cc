@@ -7,6 +7,7 @@
 #include <map>
 
 #include <boost/graph/random.hpp>
+#include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/program_options.hpp>
 
@@ -16,7 +17,8 @@
 #include "GillespieSimulator.hh"
 #include "Tree.hh"
 #include "RandomGenerator.hh"
-#include "lattice.hh"
+#include "lattice_generator.hh"
+#include "generate_graph.hh"
 
 namespace po = boost::program_options;
 
@@ -33,8 +35,72 @@ struct latticeOptions {
       std::map<VertexState, unsigned int> init;
 };
 
+std::vector<VertexState> possibleStates;
+
+template <typename Graph>
+void print_graph_statistics(Graph& g)
+{
+   std::map<VertexState, unsigned int> stateCounts;
+   std::map<std::pair<VertexState, VertexState>, unsigned int> edgeCounts;
+
+   for (std::vector<VertexState>::iterator it = possibleStates.begin();
+        it != possibleStates.end(); it++) {
+      stateCounts.insert(std::make_pair(*it,0));
+   }
+   
+   for (std::vector<VertexState>::iterator it = possibleStates.begin();
+        it != possibleStates.end(); it++) {
+      for (std::vector<VertexState>::iterator it2 = possibleStates.begin();
+        it2 != possibleStates.end(); it2++) {
+         edgeCounts.insert(std::make_pair(std::make_pair(*it,*it2),0));
+      }
+   }
+
+   // count vertices
+   
+   boost::graph_traits<gillespie_graph>::vertex_iterator vi, vi_end;
+   for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+      stateCounts[g[*vi].state]++;
+   }
+
+   // count edges
+   boost::graph_traits<gillespie_graph>::edge_iterator ei, ei_end;
+   for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
+      edgeCounts[std::make_pair(g[source(*ei, g)].state,
+                                g[target(*ei, g)].state)]++;
+   }
+
+   // print statistics
+   std::cout << std::endl;
+   
+   for (std::vector<VertexState>::iterator it = possibleStates.begin();
+        it != possibleStates.end(); it++) {
+      if (stateCounts[*it] > 0) {
+         std::cout << *it << ": " << stateCounts[*it] << std::endl;
+      }
+   }
+   
+   for (std::vector<VertexState>::iterator it = possibleStates.begin();
+        it != possibleStates.end(); it++) {
+      for (std::vector<VertexState>::iterator it2 = possibleStates.begin();
+        it2 != possibleStates.end(); it2++) {
+         if (edgeCounts[std::make_pair(*it, *it2)] > 0) {
+            std::cout << *it << *it2 << ": "
+                      << edgeCounts[std::make_pair(*it,*it2)] << std::endl;
+         }
+      }
+   }
+}
+
 int main(int argc, char* argv[])
 {
+   possibleStates.push_back(VertexState(Susceptible, Informed));
+   possibleStates.push_back(VertexState(Susceptible, Uninformed));
+   possibleStates.push_back(VertexState(Infected, Informed));
+   possibleStates.push_back(VertexState(Infected, Uninformed));
+   possibleStates.push_back(VertexState(Recovered, Informed));
+   possibleStates.push_back(VertexState(Recovered, Uninformed));
+
    /******************************************************************/
    // read parameters
    /******************************************************************/
@@ -72,17 +138,17 @@ int main(int argc, char* argv[])
        "number of dimensions")
       ("base,b", po::value<std::string>()->default_value("Sm"),
        "base state of individuals\n(Sp,Sm,Ip,Im,Rp,Rm)")
-      ("Sp", po::value<unsigned int>()->default_value(0),
+      ("random-s", po::value<unsigned int>()->default_value(0),
        "number of randomly chosen informed susceptibles")
-      ("Sm", po::value<unsigned int>()->default_value(0),
+      ("random-S", po::value<unsigned int>()->default_value(0),
        "number of randomly chosen uninformed susceptibles")
-      ("Ip", po::value<unsigned int>()->default_value(0),
+      ("random-i", po::value<unsigned int>()->default_value(0),
        "number of randomly chosen informed infected")
-      ("Im", po::value<unsigned int>()->default_value(0),
+      ("random-I", po::value<unsigned int>()->default_value(0),
        "number of randomly chosen uninformed infected")
-      ("Rp", po::value<unsigned int>()->default_value(0),
+      ("random-r", po::value<unsigned int>()->default_value(0),
        "number of randomly chosen informed recovered")
-      ("Rm", po::value<unsigned int>()->default_value(0),
+      ("random-R", po::value<unsigned int>()->default_value(0),
        "number of randomly chosen uninformed recovered")
       ;
 
@@ -105,9 +171,9 @@ int main(int argc, char* argv[])
       return 1;
    }
    
-   Model m;
+   Model model;
    if (vm.count("params_file")) {
-      if (m.InitFromFile(vm["params_file"].as<std::string>()) > 0) {
+      if (model.InitFromFile(vm["params_file"].as<std::string>()) > 0) {
          std::cout << "ERROR: could not read params_file" << std::endl;
          std::cout << std::endl;
          std::cout << main_options << std::endl;
@@ -140,13 +206,12 @@ int main(int argc, char* argv[])
       partial_options.add(main_options).add(lattice_options);
       
       /******************************************************************/
-      // read lattice specific
+      // read lattice specific parameters
       /******************************************************************/
 
       latticeOptions opt;
       if (vm.count("length")) {
          opt.sideLength = vm["length"].as<unsigned int>();
-         std::cout << "Side length: " << opt.sideLength << std::endl;
       } else {
          std::cout << "ERROR: no length specified" << std::endl;
          std::cout << std::endl;
@@ -161,50 +226,41 @@ int main(int argc, char* argv[])
          std::cout << partial_options << std::endl;
          return 1;
       }
-      opt.init.insert(std::make_pair(VertexState(Susceptible, Informed),
-                                     vm["Sp"].as<unsigned int>()));
-      opt.init.insert(std::make_pair(VertexState(Susceptible, Uninformed),
-                                     vm["Sm"].as<unsigned int>()));
-      opt.init.insert(std::make_pair(VertexState(Infected, Informed),
-                                     vm["Ip"].as<unsigned int>()));
-      opt.init.insert(std::make_pair(VertexState(Infected, Uninformed),
-                                     vm["Im"].as<unsigned int>()));
-      opt.init.insert(std::make_pair(VertexState(Recovered, Informed),
-                                     vm["Rp"].as<unsigned int>()));
-      opt.init.insert(std::make_pair(VertexState(Recovered, Uninformed),
-                                     vm["Rm"].as<unsigned int>()));
 
-      std::string baseString = vm["base"].as<std::string>();
-      if (baseString.length() > 1) {
-         if (baseString[0] == 'S') {
-            opt.base.setDisease(Susceptible);
-         } else if (baseString[0] == 'I') {
-            opt.base.setDisease(Infected);
-         } else if (baseString[0] == 'R') {
-            opt.base.setDisease(Recovered);
-         }
-         if (baseString[1] == 'p') {
-            opt.base.setInfo(Informed);
-         } else if (baseString[1] == 'm') {
-            opt.base.setInfo(Uninformed);
+      for (std::vector<VertexState>::iterator it = possibleStates.begin();
+           it != possibleStates.end(); it++) {
+         std::stringstream ss;
+         ss << "random-" << (*it).getString();
+         std::string s(ss.str());
+         if (vm.count(s.c_str())) {
+            opt.init.insert(std::make_pair(*it,
+                                           vm[s.c_str()].as<unsigned int>()));
          }
       }
 
+      opt.base.set(vm["base"].as<std::string>());
       opt.init[opt.base] = 0;
 
    
       /******************************************************************/
       // generate lattice with desired properties 
       /******************************************************************/
-      boost::mt19937 gen;
-      boost::generate_lattice(g,opt.dimensions,opt.sideLength);
+      boost::mt19937 gen(time(0));
+      unsigned int N = static_cast<int>(pow(opt.sideLength, opt.dimensions));
+
+      boost::add_vertices(g, N, Vertex(opt.base));
+      typedef boost::lattice_iterator<gillespie_graph> lattice_iterator;
+      boost::add_edge_structure(g, lattice_iterator(opt.sideLength,
+                                                    opt.dimensions, false),
+                                lattice_iterator(), Edge(Disease));
+      boost::add_edge_structure(g, lattice_iterator(opt.sideLength,
+                                                    opt.dimensions, false),
+                                lattice_iterator(), Edge(Information));
 
       /******************************************************************/
       // set vertex states 
       /******************************************************************/
       
-      unsigned int N = static_cast<int>(pow(opt.sideLength, opt.dimensions));
-
       unsigned int initSum = 0;
       for (std::map<VertexState, unsigned int>::iterator it = opt.init.begin();
            it != opt.init.end(); it++) {
@@ -214,12 +270,6 @@ int main(int argc, char* argv[])
       if (initSum > N) {
          std::cout << "Error: number of vertices to select randomly"
                    << " higher than number of total vertices" << std::endl;
-      }
-
-      std::cout << "Setting base to " << opt.base << std::endl;
-      boost::graph_traits<gillespie_graph>::vertex_iterator vi, vi_end;
-      for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
-         g[*vi].state = opt.base;
       }
 
       boost::graph_traits<gillespie_graph>::vertex_descriptor v;
@@ -240,24 +290,27 @@ int main(int argc, char* argv[])
       /******************************************************************/
       // initalize GillespieSimulator
       /******************************************************************/
-      gSim->initialize(m);
+      gSim->initialize(model);
       generateTree(t,g,get(&Vertex::rateSum, g),get(boost::vertex_index, g));
       std::cout << "time elapsed: " << gSim->getTime() << std::endl;
       boost::print_lattice(g, opt.sideLength);
+      print_graph_statistics(g);
 
       /******************************************************************/
       // run simulation
       /******************************************************************/
-      for (unsigned int i=0; i<steps; i++) {
-         gSim->updateState(m);
-         std::cout << "time elapsed: " << gSim->getTime() << std::endl;
+      unsigned int i=0;
+      while (i<steps && gSim->updateState(model)) {
          if ((outputSteps > 0) && ((i+1)%outputSteps == 0)) {
+            std::cout << "time elapsed: " << gSim->getTime() << std::endl;
             boost::print_lattice(g, opt.sideLength);
          }
+         ++i;
       }
       
       std::cout << "Final status:" << std::endl;
       boost::print_lattice(g, opt.sideLength);
+      print_graph_statistics(g);
    } else {
       std::cout << "ERROR: unknown topology: " << topology << std::endl;
       std::cout << std::endl;

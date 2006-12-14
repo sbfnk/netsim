@@ -25,6 +25,8 @@ class Vertex {
       Vertex() { state.setDisease(Susceptible); state.setInfo(Uninformed); }
       Vertex(int diseaseState, int infoState)
       { state.setDisease(diseaseState); state.setInfo(infoState); }
+
+      Vertex(VertexState vs) { state = vs; }
       
       Vertex(Vertex const& v) { state=v.state; }
       virtual ~Vertex() {;}

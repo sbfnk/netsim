@@ -36,14 +36,14 @@ Model::~Model()
 /******************************************************************/
 void Model::InitDefaultParams()
 {
-   gamma[0] = 1.;
-   gamma[1] = 1.;
-   delta[0] = 1.;
-   delta[1] = 1.;
-   beta[0][0] = 1.;
-   beta[0][1] = 1.;
-   beta[1][0] = 1.;
-   beta[1][1] = 1.;
+   gamma[Uninformed] = 1.;
+   gamma[Informed] = 1.;
+   delta[Uninformed] = 1.;
+   delta[Informed] = 1.;
+   beta[Uninformed][Uninformed] = 1.;
+   beta[Uninformed][Informed] = 1.;
+   beta[Informed][Uninformed] = 1.;
+   beta[Informed][Informed] = 1.;
    alpha = 1.;
    nu = 1.;
    lambda = 1.;
@@ -75,28 +75,28 @@ int Model::InitFromFile(std::string fileName)
    }
    
    // beta_++
-   beta[0][0]=read_dbl_val(ifile);
+   beta[Uninformed][Uninformed]=read_dbl_val(ifile);
    
    // gamma_d 
-   gamma[0]=read_dbl_val(ifile);
+   gamma[Uninformed]=read_dbl_val(ifile);
   
    // delta_d 
-   delta[0]=read_dbl_val(ifile);
+   delta[Uninformed]=read_dbl_val(ifile);
       
    // beta_--
-   beta[1][1]=read_dbl_val(ifile);
+   beta[Informed][Informed]=read_dbl_val(ifile);
    
    // gamma_i 
-   gamma[1]=read_dbl_val(ifile);
+   gamma[Informed]=read_dbl_val(ifile);
    
    // delta_i 
-   delta[1]=read_dbl_val(ifile);
+   delta[Informed]=read_dbl_val(ifile);
    
    // beta_m1 
-   beta[0][1]=read_dbl_val(ifile);
+   beta[Uninformed][Informed]=read_dbl_val(ifile);
    
    // beta_m2 
-   beta[1][0]=read_dbl_val(ifile);
+   beta[Informed][Uninformed]=read_dbl_val(ifile);
    
    // alpha 
    alpha=read_dbl_val(ifile);
@@ -210,6 +210,61 @@ double Model::getEdgeEvents(eventList& events,
    }
 
    return rateSum;
+}
+
+/******************************************************************/
+// VertexState::set
+// set VertexState to state defined by string (S,s,I,i,R,r)
+/******************************************************************/
+void VertexState::set(std::string s)
+{
+   if (s == "S") {
+      setDisease(Susceptible);
+      setInfo(Uninformed);
+   } else if (s == "s") {
+      setDisease(Susceptible);
+      setInfo(Informed);
+   } else if (s == "I") {
+      setDisease(Infected);
+      setInfo(Uninformed);
+   } else if (s == "i") {
+      setDisease(Infected);
+      setInfo(Informed);
+   } else if (s == "R") {
+      setDisease(Recovered);
+      setInfo(Uninformed);
+   } else if (s == "r") {
+      setDisease(Recovered);
+      setInfo(Informed);
+   }
+}
+
+/******************************************************************/
+// VertexState::getString
+// convert state to string
+/******************************************************************/
+std::string VertexState::getString() const
+{
+   if (info == Informed) {
+      switch (disease) {
+       case Susceptible:
+        return "s";
+       case Infected:
+        return "i";
+       case Recovered:
+        return "r";
+      }
+   } else {
+      switch (disease) {
+       case Susceptible:
+        return "S";
+       case Infected:
+        return "I";
+       case Recovered:
+        return "R";
+      }
+   }
+   return "";
 }
 
 /******************************************************************/

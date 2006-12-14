@@ -8,7 +8,7 @@
 class RandomGenerator;
 
 // define gillespie_graph derived from boost adjacency list
-typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
+typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
                               Vertex, Edge> gillespie_graph;
 
 class GillespieSimulator
@@ -30,7 +30,7 @@ class GillespieSimulator
       ~GillespieSimulator();
       
       void initialize(const Model& model);
-      void updateState(const Model& model);
+      bool updateState(const Model& model);
 
       double getTime() { return time; };
 

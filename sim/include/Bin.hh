@@ -43,7 +43,7 @@ class Leaf :
 {
    public:
       Leaf(T newItem): item(newItem) {;}
-      T& getItem() { return item; }
+      T* getItem() { return &item; }
    private:
       T item;
 };

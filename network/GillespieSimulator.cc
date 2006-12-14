@@ -51,8 +51,14 @@ void GillespieSimulator::initialize(const Model& model)
 // updates the state of the graph by advancing one time step
 // and choosing an event to process
 /******************************************************************/
-void GillespieSimulator::updateState(const Model& model)
+bool GillespieSimulator::updateState(const Model& model)
 {
+   // exit if nothing can happen
+   if (tree.getTopBin()->getRateSum() ==0) {
+      std::cout << "Nothing can happen" << std::endl;
+      return false;
+   }
+
    // draw a random number from [0,1) for the timestep advance
    double randNo = (*randGen)();
    randNo *= tree.getTopBin()->getRateSum();
@@ -60,11 +66,11 @@ void GillespieSimulator::updateState(const Model& model)
 
    // draw another random number from [0,1) for picking the event
    randNo = (*randGen)();
-   unsigned int eventVertex = tree.pickRandomElement(randNo);
-   if (eventVertex >= 0) {
+   unsigned int* eventVertex = tree.pickRandomElement(randNo);
+   if (eventVertex) {
       // process vertex event
       double tempSum = .0;
-      vertex_descriptor v = vertex(eventVertex, graph);
+      vertex_descriptor v = vertex(*eventVertex, graph);
 
       std::list<event>::iterator it = graph[v].events.begin();
       while (it != graph[v].events.end() && tempSum < randNo) {
@@ -74,7 +80,7 @@ void GillespieSimulator::updateState(const Model& model)
       if (tempSum < randNo) {
          // should not happen
          std::cout << "Could not pick event" << std::endl;
-         return;
+         return false;
       }
       it--;
 
@@ -99,6 +105,6 @@ void GillespieSimulator::updateState(const Model& model)
       }
       
    }
-      
+   return true;
 }
 
