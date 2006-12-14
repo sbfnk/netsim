@@ -64,4 +64,4 @@ cleaner:
 GillespieSimulator.o: Vertex.hh Model.hh GillespieSimulator.hh Tree.hh \
 	RandomGenerator.hh
 main.cc: Vertex.hh GillespieSimulator.hh Tree.hh Bin.hh Model.hh \
-	RandomGenerator.hh lattice_generator.hh generate_graph.hh
+	RandomGenerator.hh lattice_generator.hh graph_structure.hh

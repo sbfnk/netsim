@@ -18,7 +18,7 @@
 #include "Tree.hh"
 #include "RandomGenerator.hh"
 #include "lattice_generator.hh"
-#include "generate_graph.hh"
+#include "graph_structure.hh"
 
 namespace po = boost::program_options;
 
