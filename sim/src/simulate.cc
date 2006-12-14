@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
    main_options.add_options()
       ("help,h",
        "produce help message")
-      ("hh",
+      ("longhelp",
        "produce long help message including all topology-related options")
       ("params_file,p",po::value<std::string>(),
        "file containing model parameters")
@@ -136,8 +136,8 @@ int main(int argc, char* argv[])
        "side length of lattice")
       ("dim,d",  po::value<unsigned int>(),
        "number of dimensions")
-      ("base,b", po::value<std::string>()->default_value("Sm"),
-       "base state of individuals\n(Sp,Sm,Ip,Im,Rp,Rm)")
+      ("base,b", po::value<std::string>()->default_value("S"),
+       "base state of individuals\n(S,s,I,i,R,r)")
       ("random-s", po::value<unsigned int>()->default_value(0),
        "number of randomly chosen informed susceptibles")
       ("random-S", po::value<unsigned int>()->default_value(0),
@@ -166,7 +166,7 @@ int main(int argc, char* argv[])
       return 1;
    }
    
-   if (vm.count("hh")) {
+   if (vm.count("longhelp")) {
       std::cout << all_options << std::endl;
       return 1;
    }
