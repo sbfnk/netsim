@@ -212,6 +212,18 @@ double Model::getEdgeEvents(eventList& events,
    return rateSum;
 }
 
+std::vector<VertexState> Model::getPossibleStates()
+{
+   std::vector<VertexState> v;
+   v.push_back(VertexState(Susceptible, Informed));
+   v.push_back(VertexState(Susceptible, Uninformed));
+   v.push_back(VertexState(Infected, Informed));
+   v.push_back(VertexState(Infected, Uninformed));
+   v.push_back(VertexState(Recovered, Informed));
+   v.push_back(VertexState(Recovered, Uninformed));
+   return v;
+}
+
 /******************************************************************/
 // VertexState::set
 // set VertexState to state defined by string (S,s,I,i,R,r)

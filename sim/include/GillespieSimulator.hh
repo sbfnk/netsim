@@ -5,11 +5,11 @@
 #include "Model.hh"
 #include "Vertex.hh"
 
-class RandomGenerator;
-
 // define gillespie_graph derived from boost adjacency list
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
                               Vertex, Edge> gillespie_graph;
+
+class RandomGenerator;
 
 class GillespieSimulator
 {
@@ -26,7 +26,7 @@ class GillespieSimulator
 
    public:
       
-      GillespieSimulator();
+      GillespieSimulator(RandomGenerator& rg);
       ~GillespieSimulator();
       
       void initialize(const Model& model);
@@ -39,7 +39,7 @@ class GillespieSimulator
 
    private:
 
-      RandomGenerator* randGen; // random generator
+      RandomGenerator& randGen; // random generator
       double time;
       
 };

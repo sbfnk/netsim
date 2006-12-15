@@ -13,6 +13,7 @@
 #define MODEL_HH
 
 #include <list>
+#include <vector>
 #include <string>
 
 enum diseaseStates {Susceptible,Infected,Recovered};
@@ -78,6 +79,8 @@ class Model
       double getEdgeEvents(eventList& events,
                            VertexState state, int edge,
                            VertexState nbState) const;
+
+      std::vector<VertexState> getPossibleStates();
 
       double gamma[2], delta[2]; // model parameters
       double beta[2][2], alpha, nu, lambda; // model parameters

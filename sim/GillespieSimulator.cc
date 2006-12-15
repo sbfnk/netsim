@@ -21,8 +21,8 @@
 // GillespieSimulator constructor
 // creates the random generator for event selection
 /******************************************************************/
-GillespieSimulator::GillespieSimulator()
-   : randGen(new mt19937Uniform()),
+GillespieSimulator::GillespieSimulator(RandomGenerator& rg)
+   : randGen(rg),
      time(0.)
 {
 }
@@ -60,12 +60,12 @@ bool GillespieSimulator::updateState(const Model& model)
    }
 
    // draw a random number from [0,1) for the timestep advance
-   double randNo = (*randGen)();
+   double randNo = (randGen)();
    randNo *= tree.getTopBin()->getRateSum();
    time += (1/randNo);
 
    // draw another random number from [0,1) for picking the event
-   randNo = (*randGen)();
+   randNo = (randGen)();
    unsigned int* eventVertex = tree.pickRandomElement(randNo);
    if (eventVertex) {
       // process vertex event
