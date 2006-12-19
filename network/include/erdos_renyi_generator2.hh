@@ -1,11 +1,14 @@
 #ifndef BOOST_GRAPH_ERDOS_RENYI_GENERATOR2_HH
 #define BOOST_GRAPH_ERDOS_RENYI_GENERATOR2_HH
 
+#include <iostream>
+
 #include <iterator>
 #include <utility>
 #include <boost/random/uniform_int.hpp>
 #include <boost/random/uniform_01.hpp>
 #include <boost/graph/graph_traits.hpp>
+#include <boost/graph/graphviz.hpp>
 #include <boost/type_traits/is_base_and_derived.hpp>
 #include <boost/type_traits/is_same.hpp>
 

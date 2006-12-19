@@ -10,7 +10,7 @@
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/program_options.hpp>
-#include <boost/graph/erdos_renyi_generator.hpp>
+// #include <boost/graph/erdos_renyi_generator.hpp>
 #include <boost/random/mersenne_twister.hpp>
 
 #include <math.h>
@@ -21,6 +21,7 @@
 #include "lattice_generator.hh"
 #include "graph_structure.hh"
 #include "erdos_renyi_generator2.hh"
+#include "visualize_graph.hh"
 
 namespace po = boost::program_options;
 
@@ -38,83 +39,6 @@ struct latticeOptions {
 struct rgOptions {
       unsigned int edges;
 };
-
-template <typename Graph>
-void print_graph_statistics(Graph& g,
-                            std::vector<VertexState>& possibleStates,
-                            std::vector<EdgeType>& possibleEdgeTypes)
-{
-   std::map<VertexState, unsigned int> stateCounts;
-   std::map<std::pair<VertexState, VertexState>, unsigned int> edgeCounts;
-
-   std::cout << std::endl;
-   std::cout << "Vertex count: " << std::endl;
-
-   // generate vertex map
-   for (std::vector<VertexState>::iterator it = possibleStates.begin();
-        it != possibleStates.end(); it++) {
-      stateCounts.insert(std::make_pair(*it,0));
-   }
-
-   // count vertices
-   boost::graph_traits<gillespie_graph>::vertex_iterator vi, vi_end;
-   for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
-      stateCounts[g[*vi].state]++;
-   }
-
-   // print statistics
-   for (std::vector<VertexState>::iterator it = possibleStates.begin();
-        it != possibleStates.end(); it++) {
-      if (stateCounts[*it] > 0) {
-         std::cout << *it << ": " << stateCounts[*it] << std::endl;
-      }
-   }
-   
-   std::cout << std::endl;
-   std::cout << "Edge count: " << std::endl;
-
-   // generate edge maps
-   for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
-        etIt != possibleEdgeTypes.end(); etIt++) {
-      edgeCounts.clear();
-      std::cout << *etIt << "-type: " << std::endl;
-
-      for (std::vector<VertexState>::iterator it = possibleStates.begin();
-           it != possibleStates.end(); it++) {
-         for (std::vector<VertexState>::iterator it2 = possibleStates.begin();
-              it2 != possibleStates.end(); it2++) {
-            edgeCounts.insert(std::make_pair(std::make_pair(*it,*it2),0));
-         }
-      }
-
-      // count edges
-      boost::graph_traits<gillespie_graph>::edge_iterator ei, ei_end;
-      for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
-         if (g[*ei].type == *etIt)
-            edgeCounts[std::make_pair(g[source(*ei, g)].state,
-                                      g[target(*ei, g)].state)]++;
-      }
-
-      for (std::vector<VertexState>::iterator it = possibleStates.begin();
-           it != possibleStates.end(); it++) {
-         for (std::vector<VertexState>::iterator it2 = it;
-              it2 != possibleStates.end(); it2++) {
-            unsigned int nEdges;
-            if (it == it2) {
-               nEdges = edgeCounts[std::make_pair(*it, *it2)];
-            } else {
-               nEdges = edgeCounts[std::make_pair(*it, *it2)] +
-                  edgeCounts[std::make_pair(*it2, *it)];
-            }
-            if (nEdges > 0) {
-               std::cout << *it << *it2 << ": " << nEdges << std::endl;
-            }
-         }
-      }
-   }
-
-   std::cout << std::endl;
-}
 
 int main(int argc, char* argv[])
 {
@@ -379,6 +303,7 @@ int main(int argc, char* argv[])
    gSim->initialize(model);
    generateTree(t,g,get(&Vertex::rateSum, g),get(boost::vertex_index, g));
    std::cout << "time elapsed: " << gSim->getTime() << std::endl;
+   write_graph(g, "start");
 //    boost::print_lattice(g, lattice_sideLength);
    print_graph_statistics(g, possibleStates, possibleEdgeTypes);
    
@@ -396,6 +321,7 @@ int main(int argc, char* argv[])
    
    std::cout << "Final status:" << std::endl;
 //    boost::print_lattice(g, lattice_sideLength);
+   write_graph(g, "end");
    print_graph_statistics(g, possibleStates, possibleEdgeTypes);
 
    return 0;
