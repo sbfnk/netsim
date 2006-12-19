@@ -13,22 +13,22 @@
 
 class Edge {
    public:
-      Edge(): edgeType(Disease) {;}
-      Edge(int edge_type): edgeType(edge_type) {;}
-      int edgeType;
+      Edge(): type(Disease) {;}
+      Edge(EdgeType eType): type(eType) {;}
+      EdgeType type;
 };
 
 class Vertex {
 
    public:
 
-      Vertex() { state.setDisease(Susceptible); state.setInfo(Uninformed); }
+      Vertex() : state(VertexState(Susceptible, Uninformed)) {;}
       Vertex(int diseaseState, int infoState)
-      { state.setDisease(diseaseState); state.setInfo(infoState); }
+         : state(VertexState(diseaseState, infoState)) {;}
 
-      Vertex(VertexState vs) { state = vs; }
+      Vertex(VertexState vs)
+         : state(vs) {;}
       
-      Vertex(Vertex const& v) { state=v.state; }
       virtual ~Vertex() {;}
 
       VertexState state; // present (disease and information) state
@@ -38,6 +38,7 @@ class Vertex {
       eventList events; // list of events associated with vertex
 
 };
+
 
 /******************************************************************/
 // generateEventList function
@@ -74,7 +75,7 @@ double generateEventList(Graph& graph, VertexClass v,
       vertex_descriptor t =  target(e, graph);
       tempSum +=
          model.getEdgeEvents(graph[v].events, graph[v].state,
-                             graph[e].edgeType, graph[t].state);
+                             graph[e].type, graph[t].state);
    }
    
    // calculate difference between new and old sum of rates

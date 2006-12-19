@@ -173,11 +173,11 @@ double Model::getNodeEvents(eventList& events,
 // of their rates 
 /******************************************************************/
 double Model::getEdgeEvents(eventList& events,
-                            VertexState state, int edge,
+                            VertexState state, EdgeType edge,
                             VertexState nbState) const
 {
    double rateSum(.0);
-   if (edge == Disease) {
+   if (edge.getType() == Disease) {
       // infection
       if (state.getDisease() == Susceptible &&
           nbState.getDisease() == Infected) {
@@ -188,7 +188,7 @@ double Model::getEdgeEvents(eventList& events,
          events.push_back(infection);
          rateSum += infection.rate;
       }
-   } else if (edge == Information) {
+   } else if (edge.getType() == Information) {
       // information transmission
       if (state.getInfo() == Uninformed && nbState.getInfo() == Informed) {
          event infoTransmission;
@@ -222,6 +222,30 @@ std::vector<VertexState> Model::getPossibleStates()
    v.push_back(VertexState(Recovered, Informed));
    v.push_back(VertexState(Recovered, Uninformed));
    return v;
+}
+
+std::vector<EdgeType> Model::getPossibleEdgeTypes()
+{
+   std::vector<EdgeType> e;
+   e.push_back(Disease);
+   e.push_back(Information);
+   return e;
+}
+
+/******************************************************************/
+// EdgeType::print
+// for easier printout of the edge type
+/******************************************************************/
+void EdgeType::print(std::ostream& os) const
+{
+   switch (edgeType) {
+       case Disease:
+        os << "d";
+        break;
+       case Information:
+        os << "i";
+        break;
+   }
 }
 
 /******************************************************************/
@@ -313,7 +337,17 @@ void VertexState::print(std::ostream& os) const
 }
 
 /******************************************************************/
-// overloading of << operator for a VertexState so that it
+// overloading of << operator for EdgeType so that it
+// can be used in std output pipes
+/******************************************************************/
+std::ostream& operator<<(std::ostream& os, const EdgeType& e)
+{
+   e.print(os);
+   return os;
+}
+
+/******************************************************************/
+// overloading of << operator for VertexState so that it
 // can be used in std output pipes
 /******************************************************************/
 std::ostream& operator<<(std::ostream& os, const VertexState& v)

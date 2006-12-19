@@ -27,7 +27,7 @@ DEPENDFLAGS = -m
 
 #--------------------------------------------------------------------
 
-SOURCES     = main.cc GillespieSimulator.cc Bin.cc Model.cc
+SOURCES     = main.cc Bin.cc Model.cc
 OBJECTS     = $(SOURCES:.cc=.o)
 
 EXEC        = simulate
@@ -61,7 +61,6 @@ cleaner:
 #-------------------------------------------------------------------
 # DO NOT DELETE
 
-GillespieSimulator.o: Vertex.hh Model.hh GillespieSimulator.hh Tree.hh \
-	RandomGenerator.hh
+GillespieSimulator.o: Vertex.hh Model.hh GillespieSimulator.hh Tree.hh 
 main.cc: Vertex.hh GillespieSimulator.hh Tree.hh Bin.hh Model.hh \
-	RandomGenerator.hh lattice_generator.hh graph_structure.hh
+	lattice_generator.hh graph_structure.hh erdos_renyi_generator2.hh

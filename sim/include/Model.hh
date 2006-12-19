@@ -20,12 +20,32 @@ enum diseaseStates {Susceptible,Infected,Recovered};
 enum infoStates {Uninformed, Informed};
 enum edgeTypes {Disease, Information};
 
+class EdgeType
+{
+   public:
+      EdgeType() : edgeType(Disease) {;}
+      EdgeType(int eType) : edgeType(eType) {;}
+
+      int getType() const { return edgeType; }
+      void setType(int newType) { edgeType = newType; }
+      
+      void print(std::ostream& os) const;
+
+      bool operator==(const EdgeType& rhs) const
+      { return edgeType==rhs.getType(); }
+
+   private:
+      int edgeType;
+};      
+
 class VertexState
 {
    public:
 
-      VertexState() { disease = Susceptible; info = Uninformed; }
-      VertexState(int dState, int iState) { disease = dState; info = iState; }
+      VertexState() :
+         disease(Susceptible), info(Uninformed) {;}
+      VertexState(int dState, int iState)
+         : disease(dState), info(iState) {;}
       ~VertexState() {;}
       
       int getDisease() const { return disease; }
@@ -53,8 +73,9 @@ class VertexState
       int info; // Informed or Uninformed
 };
 
-// streams a letter associated with the state, needed for easy printout
+// streams a letter associated VertexState/EdgeType, useful for easy printout
 std::ostream& operator<<(std::ostream& os, const VertexState& v);
+std::ostream& operator<<(std::ostream& os, const EdgeType& e);
       
 struct event
 {
@@ -77,10 +98,11 @@ class Model
       double getNodeEvents(eventList& events,
                            VertexState state) const;
       double getEdgeEvents(eventList& events,
-                           VertexState state, int edge,
+                           VertexState state, EdgeType edge,
                            VertexState nbState) const;
 
       std::vector<VertexState> getPossibleStates();
+      std::vector<EdgeType> getPossibleEdgeTypes();
 
       double gamma[2], delta[2]; // model parameters
       double beta[2][2], alpha, nu, lambda; // model parameters
