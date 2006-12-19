@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
        "file containing model parameters")
       ("vertices,n", po::value<unsigned int>(),
        "number of vertices")
-      ("topology, t", po::value<std::string>(),
+      ("topology,t", po::value<std::string>(),
        "network topology\n(lattice,random)")
 //       ("i-topology, i", po::value<std::string>(),
 //        "information network topology\n(lattice,random)")
