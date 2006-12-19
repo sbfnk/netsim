@@ -3,6 +3,7 @@
 // contains the main simulation program
 /******************************************************************/
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <map>
 
@@ -10,7 +11,6 @@
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/program_options.hpp>
-// #include <boost/graph/erdos_renyi_generator.hpp>
 #include <boost/random/mersenne_twister.hpp>
 
 #include <math.h>
@@ -40,6 +40,13 @@ struct rgOptions {
       unsigned int edges;
 };
 
+std::string generateFileName(std::string nameBase, unsigned int id)
+{
+  std::stringstream s;
+  s << nameBase << std::setw(3) << std::setfill('0') << id;
+  return s.str();
+}
+
 int main(int argc, char* argv[])
 {
    Model model;
@@ -50,6 +57,7 @@ int main(int argc, char* argv[])
    VertexState base;
 
    unsigned int lattice_sideLength = 0;
+   unsigned int outputNum = 0;
 
    /******************************************************************/
    // read parameters
@@ -304,7 +312,6 @@ int main(int argc, char* argv[])
    generateTree(t,g,get(&Vertex::rateSum, g),get(boost::vertex_index, g));
    std::cout << "time elapsed: " << gSim->getTime() << std::endl;
    write_graph(g, "start");
-//    boost::print_lattice(g, lattice_sideLength);
    print_graph_statistics(g, possibleStates, possibleEdgeTypes);
    
    /******************************************************************/
@@ -312,15 +319,15 @@ int main(int argc, char* argv[])
    /******************************************************************/
    unsigned int steps = 1;
    while (gSim->getTime()<stop && gSim->updateState(model)) {
-      if ((outputSteps > 0) && (steps%outputSteps == 0)) {
-         std::cout << "time elapsed: " << gSim->getTime() << std::endl;
-//          boost::print_lattice(g, lattice_sideLength);
+     if ((outputSteps > 0) && (steps%outputSteps == 0)) {
+       std::cout << "time elapsed: " << gSim->getTime() << std::endl;
+       write_graph(g, generateFileName("graph", outputNum));
+       ++outputNum;
       }
-      ++steps;
+     ++steps;
    }
    
    std::cout << "Final status:" << std::endl;
-//    boost::print_lattice(g, lattice_sideLength);
    write_graph(g, "end");
    print_graph_statistics(g, possibleStates, possibleEdgeTypes);
 
