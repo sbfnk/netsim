@@ -22,20 +22,23 @@ enum edgeTypes {Disease, Information};
 
 class EdgeType
 {
-   public:
-      EdgeType() : edgeType(Disease) {;}
-      EdgeType(int eType) : edgeType(eType) {;}
-
-      int getType() const { return edgeType; }
-      void setType(int newType) { edgeType = newType; }
-      
-      void print(std::ostream& os) const;
-
-      bool operator==(const EdgeType& rhs) const
-      { return edgeType==rhs.getType(); }
-
-   private:
-      int edgeType;
+public:
+  EdgeType() : edgeType(Disease) {;}
+  EdgeType(int eType) : edgeType(eType) {;}
+  
+  int getType() const { return edgeType; }
+  void setType(int newType) { edgeType = newType; }
+  
+  void print(std::ostream& os) const;
+  
+  bool operator==(const EdgeType& rhs) const
+  { return edgeType==rhs.getType(); }
+  
+  bool operator<(const EdgeType& rhs) const
+  { return edgeType<rhs.getType(); }
+  
+private:
+  int edgeType;
 };      
 
 class VertexState

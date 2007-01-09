@@ -48,8 +48,17 @@ namespace boost {
     pointer operator->() const { return &current; }
     
     erdos_renyi_iterator2& operator++()
-    { 
-      next();
+    {
+      double x;
+      do {
+        next();
+        uniform_01<RandomGenerator, double> rand01(*gen);
+        x = rand01();
+        *gen = rand01.base();
+      } while (x > prob);
+
+      current.first = source;
+      current.second = target;
       return *this;
     }
 
@@ -87,17 +96,6 @@ namespace boost {
           target = 0;
         }
       }
-      
-      uniform_01<RandomGenerator, double> rand01(*gen);
-      double x = rand01();
-      *gen = rand01.base();
-      
-      if (x > prob) {
-        ++(*this);
-      }
-
-      current.first = source;
-      current.second = target;
     }        
         
     RandomGenerator* gen;

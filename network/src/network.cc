@@ -73,8 +73,6 @@ int main(int argc, char* argv[])
   command_line_options.add_options()
     ("help,h",
      "produce help message")
-    ("longhelp",
-     "produce long help message including all topology-related options")
     ("config-file,c",po::value<std::string>(),
      "file containing graph confguration")
     ("params-file,p",po::value<std::string>(),
@@ -90,6 +88,8 @@ int main(int argc, char* argv[])
      "disease network topology\n(lattice,random)")
     ("i-topology", po::value<std::string>(),
      "information network topology\n(lattice,random)")
+    ;
+  main_options.add_options()
     ("stop,s", po::value<double>()->default_value(100.),
      "time after which to stop")
     ("output,o", po::value<unsigned int>()->default_value(1),
@@ -110,28 +110,49 @@ int main(int argc, char* argv[])
      "number of randomly chosen uninformed recovered")
     ;
 
-  po::options_description lattice_options
-    ("Lattice options");
-  lattice_options.add_options()
-    ("length,l", po::value<unsigned int>(),
-     "side length of lattice")
-    ("dim",  po::value<unsigned int>()->default_value(2),
-     "number of dimensions")
-    ("pb", "periodic boundary conditions")
-    ;
+  // generate topology-specifice options for each type of graph
 
-  po::options_description rg_options
-    ("Random graph options");
-  rg_options.add_options()
-    ("edges,e",  po::value<unsigned int>(),
-     "number of edges")
-    ;
+  // lattice
+  std::map<EdgeType, po::options_description> lattice_options;
+  for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
+       etIt != possibleEdgeTypes.end(); etIt++) {
+    std::stringstream s;
+    s << *etIt << "-Lattice Options";
+    po::options_description lo(s.str().c_str());
+    s.str("");
+    s << *etIt << "-dim";
+    lo.add_options()
+      (s.str().c_str(),  po::value<unsigned int>()->default_value(2),
+       "number of dimensions");
+    s.str("");
+    s << *etIt << "-pb";
+    lo.add_options()
+      (s.str().c_str(), "periodic boundary conditions");
+    lattice_options.insert(std::make_pair(*etIt, lo));
+  }
+
+  // random graph
+  std::map<EdgeType, po::options_description> rg_options;
+  for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
+       etIt != possibleEdgeTypes.end(); etIt++) {
+    std::stringstream s;
+    s << *etIt << "-RandomGraph Options";
+    po::options_description ro(s.str().c_str());
+    s.str("");
+    s << *etIt << "-edges";
+    ro.add_options()
+      (s.str().c_str(), po::value<unsigned int>(),
+       "number of edges");
+    rg_options.insert(std::make_pair(*etIt, ro));
+  }
 
   po::options_description all_options;
-  all_options.add(command_line_options).add(main_options).add(lattice_options).
-    add(rg_options);
-  po::options_description partial_options;
-
+  all_options.add(command_line_options).add(main_options);
+  for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
+       etIt != possibleEdgeTypes.end(); etIt++) {
+    all_options.add(lattice_options[*etIt]);
+    all_options.add(rg_options[*etIt]);
+  }
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, all_options), vm);
   po::notify(vm);
@@ -141,15 +162,15 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  if (vm.count("longhelp")) {
-    std::cout << all_options << std::endl;
-    return 1;
-  }
-
   if (vm.count("config-file")) {
     po::options_description config_file_options;
     std::ifstream ifs(vm["config-file"].as<std::string>().c_str());
-    config_file_options.add(main_options).add(lattice_options).add(rg_options);
+    config_file_options.add(main_options);
+    for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
+         etIt != possibleEdgeTypes.end(); etIt++) {
+      config_file_options.add(lattice_options[*etIt]);
+      config_file_options.add(rg_options[*etIt]);
+    }
     po::store(po::parse_config_file(ifs, config_file_options), vm);
   }
 
@@ -157,21 +178,13 @@ int main(int argc, char* argv[])
 
   if (vm.count("params-file")) {
     if (model.InitFromFile(vm["params-file"].as<std::string>()) > 0) {
-      std::cout << "ERROR: could not read params-file" << std::endl;
+      std::cerr << "ERROR: could not read params-file" << std::endl;
       return 1;
     }
   } else {
-    std::cout << "ERROR: missing params_file" << std::endl;
-    return 1;
-  }
-
-  if (vm.count("d-topology")) {
-    topology = vm["d-topology"].as<std::string>();
-  } else {
-    std::cout << "ERROR: no topology specified"
-              << std::endl;
-    std::cout << std::endl;
-    std::cout << main_options << std::endl;
+    std::cerr << "ERROR: missing params_file" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << command_line_options << main_options << std::endl;
     return 1;
   }
 
@@ -201,85 +214,109 @@ int main(int argc, char* argv[])
   if (vm.count("vertices")) {
     N = vm["vertices"].as<unsigned int>();
   } else {
-    std::cout << "ERROR: no number of vertices specified" << std::endl;
-    std::cout << std::endl;
-    std::cout << main_options << std::endl;
+    std::cerr << "ERROR: no number of vertices specified" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << command_line_options << main_options << std::endl;
     return 1;
   }
-   
-  if (topology == "lattice") {
-    partial_options.add(main_options).add(lattice_options);
 
-    /******************************************************************/
-    // read lattice specific parameters
-    /******************************************************************/
+  // generate the two networks
+  boost::add_vertices(g, N, Vertex(base));
 
-    latticeOptions opt;
-    opt.dimensions = vm["dim"].as<unsigned int>();
-
-    opt.sideLength = static_cast<int>(pow(N, 1.0/opt.dimensions));
-    if (pow(opt.sideLength, opt.dimensions) != N) { 
-      std::cout << "WARNING: lattice resized to " << N << " vertices to "
-                << "make it a square lattice" << std::endl;
-    }
-    lattice_sideLength = opt.sideLength;
-
-    if (vm.count("pb")) {
-      opt.periodicBoundary = true;
+  for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
+       etIt != possibleEdgeTypes.end(); etIt++) {
+    po::options_description partial_options;
+    partial_options.add(command_line_options).add(main_options);
+    
+    std::stringstream s;
+    s << *etIt << "-topology";
+    if (vm.count(s.str())) {
+      topology = vm[s.str()].as<std::string>();
     } else {
-      opt.periodicBoundary = false;
-    }
-
-    /******************************************************************/
-    // generate lattice with desired properties
-    /******************************************************************/
-    boost::add_vertices(g, N, Vertex(base));
-    typedef boost::lattice_iterator<gillespie_graph> lattice_iterator;
-
-    lattice_iterator li(opt.sideLength,opt.dimensions,opt.periodicBoundary);
-    lattice_iterator li_end;
-      
-    boost::add_edge_structure(g, li, li_end, Edge(Disease));
-    boost::add_edge_structure(g, li, li_end, Edge(Information));
-
-  } else if (topology == "random") {
-
-    partial_options.add(main_options).add(rg_options);
-
-    /******************************************************************/
-    // read random graph specific parameters
-    /******************************************************************/
-
-    rgOptions opt;
-
-    if (vm.count("edges")) {
-      opt.edges = vm["edges"].as<unsigned int>();
-    } else {
-      std::cout << "ERROR: no number of edges specified" << std::endl;
-      std::cout << std::endl;
-      std::cout << partial_options << std::endl;
+      std::cerr << "ERROR: no " << s.str() << " specified" << std::endl;
+      std::cerr << std::endl;
+      std::cerr << command_line_options << main_options << std::endl;
       return 1;
     }
 
-    /******************************************************************/
-    // generate random graph with desired properties
-    /******************************************************************/
-    boost::add_vertices(g, N, Vertex(base));
-    typedef boost::erdos_renyi_iterator2<boost::mt19937, gillespie_graph>
-      rg_iterator;
+    if (topology == "lattice") {
+      partial_options.add(lattice_options[*etIt]);
+      
+      /******************************************************************/
+      // read lattice specific parameters
+      /******************************************************************/
+      
+      latticeOptions opt;
+      s.str("");
+      s << *etIt << "-dim";
+      opt.dimensions = vm[s.str()].as<unsigned int>();
+      
+      opt.sideLength = static_cast<int>(pow(N, 1.0/opt.dimensions));
+      if (pow(opt.sideLength, opt.dimensions) != N) { 
+        std::cerr << "ERROR: cannot generate square lattice out of " << N
+                  << " vertices." << std::endl;
+        return 1;
+      }
+      lattice_sideLength = opt.sideLength;
 
-    double p = (double)opt.edges*2/(double)(N*(N-1));
-    rg_iterator ri(gen,N, p);
-    rg_iterator ri_end;
+      s.str("");
+      s << *etIt << "-pb";
+      if (vm.count(s.str())) {
+        opt.periodicBoundary = true;
+      } else {
+        opt.periodicBoundary = false;
+      }
 
-    boost::add_edge_structure(g, ri, ri_end, Edge(Disease));
-    boost::add_edge_structure(g, ri, ri_end, Edge(Information));
+      /******************************************************************/
+      // generate lattice with desired properties
+      /******************************************************************/
+      typedef boost::lattice_iterator<gillespie_graph> lattice_iterator;
+      
+      lattice_iterator li(opt.sideLength,opt.dimensions,opt.periodicBoundary);
+      lattice_iterator li_end;
+      
+      boost::add_edge_structure(g, li, li_end, Edge(*etIt));
+      
+    } else if (topology == "random") {
 
-  } else {
-    std::cout << "ERROR: unknown topology: " << topology << std::endl;
-    std::cout << std::endl;
-    std::cout << main_options << std::endl;
-    return 1;
+      partial_options.add(rg_options[*etIt]);
+      
+      /******************************************************************/
+      // read random graph specific parameters
+      /******************************************************************/
+      
+      rgOptions opt;
+      
+      s.str("");
+      s << *etIt << "-edges";
+      if (vm.count(s.str())) {
+        opt.edges = vm[s.str()].as<unsigned int>();
+      } else {
+        std::cerr << "ERROR: no number of edges specified" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << partial_options << std::endl;
+        return 1;
+      }
+
+      /******************************************************************/
+      // generate random graph with desired properties
+      /******************************************************************/
+      typedef boost::erdos_renyi_iterator2<boost::mt19937, gillespie_graph>
+        rg_iterator;
+      
+      double p = (double)opt.edges*2/(double)(N*(N-1));
+      std::cout << "N: " << N << "p: " << p << std::endl;
+      rg_iterator ri(gen,N, p);
+      rg_iterator ri_end;
+      
+      boost::add_edge_structure(g, ri, ri_end, Edge(*etIt));
+      
+    } else {
+      std::cerr << "ERROR: unknown " << s.str() << ": " << topology << std::endl;
+      std::cerr << std::endl;
+      std::cerr << main_options << std::endl;
+      return 1;
+    }
   }
 
   /******************************************************************/
