@@ -96,17 +96,17 @@ int main(int argc, char* argv[])
      "display status every N steps (0 for display only at start and end")
     ("base,b", po::value<std::string>()->default_value("S"),
      "base state of individuals\n(S,s,I,i,R,r)")
-    ("random-s", po::value<unsigned int>()->default_value(0),
+    ("S+", po::value<unsigned int>()->default_value(0),
      "number of randomly chosen informed susceptibles")
-    ("random-S", po::value<unsigned int>()->default_value(0),
+    ("S-", po::value<unsigned int>()->default_value(0),
      "number of randomly chosen uninformed susceptibles")
-    ("random-i", po::value<unsigned int>()->default_value(0),
+    ("I+", po::value<unsigned int>()->default_value(0),
      "number of randomly chosen informed infected")
-    ("random-I", po::value<unsigned int>()->default_value(0),
+    ("I-", po::value<unsigned int>()->default_value(0),
      "number of randomly chosen uninformed infected")
-    ("random-r", po::value<unsigned int>()->default_value(0),
+    ("R+", po::value<unsigned int>()->default_value(0),
      "number of randomly chosen informed recovered")
-    ("random-R", po::value<unsigned int>()->default_value(0),
+    ("R-", po::value<unsigned int>()->default_value(0),
      "number of randomly chosen uninformed recovered")
     ;
 
