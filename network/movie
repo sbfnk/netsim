@@ -1,0 +1,138 @@
+#!/bin/bash
+# Funktion:  Script zum Erzeugen animierter GIFs von Fenstern auf dem Desktop.
+# Lizenz:    GNU General Public License version 2 oder später
+# Autort:    Jens-D. Neppe 
+#            Inspiriert durch Probleme des Alltags und Scripte in Sprachen,
+#            die ich nicht verstehe.
+# Scriptname:animateur.sh
+# Aufruf:    animateur.sh [capture|preview|convert|mkanim]
+# Datum:     2003-01-07
+# Haftung:   Keine Haftung bei Schäden, die aus der direkten/indirekten
+#            Nutzung dieses Shell-Scripts entstehen können.
+##############################################################################
+
+DELAY=10 # hundertstel Sekunden
+CAPT_CMD=xwd
+VIEW_CMD=animate
+ANIM_CMD=gifsicle
+CONV_CMD=convert
+XWIN_CMD=xwininfo
+
+function dingdong ()
+{ # Mal klingeln, ob jemand da ist. 
+    glubsch=$(which $1)
+    
+    if [ -z "$glubsch" ] ; then
+	echo "Das Programm $1 wurde nicht gefunden."
+	echo "Es muss wahrscheinlich nachinstalliert werden."
+	exit -1
+    fi
+}
+
+case "$1" in
+    preview) # Frames angucken.
+    
+    dingdong $VIEW_CMD 
+
+    if [ -n "$2" ] ; then
+	VIEW_OPT="-delay $2"
+    else 
+	VIEW_OPT="-delay $DELAY"
+    fi
+
+    # Aufruf des ImageMagick "Players"
+    $VIEW_CMD $VIEW_OPT $(ls images/frame*xwd)
+
+    ;;
+    convert) # GIFs erzeugen.
+    
+    dingdong $CONV_CMD 
+    
+    # letztes Bild löschen
+    # könnte nur halb angekommen sein
+    rm $(ls *.xwd |tail -n 1)
+
+    echo -n "Konvertiere"
+
+    for datei in $(ls images/frame*xwd); do
+	echo -n "."
+	$CONV_CMD $datei images/$datei.gif
+    done
+
+
+    echo "fertig."
+
+    echo "Du kannst die Frames nun mit \"rm images/frame*xwd\" löschen."
+    echo "Dann ist jedoch kein preview mehr möglich."
+
+    ;;
+    mkanim) # Frames zusammenkleben.
+
+    dingdong $ANIM_CMD 
+
+    if [ -n "$2" ] ; then
+	ANIM_OPT="--delay $2"
+    else 
+	ANIM_OPT="--delay $DELAY"
+    fi
+
+    echo "Erzeuge Animation."
+    $ANIM_CMD $ANIM_OPT --loopcount=100 --optimize $(ls images/frame*.gif) > animation2.gif
+
+    echo "Du kannst die Frames nun mit \"rm images/frame*gif\" löschen."
+    
+    ;;
+    capture) # Frames aufnehmen.
+
+    dingdong $CAPT_CMD 
+    dingdong $XWIN_CMD 
+
+    count1=0
+    count2=0
+    count3=0
+
+    echo "Bitte das aufzuzeichnende Fenster auswählen."
+    ID=$($XWIN_CMD | grep xwininfo | grep Window | cut -d " " -f 4)
+
+    echo $ID
+    CAPT_OPTS="-silent -frame -id $ID"
+
+    while true ; do
+	
+	$CAPT_CMD $CAPT_OPTS > frame_$count3$count2$count1.xwd
+
+	count1=$(expr $count1 + 1)
+	
+	if [ $count1 -eq 10 ] ; then
+	    count1=0
+	    count2=$(expr $count2 + 1)
+	    if [ $count2 -eq 10 ] ; then
+		count2=0
+		count3=$(expr $count3 + 1)
+	    fi
+	fi
+	
+	echo "Frame $count3$count2$count1"
+        sleep 10
+	
+    done
+    ;;
+    *)
+    echo "Benutzung"
+    echo "$0 [option]"
+    echo "Folgende Optionen stehen zur Verfügung:"
+    echo "capture          Nimmt Frames eines Fensters auf."
+    echo "                 Abbruch der Aufnahme mit Strg+C"
+    echo "preview [delay]  Zeigt die Frames in einer"
+    echo "                 Animation mit [delay] hundertstel"
+    echo "                 Sekunden zwischen den Frames."
+    echo "                 Standard ist 10."
+    echo "convert          Konvertiert die Frames nach GIF."
+    echo "mkanim [delay]   Erzeugt aus den GIFs eine"
+    echo "                 Animation und schreibt sie in"
+    echo "                 die Datei \"animation.gif\"."
+    echo "                 [delay] wie bei preview."
+    ;;
+esac
+
+exit 0
