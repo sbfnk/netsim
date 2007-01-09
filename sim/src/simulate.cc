@@ -67,25 +67,29 @@ int main(int argc, char* argv[])
   double stop;
   unsigned int outputSteps;
    
-  po::options_description main_options
+  po::options_description command_line_options
     ("Usage: simulate -p params_file [options]... \n\nAllowed options");
 
-  po::positional_options_description pd;
-  pd.add("model", 1);
-   
-  main_options.add_options()
+  command_line_options.add_options()
     ("help,h",
      "produce help message")
     ("longhelp",
      "produce long help message including all topology-related options")
-    ("params_file,p",po::value<std::string>(),
+    ("config-file,c",po::value<std::string>(),
+     "file containing graph confguration")
+    ("params-file,p",po::value<std::string>(),
      "file containing model parameters")
+    ;
+    
+  po::options_description main_options;
+
+  main_options.add_options()
     ("vertices,n", po::value<unsigned int>(),
      "number of vertices")
-    ("topology,t", po::value<std::string>(),
-     "network topology\n(lattice,random)")
-    //       ("i-topology, i", po::value<std::string>(),
-    //        "information network topology\n(lattice,random)")
+    ("d-topology", po::value<std::string>(),
+     "disease network topology\n(lattice,random)")
+    ("i-topology", po::value<std::string>(),
+     "information network topology\n(lattice,random)")
     ("stop,s", po::value<double>()->default_value(100.),
      "time after which to stop")
     ("output,o", po::value<unsigned int>()->default_value(1),
@@ -124,8 +128,8 @@ int main(int argc, char* argv[])
     ;
 
   po::options_description all_options;
-  all_options.add(main_options).add(lattice_options).add(rg_options);
-   
+  all_options.add(command_line_options).add(main_options).add(lattice_options).
+    add(rg_options);
   po::options_description partial_options;
 
   po::variables_map vm;
@@ -133,7 +137,7 @@ int main(int argc, char* argv[])
   po::notify(vm);
 
   if (vm.count("help")) {
-    std::cout << main_options << std::endl;
+    std::cout << command_line_options << main_options << std::endl;
     return 1;
   }
 
@@ -142,22 +146,27 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  if (vm.count("params_file")) {
-    if (model.InitFromFile(vm["params_file"].as<std::string>()) > 0) {
-      std::cout << "ERROR: could not read params_file" << std::endl;
-      std::cout << std::endl;
-      std::cout << main_options << std::endl;
+  if (vm.count("config-file")) {
+    po::options_description config_file_options;
+    std::ifstream ifs(vm["config-file"].as<std::string>().c_str());
+    config_file_options.add(main_options).add(lattice_options).add(rg_options);
+    po::store(po::parse_config_file(ifs, config_file_options), vm);
+  }
+
+  po::notify(vm);
+
+  if (vm.count("params-file")) {
+    if (model.InitFromFile(vm["params-file"].as<std::string>()) > 0) {
+      std::cout << "ERROR: could not read params-file" << std::endl;
       return 1;
     }
   } else {
     std::cout << "ERROR: missing params_file" << std::endl;
-    std::cout << std::endl;
-    std::cout << main_options << std::endl;
     return 1;
   }
 
-  if (vm.count("topology")) {
-    topology = vm["topology"].as<std::string>();
+  if (vm.count("d-topology")) {
+    topology = vm["d-topology"].as<std::string>();
   } else {
     std::cout << "ERROR: no topology specified"
               << std::endl;
@@ -311,7 +320,7 @@ int main(int argc, char* argv[])
   gSim->initialize(model);
   generateTree(t,g,get(&Vertex::rateSum, g),get(boost::vertex_index, g));
   std::cout << "time elapsed: " << gSim->getTime() << std::endl;
-  write_graph(g, "start");
+  write_graph(g, "images/start");
   print_graph_statistics(g, possibleStates, possibleEdgeTypes);
    
   /******************************************************************/
@@ -321,14 +330,14 @@ int main(int argc, char* argv[])
   while (gSim->getTime()<stop && gSim->updateState(model)) {
     if ((outputSteps > 0) && (steps%outputSteps == 0)) {
       std::cout << "time elapsed: " << gSim->getTime() << std::endl;
-      write_graph(g, generateFileName("outgraph", outputNum));
+      write_graph(g, generateFileName("images/frame", outputNum));
       ++outputNum;
     }
     ++steps;
   }
    
   std::cout << "Final status:" << std::endl;
-  write_graph(g, "end");
+  write_graph(g, "images/end");
   print_graph_statistics(g, possibleStates, possibleEdgeTypes);
 
   return 0;
