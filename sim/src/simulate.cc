@@ -305,7 +305,6 @@ int main(int argc, char* argv[])
         rg_iterator;
       
       double p = (double)opt.edges*2/(double)(N*(N-1));
-      std::cout << "N: " << N << "p: " << p << std::endl;
       rg_iterator ri(gen,N, p);
       rg_iterator ri_end;
       
