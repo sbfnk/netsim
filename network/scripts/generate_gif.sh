@@ -8,6 +8,5 @@ do
   neato -Tgif $I -o $I.gif
 done
 neato -Tgif images/end -o images/z_end.gif
-cd -
 
 
