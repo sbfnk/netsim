@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
     ("d-topology", po::value<std::string>(),
      "disease network topology\n(lattice,random)")
     ("i-topology", po::value<std::string>(),
-     "information network topology\n(lattice,random)")
+     "information network topology\n(lattice,random,copy)")
     ;
   main_options.add_options()
     ("stop,s", po::value<double>()->default_value(100.),
@@ -146,6 +146,23 @@ int main(int argc, char* argv[])
     rg_options.insert(std::make_pair(*etIt, ro));
   }
 
+  // small-world graph
+//   std::map<EdgeType, po::options_description> sw_options;
+//   for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
+//        etIt != possibleEdgeTypes.end(); etIt++) {
+//     std::stringstream s;
+//     s << *etIt << "-SmallWorld Options";
+//     po::options_description swo(s.str().c_str());
+//     s.str("");
+//     s << *etIt << "-edges";
+//     swo.add_options()
+//       (s.str().c_str(), po::value<unsigned int>(),
+//        "number of edges");
+//     sw_options.insert(std::make_pair(*etIt, swo));
+//   }
+
+  
+  // read options from command line
   po::options_description all_options;
   all_options.add(command_line_options).add(main_options);
   for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
@@ -310,6 +327,19 @@ int main(int argc, char* argv[])
       
       boost::add_edge_structure(g, ri, ri_end, Edge(*etIt));
       
+    } else if (topology == "small-world") {
+      std::cerr << "not yet implemented" << std::endl;
+      return 1;
+    } else if (topology == "scale-free") {
+      std::cerr << "not yet implemented" << std::endl;
+      return 1;
+    } else if (topology == "copy") {
+      boost::graph_traits<gillespie_graph>::edge_iterator ei, ei_end;
+      for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
+        if (g[*ei].type == Disease) {
+          add_edge(source(*ei, g), target(*ei, g), Edge(*etIt), g);
+        }
+      }
     } else {
       std::cerr << "ERROR: unknown " << s.str() << ": " << topology << std::endl;
       std::cerr << std::endl;
