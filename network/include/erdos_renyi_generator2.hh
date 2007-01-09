@@ -40,9 +40,12 @@ namespace boost {
     erdos_renyi_iterator2(RandomGenerator& gen, vertices_size_type n, 
                           double prob = 0.0, bool allow_self_loops = false)
        : gen(&gen), n(n), allow_self_loops(allow_self_loops), prob(prob),
-         source(0), target(allow_self_loops? 0 : 1),
-         current(0, allow_self_loops? 0 : 1)
-    { }
+         source(0), target(allow_self_loops? -1 : 0),
+         current(0, allow_self_loops? -1 : 0)
+    {
+      // pick first pair
+      ++(*this); 
+    }
 
     reference operator*() const { return current; }
     pointer operator->() const { return &current; }
@@ -55,7 +58,7 @@ namespace boost {
         uniform_01<RandomGenerator, double> rand01(*gen);
         x = rand01();
         *gen = rand01.base();
-      } while (x > prob);
+      } while ((x > prob) && (source < n - 1));
 
       current.first = source;
       current.second = target;
