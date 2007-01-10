@@ -257,7 +257,7 @@ int main(int argc, char* argv[])
   for (std::vector<VertexState>::iterator it = possibleStates.begin();
        it != possibleStates.end(); it++) {
     std::stringstream ss;
-    ss << "random-" << (*it).getString();
+    ss << (*it).getString();
     std::string s(ss.str());
     if (vm.count(s.c_str())) {
       unsigned int random = vm[s.c_str()].as<unsigned int>();

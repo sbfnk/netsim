@@ -254,22 +254,22 @@ void EdgeType::print(std::ostream& os) const
 /******************************************************************/
 void VertexState::set(std::string s)
 {
-   if (s == "S") {
+   if (s == "S-") {
       setDisease(Susceptible);
       setInfo(Uninformed);
-   } else if (s == "s") {
+   } else if (s == "S+") {
       setDisease(Susceptible);
       setInfo(Informed);
-   } else if (s == "I") {
+   } else if (s == "I-") {
       setDisease(Infected);
       setInfo(Uninformed);
-   } else if (s == "i") {
+   } else if (s == "I+") {
       setDisease(Infected);
       setInfo(Informed);
-   } else if (s == "R") {
+   } else if (s == "R-") {
       setDisease(Recovered);
       setInfo(Uninformed);
-   } else if (s == "r") {
+   } else if (s == "R+") {
       setDisease(Recovered);
       setInfo(Informed);
    }
@@ -284,20 +284,20 @@ std::string VertexState::getString() const
    if (info == Informed) {
       switch (disease) {
        case Susceptible:
-        return "s";
+        return "S+";
        case Infected:
-        return "i";
+        return "I+";
        case Recovered:
-        return "r";
+        return "R+";
       }
    } else {
       switch (disease) {
        case Susceptible:
-        return "S";
+        return "S-";
        case Infected:
-        return "I";
+        return "I-";
        case Recovered:
-        return "R";
+        return "R-";
       }
    }
    return "";
@@ -312,25 +312,25 @@ void VertexState::print(std::ostream& os) const
    if (info == Informed) {
       switch (disease) {
        case Susceptible:
-        os << "\033[01;34m" << "s" << "\033[0m";
+        os << "\033[01;34m" << "S+" << "\033[0m";
         break;
        case Infected:
-        os << "\033[01;31m" << "i" << "\033[0m";
+        os << "\033[01;31m" << "I+" << "\033[0m";
         break;
        case Recovered:
-        os << "\033[01;32m" << "r" << "\033[0m";
+        os << "\033[01;32m" << "R+" << "\033[0m";
         break;
       }
    } else {
       switch (disease) {
        case Susceptible:
-        os << "\033[00;34m" << "S" << "\033[0m";
+        os << "\033[00;34m" << "S-" << "\033[0m";
         break;
        case Infected:
-        os << "\033[00;31m" << "I" << "\033[0m";
+        os << "\033[00;31m" << "I-" << "\033[0m";
         break;
        case Recovered:
-        os << "\033[00;32m" << "R" << "\033[0m";
+        os << "\033[00;32m" << "R-" << "\033[0m";
         break;
       }
    }      
