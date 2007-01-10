@@ -97,13 +97,19 @@ int main(int argc, char* argv[])
     ("vertices,n", po::value<unsigned int>(),
      "number of vertices")
     ("d-topology", po::value<std::string>(),
-     "disease network topology\n(lattice,random,small-world,scale-free,fullyconnected)")
+     "disease network topology\n(lattice,random,small-world,scale-free,complete)")
     ("i-topology", po::value<std::string>(),
-     "information network topology\n(lattice,random,small-world,scale-free,fullyconnected,copy)")
+     "information network topology\n(lattice,random,small-world,scale-free,complete,copy)")
     ;
   main_options.add_options()
     ("stop,s", po::value<double>()->default_value(100.),
      "time after which to stop")
+    ("output,o", po::value<unsigned int>()->default_value(1),
+     "display status every N steps (0 for display only at start and end")
+    ("graph,g", 
+     "create graphical (graphviz-)output in the images directory")
+    ("write-file,f", po::value<std::string>(),
+     "output data to file")
     ("output,o", po::value<unsigned int>()->default_value(1),
      "display status every N steps (0 for display only at start and end")
     ("base,b", po::value<std::string>()->default_value("S"),
@@ -454,8 +460,14 @@ int main(int argc, char* argv[])
       sf_iterator sfi_end;
       
       boost::add_edge_structure(temp_graph, sfi, sfi_end, Edge(*etIt));
-    } else if (topology == "fullyconnected") {
-      
+    } else if (topology == "complete") {
+      boost::graph_traits<gillespie_graph>::vertex_iterator vi, vi_end;
+      for (tie(vi, vi_end) = vertices(graph); vi != vi_end; vi++) {
+        boost::graph_traits<gillespie_graph>::vertex_iterator vi2;
+        for (vi2 = ++vi; vi2 != vi_end; vi2++) {
+          add_edge(*vi, *vi2, Edge(*etIt), temp_graph);
+        }
+      }
     } else if (topology == "copy") {
       boost::graph_traits<gillespie_graph>::edge_iterator ei, ei_end;
       for (tie(ei, ei_end) = edges(graph); ei != ei_end; ei++) {
