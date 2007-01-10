@@ -8,6 +8,8 @@
 // define gillespie_graph derived from boost adjacency list
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
                               Vertex, Edge> gillespie_graph;
+typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
+                              Vertex, Edge> onetype_graph;
 
 template <typename RandomGenerator>
 class GillespieSimulator

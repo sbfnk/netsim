@@ -12,6 +12,8 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/program_options.hpp>
 #include <boost/random/mersenne_twister.hpp>
+#include <boost/graph/small_world_generator.hpp>
+#include <boost/graph/plod_generator.hpp>
 
 #include <math.h>
 
@@ -38,6 +40,16 @@ struct latticeOptions {
 
 struct rgOptions {
   unsigned int edges;
+};
+
+struct swOptions {
+  unsigned int neighbours;
+  double rewiringProb;
+};
+
+struct sfOptions {
+  double alpha;
+  double beta;
 };
 
 std::string generateFileName(std::string nameBase, unsigned int id)
@@ -85,9 +97,9 @@ int main(int argc, char* argv[])
     ("vertices,n", po::value<unsigned int>(),
      "number of vertices")
     ("d-topology", po::value<std::string>(),
-     "disease network topology\n(lattice,random)")
+     "disease network topology\n(lattice,random,small-world,scale-free,fullyconnected)")
     ("i-topology", po::value<std::string>(),
-     "information network topology\n(lattice,random,copy)")
+     "information network topology\n(lattice,random,small-world,scale-free,fullyconnected,copy)")
     ;
   main_options.add_options()
     ("stop,s", po::value<double>()->default_value(100.),
@@ -147,21 +159,45 @@ int main(int argc, char* argv[])
   }
 
   // small-world graph
-//   std::map<EdgeType, po::options_description> sw_options;
-//   for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
-//        etIt != possibleEdgeTypes.end(); etIt++) {
-//     std::stringstream s;
-//     s << *etIt << "-SmallWorld Options";
-//     po::options_description swo(s.str().c_str());
-//     s.str("");
-//     s << *etIt << "-edges";
-//     swo.add_options()
-//       (s.str().c_str(), po::value<unsigned int>(),
-//        "number of edges");
-//     sw_options.insert(std::make_pair(*etIt, swo));
-//   }
+  std::map<EdgeType, po::options_description> sw_options;
+  for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
+       etIt != possibleEdgeTypes.end(); etIt++) {
+    std::stringstream s;
+    s << *etIt << "-SmallWorld Options";
+    po::options_description swo(s.str().c_str());
+    s.str("");
+    s << *etIt << "-neighbours";
+    swo.add_options()
+      (s.str().c_str(), po::value<unsigned int>(),
+       "number of neighbours of each node");
+    s.str("");
+    s << *etIt << "-rewiring-prob";
+    swo.add_options()
+      (s.str().c_str(), po::value<double>(),
+       "rewiring probability");
+    sw_options.insert(std::make_pair(*etIt, swo));
+  }
 
-  
+  // scale-free graph
+  std::map<EdgeType, po::options_description> sf_options;
+  for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
+       etIt != possibleEdgeTypes.end(); etIt++) {
+    std::stringstream s;
+    s << *etIt << "-ScaleFree Options";
+    po::options_description sfo(s.str().c_str());
+    s.str("");
+    s << *etIt << "-alpha";
+    sfo.add_options()
+      (s.str().c_str(), po::value<double>(),
+       "alpha (index of power law)");
+    s.str("");
+    s << *etIt << "-beta";
+    sfo.add_options()
+      (s.str().c_str(), po::value<double>(),
+       "beta (multiplicative factor of power law)");
+    sf_options.insert(std::make_pair(*etIt, sfo));
+  }
+
   // read options from command line
   po::options_description all_options;
   all_options.add(command_line_options).add(main_options);
@@ -169,6 +205,8 @@ int main(int argc, char* argv[])
        etIt != possibleEdgeTypes.end(); etIt++) {
     all_options.add(lattice_options[*etIt]);
     all_options.add(rg_options[*etIt]);
+    all_options.add(sw_options[*etIt]);
+    all_options.add(sf_options[*etIt]);
   }
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, all_options), vm);
@@ -187,6 +225,8 @@ int main(int argc, char* argv[])
          etIt != possibleEdgeTypes.end(); etIt++) {
       config_file_options.add(lattice_options[*etIt]);
       config_file_options.add(rg_options[*etIt]);
+      config_file_options.add(sw_options[*etIt]);
+      config_file_options.add(sf_options[*etIt]);
     }
     po::store(po::parse_config_file(ifs, config_file_options), vm);
   }
@@ -208,8 +248,8 @@ int main(int argc, char* argv[])
   boost::mt19937 gen(time(0));
   GillespieSimulator<boost::mt19937>* gSim =
     new GillespieSimulator<boost::mt19937>(gen);
-  gillespie_graph& g = gSim->graph;
-  Tree<unsigned int>& t = gSim->tree;
+  gillespie_graph& graph = gSim->graph;
+  Tree<unsigned int>& tree = gSim->tree;
 
   stop = vm["stop"].as<double>();
   outputSteps = vm["output"].as<unsigned int>();
@@ -237,11 +277,16 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  // generate the two networks
-  boost::add_vertices(g, N, Vertex(base));
+  // generate vertices
+  boost::add_vertices(graph, N, Vertex(base));
 
+  // generate edges
   for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
        etIt != possibleEdgeTypes.end(); etIt++) {
+
+    onetype_graph temp_graph;
+    boost::add_vertices(temp_graph, N);
+    
     po::options_description partial_options;
     partial_options.add(command_line_options).add(main_options);
     
@@ -292,7 +337,7 @@ int main(int argc, char* argv[])
       lattice_iterator li(opt.sideLength,opt.dimensions,opt.periodicBoundary);
       lattice_iterator li_end;
       
-      boost::add_edge_structure(g, li, li_end, Edge(*etIt));
+      boost::add_edge_structure(temp_graph, li, li_end, Edge(*etIt));
       
     } else if (topology == "random") {
 
@@ -325,19 +370,98 @@ int main(int argc, char* argv[])
       rg_iterator ri(gen,N, p);
       rg_iterator ri_end;
       
-      boost::add_edge_structure(g, ri, ri_end, Edge(*etIt));
+      boost::add_edge_structure(temp_graph, ri, ri_end, Edge(*etIt));
       
     } else if (topology == "small-world") {
-      std::cerr << "not yet implemented" << std::endl;
-      return 1;
+
+      partial_options.add(sw_options[*etIt]);
+      
+      /******************************************************************/
+      // read small-world graph specific parameters
+      /******************************************************************/
+      
+      swOptions opt;
+      
+      s.str("");
+      s << *etIt << "-neighbours";
+      if (vm.count(s.str())) {
+        opt.neighbours = vm[s.str()].as<unsigned int>();
+      } else {
+        std::cerr << "ERROR: no number of neighbours specified" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << partial_options << std::endl;
+        return 1;
+      }
+      s.str("");
+      s << *etIt << "-rewiring-prob";
+      if (vm.count(s.str())) {
+        opt.rewiringProb = vm[s.str()].as<double>();
+      } else {
+        std::cerr << "ERROR: no rewiring probability" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << partial_options << std::endl;
+        return 1;
+      }
+
+      /******************************************************************/
+      // generate small-world graph with desired properties
+      /******************************************************************/
+      typedef boost::small_world_iterator<boost::mt19937, gillespie_graph>
+        sw_iterator;
+
+      sw_iterator swi(gen,N,opt.neighbours, opt.rewiringProb);
+      sw_iterator swi_end;
+      
+      boost::add_edge_structure(temp_graph, swi, swi_end, Edge(*etIt));
     } else if (topology == "scale-free") {
-      std::cerr << "not yet implemented" << std::endl;
-      return 1;
+
+      partial_options.add(sf_options[*etIt]);
+      
+      /******************************************************************/
+      // read scale-free graph specific parameters
+      /******************************************************************/
+      
+      sfOptions opt;
+      
+      s.str("");
+      s << *etIt << "-alpha";
+      if (vm.count(s.str())) {
+        opt.alpha = vm[s.str()].as<double>();
+      } else {
+        std::cerr << "ERROR: no alpha specified" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << partial_options << std::endl;
+        return 1;
+      }
+      s.str("");
+      s << *etIt << "-beta";
+      if (vm.count(s.str())) {
+        opt.beta = vm[s.str()].as<double>();
+      } else {
+        std::cerr << "ERROR: no beta specified" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << partial_options << std::endl;
+        return 1;
+      }
+
+      /******************************************************************/
+      // generate scale-free graph with desired properties
+      /******************************************************************/
+      typedef boost::plod_iterator<boost::mt19937, gillespie_graph>
+        sf_iterator;
+      
+      sf_iterator sfi(gen,N,opt.alpha,opt.beta);
+      sf_iterator sfi_end;
+      
+      boost::add_edge_structure(temp_graph, sfi, sfi_end, Edge(*etIt));
+    } else if (topology == "fullyconnected") {
+      
     } else if (topology == "copy") {
       boost::graph_traits<gillespie_graph>::edge_iterator ei, ei_end;
-      for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
-        if (g[*ei].type == Disease) {
-          add_edge(source(*ei, g), target(*ei, g), Edge(*etIt), g);
+      for (tie(ei, ei_end) = edges(graph); ei != ei_end; ei++) {
+        if (graph[*ei].type == *(possibleEdgeTypes.begin())) {
+          add_edge(source(*ei, temp_graph), target(*ei, temp_graph),
+                   Edge(*etIt), temp_graph);
         }
       }
     } else {
@@ -345,6 +469,13 @@ int main(int argc, char* argv[])
       std::cerr << std::endl;
       std::cerr << main_options << std::endl;
       return 1;
+    }
+
+    // copy edges to main graph
+    boost::graph_traits<gillespie_graph>::edge_iterator ei, ei_end;
+    for (tie(ei, ei_end) = edges(temp_graph); ei != ei_end; ei++) {
+      add_edge(source(*ei, temp_graph), target(*ei, temp_graph),
+               Edge(temp_graph[*ei].type), graph);
     }
   }
 
@@ -371,9 +502,9 @@ int main(int argc, char* argv[])
     for (unsigned int i=0; i<(*it).second; i++) {
       bool inserted = false;
       while (!inserted) {
-        v = boost::random_vertex(g, gen);
-        if (g[v].state == base) {
-          g[v].state = (*it).first;
+        v = boost::random_vertex(graph, gen);
+        if (graph[v].state == base) {
+          graph[v].state = (*it).first;
           inserted = true;
         }
       }
@@ -384,10 +515,11 @@ int main(int argc, char* argv[])
   // initalize GillespieSimulator
   /******************************************************************/
   gSim->initialize(model);
-  generateTree(t,g,get(&Vertex::rateSum, g),get(boost::vertex_index, g));
+  generateTree(tree,graph,get(&Vertex::rateSum, graph),
+               get(boost::vertex_index, graph));
   std::cout << "time elapsed: " << gSim->getTime() << std::endl;
-  write_graph(g, "images/start");
-  print_graph_statistics(g, possibleStates, possibleEdgeTypes);
+  write_graph(graph, "images/start");
+  print_graph_statistics(graph, possibleStates, possibleEdgeTypes);
    
   /******************************************************************/
   // run simulation
@@ -396,15 +528,15 @@ int main(int argc, char* argv[])
   while (gSim->getTime()<stop && gSim->updateState(model)) {
     if ((outputSteps > 0) && (steps%outputSteps == 0)) {
       std::cout << "time elapsed: " << gSim->getTime() << std::endl;
-      write_graph(g, generateFileName("images/frame", outputNum));
+      write_graph(graph, generateFileName("images/frame", outputNum));
       ++outputNum;
     }
     ++steps;
   }
    
   std::cout << "Final status:" << std::endl;
-  write_graph(g, "images/end");
-  print_graph_statistics(g, possibleStates, possibleEdgeTypes);
+  write_graph(graph, "images/end");
+  print_graph_statistics(graph, possibleStates, possibleEdgeTypes);
 
   return 0;
 }
