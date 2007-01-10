@@ -464,7 +464,9 @@ int main(int argc, char* argv[])
       boost::graph_traits<gillespie_graph>::vertex_iterator vi, vi_end;
       for (tie(vi, vi_end) = vertices(graph); vi != vi_end; vi++) {
         boost::graph_traits<gillespie_graph>::vertex_iterator vi2;
-        for (vi2 = ++vi; vi2 != vi_end; vi2++) {
+        for (vi2 = vi+1; vi2 != vi_end; vi2++) {
+          std::cout << "Adding edge between " << *vi << " and " << *vi2
+                    << std::endl;
           add_edge(*vi, *vi2, Edge(*etIt), temp_graph);
         }
       }
