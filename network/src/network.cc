@@ -465,8 +465,6 @@ int main(int argc, char* argv[])
       for (tie(vi, vi_end) = vertices(graph); vi != vi_end; vi++) {
         boost::graph_traits<gillespie_graph>::vertex_iterator vi2;
         for (vi2 = vi+1; vi2 != vi_end; vi2++) {
-          std::cout << "Adding edge between " << *vi << " and " << *vi2
-                    << std::endl;
           add_edge(*vi, *vi2, Edge(*etIt), temp_graph);
         }
       }
@@ -479,7 +477,8 @@ int main(int argc, char* argv[])
         }
       }
     } else {
-      std::cerr << "ERROR: unknown " << s.str() << ": " << topology << std::endl;
+      std::cerr << "ERROR: unknown " << s.str() << ": " << topology
+                << std::endl;
       std::cerr << std::endl;
       std::cerr << main_options << std::endl;
       return 1;
