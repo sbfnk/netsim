@@ -90,22 +90,12 @@ int main(int argc, char* argv[])
   command_line_options.add_options()
     ("help,h",
      "produce help message")
-    ("config-file,c",po::value<std::string>(),
-     "file containing graph confguration")
     ("params-file,p",po::value<std::string>(),
-     "file containing model parameters")
+     "file containing model and graph parameters")
     ;
     
   po::options_description main_options;
 
-  main_options.add_options()
-    ("vertices,n", po::value<unsigned int>(),
-     "number of vertices")
-    ("d-topology", po::value<std::string>(),
-     "disease network topology\n(lattice,random,small-world,scale-free,complete)")
-    ("i-topology", po::value<std::string>(),
-     "information network topology\n(lattice,random,small-world,scale-free,complete,copy)")
-    ;
   main_options.add_options()
     ("stop,s", po::value<double>()->default_value(100.),
      "time after which to stop")
@@ -115,6 +105,17 @@ int main(int argc, char* argv[])
      "create graphical (graphviz-)output in the images directory")
     ("write-file,f", po::value<std::string>(),
      "output data to file")
+    ;
+
+  po::options_description graph_options;
+  
+  graph_options.add_options()
+    ("vertices,n", po::value<unsigned int>(),
+     "number of vertices")
+    ("d-topology", po::value<std::string>(),
+     "disease network topology\n(lattice,random,small-world,scale-free,complete)")
+    ("i-topology", po::value<std::string>(),
+     "information network topology\n(lattice,random,small-world,scale-free,complete,copy)")
     ("base,b", po::value<std::string>()->default_value("S"),
      "base state of individuals\n(S,s,I,i,R,r)")
     ("S+", po::value<unsigned int>()->default_value(0),
@@ -130,7 +131,7 @@ int main(int argc, char* argv[])
     ("R-", po::value<unsigned int>()->default_value(0),
      "number of randomly chosen uninformed recovered")
     ;
-
+  
   // generate topology-specifice options for each type of graph
 
   // lattice
@@ -207,6 +208,40 @@ int main(int argc, char* argv[])
     sf_options.insert(std::make_pair(*etIt, sfo));
   }
 
+  po::options_description model_options
+    ("Model parameters");
+  
+  model_options.add_options()
+    ("beta--", po::value<double>(),
+     "disease transmission rate uninformed->uninformed")
+    ("beta+-", po::value<double>(),
+     "disease transmission rate informed->uninformed")
+    ("beta-+", po::value<double>(),
+     "disease transmission rate uninformed->informed")
+    ("beta++", po::value<double>(),
+     "disease transmission rate informed->informed")
+    ("gamma-", po::value<double>(),
+     "recovery rate of uninformed")
+    ("gamma+", po::value<double>(),
+     "recovery rate of informed")
+    ("delta-", po::value<double>(),
+     "loss of immunity rate of uninformed")
+    ("delta+", po::value<double>(),
+     "loss of immunity rate of informed")
+    ("alpha", po::value<double>(),
+     "information transmission rate")
+    ("nu", po::value<double>(),
+     "information generation rate")
+    ("omega", po::value<double>(),
+     "local information generation rate")
+    ("lambda", po::value<double>(),
+     "loss of information rate")
+    ("N", po::value<double>(),
+     "total number of individuals")
+    ("njac", po::value<double>(),
+     "size of Jacobian (if needed)")
+    ;
+
   // read options from command line
   po::options_description all_options;
   all_options.add(command_line_options).add(main_options);
@@ -226,33 +261,20 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  if (vm.count("config-file")) {
-    po::options_description config_file_options;
-    std::ifstream ifs(vm["config-file"].as<std::string>().c_str());
-    config_file_options.add(main_options);
-    for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
-         etIt != possibleEdgeTypes.end(); etIt++) {
-      config_file_options.add(lattice_options[*etIt]);
-      config_file_options.add(rg_options[*etIt]);
-      config_file_options.add(sw_options[*etIt]);
-      config_file_options.add(sf_options[*etIt]);
+  if (vm.count("params-file")) {
+    std::ifstream ifs(vm["params-file"].as<std::string>().c_str());
+    try {
+      po::store(po::parse_config_file(ifs, all_options), vm);
     }
-    po::store(po::parse_config_file(ifs, config_file_options), vm);
+    catch (std::exception& e) {
+      std::cout << "Error parsing params file: " << e.what() << std::endl;
+      return 1;
+    }
   }
 
   po::notify(vm);
 
-  if (vm.count("params-file")) {
-    if (model.InitFromFile(vm["params-file"].as<std::string>()) > 0) {
-      std::cerr << "ERROR: could not read params-file" << std::endl;
-      return 1;
-    }
-  } else {
-    std::cerr << "ERROR: missing params_file" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << command_line_options << main_options << std::endl;
-    return 1;
-  }
+  model.Init(vm);
 
   boost::mt19937 gen(time(0));
   GillespieSimulator<boost::mt19937>* gSim =
@@ -309,9 +331,6 @@ int main(int argc, char* argv[])
     onetype_graph temp_graph;
     boost::add_vertices(temp_graph, N);
     
-    po::options_description partial_options;
-    partial_options.add(command_line_options).add(main_options);
-    
     std::stringstream s;
     s << *etIt << "-topology";
     if (vm.count(s.str())) {
@@ -324,8 +343,7 @@ int main(int argc, char* argv[])
     }
 
     if (topology == "lattice") {
-      partial_options.add(lattice_options[*etIt]);
-      
+
       /******************************************************************/
       // read lattice specific parameters
       /******************************************************************/
@@ -363,8 +381,6 @@ int main(int argc, char* argv[])
       
     } else if (topology == "random") {
 
-      partial_options.add(rg_options[*etIt]);
-      
       /******************************************************************/
       // read random graph specific parameters
       /******************************************************************/
@@ -378,7 +394,7 @@ int main(int argc, char* argv[])
       } else {
         std::cerr << "ERROR: no number of edges specified" << std::endl;
         std::cerr << std::endl;
-        std::cerr << partial_options << std::endl;
+        std::cout << lattice_options[*etIt] << std::endl;
         return 1;
       }
 
@@ -396,8 +412,6 @@ int main(int argc, char* argv[])
       
     } else if (topology == "small-world") {
 
-      partial_options.add(sw_options[*etIt]);
-      
       /******************************************************************/
       // read small-world graph specific parameters
       /******************************************************************/
@@ -411,7 +425,7 @@ int main(int argc, char* argv[])
       } else {
         std::cerr << "ERROR: no number of neighbours specified" << std::endl;
         std::cerr << std::endl;
-        std::cerr << partial_options << std::endl;
+        std::cerr << sw_options[*etIt] << std::endl;
         return 1;
       }
       s.str("");
@@ -421,7 +435,7 @@ int main(int argc, char* argv[])
       } else {
         std::cerr << "ERROR: no rewiring probability" << std::endl;
         std::cerr << std::endl;
-        std::cerr << partial_options << std::endl;
+        std::cerr << sw_options[*etIt] << std::endl;
         return 1;
       }
 
@@ -437,8 +451,6 @@ int main(int argc, char* argv[])
       boost::add_edge_structure(temp_graph, swi, swi_end, Edge(*etIt));
     } else if (topology == "scale-free") {
 
-      partial_options.add(sf_options[*etIt]);
-      
       /******************************************************************/
       // read scale-free graph specific parameters
       /******************************************************************/
@@ -452,7 +464,7 @@ int main(int argc, char* argv[])
       } else {
         std::cerr << "ERROR: no alpha specified" << std::endl;
         std::cerr << std::endl;
-        std::cerr << partial_options << std::endl;
+        std::cerr << sf_options[*etIt] << std::endl;
         return 1;
       }
       s.str("");
@@ -462,7 +474,7 @@ int main(int argc, char* argv[])
       } else {
         std::cerr << "ERROR: no beta specified" << std::endl;
         std::cerr << std::endl;
-        std::cerr << partial_options << std::endl;
+        std::cerr << sf_options[*etIt] << std::endl;
         return 1;
       }
 

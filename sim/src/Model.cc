@@ -31,98 +31,95 @@ Model::~Model()
 }
 
 /******************************************************************/
-// Model::InitDefaultParams
-// initialize parameters to some very unimaginative default values
-/******************************************************************/
-void Model::InitDefaultParams()
-{
-   gamma[Uninformed] = 1.;
-   gamma[Informed] = 1.;
-   delta[Uninformed] = 1.;
-   delta[Informed] = 1.;
-   beta[Uninformed][Uninformed] = 1.;
-   beta[Uninformed][Informed] = 1.;
-   beta[Informed][Uninformed] = 1.;
-   beta[Informed][Informed] = 1.;
-   alpha = 1.;
-   nu = 1.;
-   lambda = 1.;
-}
-
-/******************************************************************/
 // Model::InitFromFile
 // initialize parameters from file
 /******************************************************************/
-int Model::InitFromFile(std::string fileName)
+void Model::Init(po::variables_map& vm)
 {
-   std::string line;
-   std::ifstream ifile;
-   
-   ifile.open (fileName.c_str(), std::ios::in); 
-   if(ifile.fail())
-   {
-      return 1;
-   }
-
-   // reading Model content of init.dat   
-   std::cout << "Reading model parameters"; 
-   
-   int i=-1;
-   while ((i<0) && !(ifile.eof()))
-   {
-      getline(ifile,line); // reading a line
-      i=line.find("Model parameters"); // looking for "Model ... %%%"
-   }
-   
-   // beta_++
-   beta[Uninformed][Uninformed]=read_dbl_val(ifile);
-   
-   // gamma_d 
-   gamma[Uninformed]=read_dbl_val(ifile);
-  
-   // delta_d 
-   delta[Uninformed]=read_dbl_val(ifile);
-      
-   // beta_--
-   beta[Informed][Informed]=read_dbl_val(ifile);
-   
-   // gamma_i 
-   gamma[Informed]=read_dbl_val(ifile);
-   
-   // delta_i 
-   delta[Informed]=read_dbl_val(ifile);
-   
-   // beta_m1 
-   beta[Uninformed][Informed]=read_dbl_val(ifile);
-   
-   // beta_m2 
-   beta[Informed][Uninformed]=read_dbl_val(ifile);
-   
-   // alpha 
-   alpha=read_dbl_val(ifile);
-   
-   // nu 
-   nu=read_dbl_val(ifile);
-   
-   // lambda 
-   lambda=read_dbl_val(ifile);
-   
-   // Qd 
-   //Qd=read_dbl_val(ifile);
-   
-   // Qi 
-   //Qi=read_dbl_val(ifile);
-   
-   // N
-//    N=read_dbl_val(ifile);
-   
-   // njac 
-//    njac=obj.GetNvars();
-
-   ifile.close(); 
-   if(!ifile.is_open())
-      std::cout << " ... done\n";
-   return 0;
+  if (vm.count("beta--")) {
+    beta[0][0]=vm["beta--"].as<double>();
+  } else {
+    std::cerr << "WARNING: no beta-- given" << std::endl;
+    std::cerr << "setting to 0" << std::endl;
+    beta[0][0]=0;
+  }
+  if (vm.count("beta+-")) {
+    beta[1][0]=vm["beta+-"].as<double>();
+  } else {
+    std::cerr << "WARNING: no beta+- given" << std::endl;
+    std::cerr << "setting to 0" << std::endl;
+    beta[1][0]=0;
+  }
+  if (vm.count("beta-+")) {
+    beta[0][1]=vm["beta-+"].as<double>();
+  } else {
+    std::cerr << "WARNING: no beta-+ given" << std::endl;
+    std::cerr << "setting to 0" << std::endl;
+    beta[0][1]=0;
+  }
+  if (vm.count("beta++")) {
+    beta[1][1]=vm["beta++"].as<double>();
+  } else {
+    std::cerr << "WARNING: no beta++ given" << std::endl;
+    std::cerr << "setting to 0" << std::endl;
+    beta[1][1]=0;
+  }
+  if (vm.count("gamma-")) {
+    gamma[0]=vm["gamma-"].as<double>();
+  } else {
+    std::cerr << "WARNING: no gamma- given" << std::endl;
+    std::cerr << "setting to 0" << std::endl;
+    gamma[0]=0;
+  }
+  if (vm.count("gamma+")) {
+    gamma[1]=vm["gamma+"].as<double>();
+  } else {
+    std::cerr << "WARNING: no gamma+ given" << std::endl;
+    std::cerr << "setting to 0" << std::endl;
+    gamma[1]=0;
+  }
+  if (vm.count("delta-")) {
+    delta[0]=vm["delta-"].as<double>();
+  } else {
+    std::cerr << "WARNING: no delta- given" << std::endl;
+    std::cerr << "setting to 0" << std::endl;
+    delta[0]=0;
+  }
+  if (vm.count("delta+")) {
+    delta[1]=vm["delta+"].as<double>();
+  } else {
+    std::cerr << "WARNING: no delta+ given" << std::endl;
+    std::cerr << "setting to 0" << std::endl;
+    delta[1]=0;
+  }
+  if (vm.count("alpha")) {
+    alpha=vm["alpha"].as<double>();
+  } else {
+    std::cerr << "WARNING: no alpha given" << std::endl;
+    std::cerr << "setting to 0" << std::endl;
+    alpha=0;
+  }
+  if (vm.count("nu")) {
+    nu=vm["nu"].as<double>();
+  } else {
+    std::cerr << "WARNING: no nu given" << std::endl;
+    std::cerr << "setting to 0" << std::endl;
+    nu=0;
+  }
+  if (vm.count("omega")) {
+    omega=vm["omega"].as<double>();
+  } else {
+    std::cerr << "WARNING: no omega given" << std::endl;
+    std::cerr << "setting to 0" << std::endl;
+    omega=0;
+  }
+  if (vm.count("lambda")) {
+    lambda=vm["lambda"].as<double>();
+  } else {
+    std::cerr << "WARNING: no lambda given" << std::endl;
+    std::cerr << "setting to 0" << std::endl;
+    lambda=0;
+  }
 }
 
 /******************************************************************/

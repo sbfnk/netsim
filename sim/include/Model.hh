@@ -16,6 +16,11 @@
 #include <vector>
 #include <string>
 
+#include <boost/program_options.hpp>
+
+namespace po = boost::program_options;
+
+
 enum diseaseStates {Susceptible,Infected,Recovered};
 enum infoStates {Uninformed, Informed};
 enum edgeTypes {Disease, Information};
@@ -95,8 +100,7 @@ class Model
       Model();
       ~Model();
       
-      void InitDefaultParams();
-      int InitFromFile(std::string fileName);
+      void Init(po::variables_map& vm);
          
       double getNodeEvents(eventList& events,
                            VertexState state) const;
@@ -108,7 +112,8 @@ class Model
       std::vector<EdgeType> getPossibleEdgeTypes();
 
       double gamma[2], delta[2]; // model parameters
-      double beta[2][2], alpha, nu, lambda; // model parameters
+      double beta[2][2], alpha, nu, lambda, omega; // model parameters
+  
 };
 
 #endif
