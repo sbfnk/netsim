@@ -141,14 +141,23 @@ double Model::getNodeEvents(eventList& events,
       events.push_back(immunityLoss);
       rateSum += immunityLoss.rate;
    } else
-   // recovery
    if (state.getDisease() == Infected) {
+      // recovery
       event recovery;
       recovery.rate = gamma[state.getInfo()];
       recovery.newState.setDisease(Recovered);
       recovery.newState.setInfo(state.getInfo());
       events.push_back(recovery);
       rateSum += recovery.rate;
+      if (state.getInfo() == Uninformed) {
+        // local information generation
+        event localInfo;
+        localInfo.rate = omega;
+        localInfo.newState.setDisease(state.getDisease());
+        localInfo.newState.setInfo(Informed);
+        events.push_back(localInfo);
+        rateSum += localInfo.rate;
+      }
    }
    // information loss
    if (state.getInfo() == Informed) {
