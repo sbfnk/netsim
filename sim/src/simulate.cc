@@ -3,6 +3,7 @@
 // contains the main simulation program
 /******************************************************************/
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 #include <string>
 #include <map>
@@ -78,6 +79,10 @@ int main(int argc, char* argv[])
   unsigned int N;
   double stop;
   unsigned int outputSteps;
+
+  bool outputGraphviz = false;
+  std::string outputFile = "";
+  std::ofstream* file = 0;
    
   po::options_description command_line_options
     ("Usage: simulate -p params_file [options]... \n\nAllowed options");
@@ -110,8 +115,6 @@ int main(int argc, char* argv[])
      "create graphical (graphviz-)output in the images directory")
     ("write-file,f", po::value<std::string>(),
      "output data to file")
-    ("output,o", po::value<unsigned int>()->default_value(1),
-     "display status every N steps (0 for display only at start and end")
     ("base,b", po::value<std::string>()->default_value("S"),
      "base state of individuals\n(S,s,I,i,R,r)")
     ("S+", po::value<unsigned int>()->default_value(0),
@@ -259,6 +262,19 @@ int main(int argc, char* argv[])
 
   stop = vm["stop"].as<double>();
   outputSteps = vm["output"].as<unsigned int>();
+  if (vm.count("graph")) {
+    outputGraphviz = true;
+  }
+  if (vm.count("write-file")) {
+    outputFile = vm["write-file"].as<std::string>();
+    try {
+      file = new std::ofstream();
+      file->open(outputFile.c_str(), std::ios::out);
+    }
+    catch (std::exception &e) {
+      std::cout << "Unable to open output file: " << e.what() << std::endl;
+    }
+  }
    
   for (std::vector<VertexState>::iterator it = possibleStates.begin();
        it != possibleStates.end(); it++) {
@@ -531,7 +547,8 @@ int main(int argc, char* argv[])
   generateTree(tree,graph,get(&Vertex::rateSum, graph),
                get(boost::vertex_index, graph));
   std::cout << "time elapsed: " << gSim->getTime() << std::endl;
-  write_graph(graph, "images/start");
+  if (outputGraphviz) write_graph(graph, "images/start");
+  if (file) write_graph_data(graph, gSim->getTime(),*file,possibleStates);
   print_graph_statistics(graph, possibleStates, possibleEdgeTypes);
    
   /******************************************************************/
@@ -541,15 +558,21 @@ int main(int argc, char* argv[])
   while (gSim->getTime()<stop && gSim->updateState(model)) {
     if ((outputSteps > 0) && (steps%outputSteps == 0)) {
       std::cout << "time elapsed: " << gSim->getTime() << std::endl;
-      write_graph(graph, generateFileName("images/frame", outputNum));
+      if (outputGraphviz) {
+        write_graph(graph, generateFileName("images/frame", outputNum));
+      }
+      if (file) write_graph_data(graph, gSim->getTime(),*file,possibleStates);
       ++outputNum;
     }
     ++steps;
   }
    
   std::cout << "Final status:" << std::endl;
-  write_graph(graph, "images/end");
+  if (outputGraphviz) write_graph(graph, "images/end");
+  if (file) write_graph_data(graph, gSim->getTime(),*file,possibleStates);
   print_graph_statistics(graph, possibleStates, possibleEdgeTypes);
+
+  if (file) file->close();
 
   return 0;
 }
