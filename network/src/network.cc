@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
   po::options_description graph_options;
   
   graph_options.add_options()
-    ("vertices,n", po::value<unsigned int>(),
+    ("vertices,N", po::value<unsigned int>(),
      "number of vertices")
     ("d-topology", po::value<std::string>(),
      "disease network topology\n(lattice,random,small-world,scale-free,complete)")
