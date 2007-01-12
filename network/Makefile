@@ -31,14 +31,18 @@ SOURCES     = main.cc Bin.cc Model.cc
 OBJECTS     = $(SOURCES:.cc=.o)
 
 EXEC        = simulate
+AVG         = average_runs
 #--------------------------------------------------------------------
 
-all:  $(EXEC)
+all:  $(EXEC) $(AVG)
 
 $(EXEC): $(OBJECTS) 
 	@echo ... linking:
 	$(LINKER) $(LDFLAGS) $(OPTFLAGS) $(CPPFLAGS) $(OBJECTS) -o $@
 	@echo
+
+$(AVG): average_runs.o
+	$(LINKER) $(LDFLAGS) $(OPTFLAGS) $(CPPFLAGS) average_runs.o -o $@
 
 %.o : %.cc
 	@echo ... compiling $<:
