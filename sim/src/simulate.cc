@@ -8,6 +8,8 @@
 #include <string>
 #include <map>
 
+#include <sys/time.h>
+
 #include <boost/graph/random.hpp>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
@@ -287,7 +289,13 @@ int main(int argc, char* argv[])
 
   model.Init(vm);
 
-  boost::mt19937 gen(time(0));
+  unsigned int seed;
+  struct timeval tv;
+
+  gettimeofday(&tv, 0);
+  seed = tv.tv_sec + tv.tv_usec;
+  
+  boost::mt19937 gen(seed);
   GillespieSimulator<boost::mt19937>* gSim =
     new GillespieSimulator<boost::mt19937>(gen);
   gillespie_graph& graph = gSim->graph;
