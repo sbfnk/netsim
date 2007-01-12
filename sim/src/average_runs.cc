@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
           for (double time = *lineIt;
                !(time < nextStep*timeStep) && !(nextStep*timeStep > stopTime);
                ++nextStep) {
-            ++lineIt;
+            if (lineIt != line_contents.end()) ++lineIt;
             for (unsigned int i=0; lineIt != line_contents.end();
                  lineIt++, i++) {
               values[nextStep][i] += *lineIt;
