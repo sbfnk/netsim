@@ -586,9 +586,6 @@ int main(int argc, char* argv[])
       if (gSim->getTime() > nextPass) {
         write_graph(graph, generateFileName("images/frame", outputNum),
                                             gSim->getTime());
-        std::cout << "Writing graphviz output for time " << gSim->getTime()
-                  << std::endl;
-        
         do {
           nextPass += outputGraphviz;
         }
