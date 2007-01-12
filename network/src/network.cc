@@ -91,7 +91,9 @@ int main(int argc, char* argv[])
     ("help,h",
      "produce help message")
     ("params-file,p",po::value<std::string>(),
-     "file containing model and graph parameters")
+     "file containing graph parameters")
+    ("model-file,m",po::value<std::string>(),
+     "file containing model parameters")
     ;
     
   po::options_description main_options;
@@ -253,7 +255,8 @@ int main(int argc, char* argv[])
     all_options.add(sf_options[*etIt]);
   }
   po::variables_map vm;
-  po::store(po::parse_command_line(argc, argv, all_options), vm);
+  po::store(po::command_line_parser(argc, argv).options(all_options).
+            allow_unregistered().run(), vm);
   po::notify(vm);
 
   if (vm.count("help")) {
@@ -268,6 +271,17 @@ int main(int argc, char* argv[])
     }
     catch (std::exception& e) {
       std::cout << "Error parsing params file: " << e.what() << std::endl;
+      return 1;
+    }
+  }
+
+  if (vm.count("model-file")) {
+    std::ifstream ifs(vm["model-file"].as<std::string>().c_str());
+    try {
+      po::store(po::parse_config_file(ifs, all_options), vm);
+    }
+    catch (std::exception& e) {
+      std::cout << "Error parsing model file: " << e.what() << std::endl;
       return 1;
     }
   }
