@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
   double stop;
   unsigned int outputSteps;
 
-  bool outputGraphviz = false;
+  double outputGraphviz = 0.;
   std::string outputFile = "";
   std::ofstream* file = 0;
    
@@ -103,8 +103,8 @@ int main(int argc, char* argv[])
      "time after which to stop")
     ("output,o", po::value<unsigned int>()->default_value(1),
      "display status every N steps (0 for display only at start and end")
-    ("graph,g", 
-     "create graphical (graphviz-)output in the images directory")
+    ("graphviz,g", po::value<double>()->default_value(1.),
+     "create graphviz output in the images directory at arg timesteps")
     ("write-file,f", po::value<std::string>(),
      "output data to file")
     ;
@@ -238,15 +238,12 @@ int main(int argc, char* argv[])
      "local information generation rate")
     ("lambda", po::value<double>(),
      "loss of information rate")
-    ("N", po::value<double>(),
-     "total number of individuals")
-    ("njac", po::value<double>(),
-     "size of Jacobian (if needed)")
     ;
 
   // read options from command line
   po::options_description all_options;
-  all_options.add(command_line_options).add(main_options);
+  all_options.add(command_line_options).add(main_options).add(graph_options).
+    add(model_options);
   for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
        etIt != possibleEdgeTypes.end(); etIt++) {
     all_options.add(lattice_options[*etIt]);
@@ -298,8 +295,8 @@ int main(int argc, char* argv[])
 
   stop = vm["stop"].as<double>();
   outputSteps = vm["output"].as<unsigned int>();
-  if (vm.count("graph")) {
-    outputGraphviz = true;
+  if (vm.count("graphviz")) {
+    outputGraphviz = vm["graphviz"].as<double>();
   }
   if (vm.count("write-file")) {
     outputFile = vm["write-file"].as<std::string>();
@@ -573,7 +570,7 @@ int main(int argc, char* argv[])
   generateTree(tree,graph,get(&Vertex::rateSum, graph),
                get(boost::vertex_index, graph));
   std::cout << "time elapsed: " << gSim->getTime() << std::endl;
-  if (outputGraphviz) write_graph(graph, "images/start");
+  if (outputGraphviz) write_graph(graph, "images/start",-1);
   if (file) write_graph_data(graph, gSim->getTime(),*file,possibleStates);
   print_graph_statistics(graph, possibleStates, possibleEdgeTypes);
    
@@ -581,20 +578,30 @@ int main(int argc, char* argv[])
   // run simulation
   /******************************************************************/
   unsigned int steps = 1;
+  double nextPass = outputGraphviz;
+  
   while (gSim->getTime()<stop && gSim->updateState(model)) {
     if ((outputSteps > 0) && (steps%outputSteps == 0)) {
       std::cout << "time elapsed: " << gSim->getTime() << std::endl;
-      if (outputGraphviz) {
-        write_graph(graph, generateFileName("images/frame", outputNum));
+      if (gSim->getTime() > nextPass) {
+        write_graph(graph, generateFileName("images/frame", outputNum),
+                                            gSim->getTime());
+        std::cout << "Writing graphviz output for time " << gSim->getTime()
+                  << std::endl;
+        
+        do {
+          nextPass += outputGraphviz;
+        }
+        while (gSim->getTime() > nextPass);
+        ++outputNum;
       }
       if (file) write_graph_data(graph, gSim->getTime(),*file,possibleStates);
-      ++outputNum;
     }
     ++steps;
   }
    
   std::cout << "Final status:" << std::endl;
-  if (outputGraphviz) write_graph(graph, "images/end");
+  if (outputGraphviz) write_graph(graph, "images/end", gSim->getTime());
   if (file) write_graph_data(graph, gSim->getTime(),*file,possibleStates);
   print_graph_statistics(graph, possibleStates, possibleEdgeTypes);
 
