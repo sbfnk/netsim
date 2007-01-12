@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
           for (double time = *lineIt;
                !(time < nextStep*timeStep) && !(nextStep*timeStep > stopTime);
                ++nextStep) {
-            if (lineIt != line_contents.end()) ++lineIt;
+            std::vector<double>::iterator lineIt = ++(line_contents.begin());
             for (unsigned int i=0; lineIt != line_contents.end();
                  lineIt++, i++) {
               values[nextStep][i] += *lineIt;
