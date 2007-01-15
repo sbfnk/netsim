@@ -132,18 +132,8 @@ namespace boost {
       if (edgeCount == 1) {
         if ((source % sideLength == sideLength - 1)) {
           // at end of line
-          if (periodic_boundary) {
-            if ((source / sideLength) % 2 == 0) {
-              // even line
-              target = source - sideLength + 1;
-            } else {
-              // uneven line
-              target = source + 1;
-            }
-          } else {
-            // at end of line and no periodic boundary
-            ++(*this);
-          }
+          if (periodic_boundary) target = source - sideLength + 1;
+          else ++(*this);
         } else {
           // not at end of line
           target = source + 1;
@@ -159,19 +149,27 @@ namespace boost {
       } else if (edgeCount == 3) {
         if (source + 1 > sideLength*(sideLength-1)) {
           // last line
-          if (periodic_boundary) target = source - sideLength*(1-sideLength) + 1;
-          else ++(*this);
+          if (periodic_boundary) {
+            if (source+ 1 == sideLength*sideLength) {
+              // last element
+              target = 0;
+            } else {
+              target = source - sideLength*(sideLength-1) + 1;
+            }
+          } else {
+            // last line and no periodic boundary conditions
+            ++(*this);
+          }
+          
         } else if ((source / sideLength) % 2 == 0) {
           // even line
           if (source % sideLength > 0) {
-            // not first element
+            // not first element in line
             target = source + sideLength - 1;
-          } else if (periodic_boundary) {
-            // first element and periodic boundary conditions
-            target = source + 2*sideLength - 1;
           } else {
-            // first element and no periodic boundary conditions
-            ++(*this);
+            // first element in line
+            if (periodic_boundary) target = source + 2*sideLength - 1;
+            else ++(*this);
           }
         } else {
           // uneven line
