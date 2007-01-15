@@ -71,7 +71,6 @@ int main(int argc, char* argv[])
   std::map<VertexState, unsigned int> init;
   VertexState base;
 
-  unsigned int lattice_sideLength = 0;
   unsigned int outputNum = 0;
 
   /******************************************************************/
@@ -117,9 +116,9 @@ int main(int argc, char* argv[])
     ("vertices,N", po::value<unsigned int>(),
      "number of vertices")
     ("d-topology", po::value<std::string>(),
-     "disease network topology\n(lattice,random,small-world,scale-free,complete)")
+     "disease network topology\n((tri-)lattice,random,small-world,scale-free,complete)")
     ("i-topology", po::value<std::string>(),
-     "information network topology\n(lattice,random,small-world,scale-free,complete,copy)")
+     "information network topology\n((tri-)lattice,random,small-world,scale-free,complete,copy)")
     ("base,b", po::value<std::string>()->default_value("S"),
      "base state of individuals\n(S,s,I,i,R,r)")
     ("S+", po::value<unsigned int>()->default_value(0),
@@ -378,7 +377,6 @@ int main(int argc, char* argv[])
                   << " vertices." << std::endl;
         return 1;
       }
-      lattice_sideLength = opt.sideLength;
 
       s.str("");
       s << *etIt << "-pb";
@@ -398,6 +396,39 @@ int main(int argc, char* argv[])
       
       boost::add_edge_structure(temp_graph, li, li_end, Edge(*etIt));
       
+    } else if (topology == "tri-lattice") {
+
+      /******************************************************************/
+      // read tri-lattice specific parameters
+      /******************************************************************/
+      
+      latticeOptions opt;
+      s.str("");
+
+      opt.sideLength = static_cast<int>(sqrt(N));
+      if (pow(opt.sideLength, 2) != N) { 
+        std::cerr << "ERROR: cannot generate square lattice out of " << N
+                  << " vertices." << std::endl;
+        return 1;
+      }
+
+      s << *etIt << "-pb";
+      if (vm.count(s.str())) {
+        opt.periodicBoundary = true;
+      } else {
+        opt.periodicBoundary = false;
+      }
+
+      /******************************************************************/
+      // generate lattice with desired properties
+      /******************************************************************/
+      typedef boost::tri_lattice_iterator<gillespie_graph> tri_lattice_iterator;
+      
+      tri_lattice_iterator tli(opt.sideLength,opt.periodicBoundary);
+      tri_lattice_iterator tli_end;
+      
+      boost::add_edge_structure(temp_graph, tli, tli_end, Edge(*etIt));
+
     } else if (topology == "random") {
 
       /******************************************************************/
