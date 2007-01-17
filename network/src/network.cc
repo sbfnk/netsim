@@ -610,7 +610,8 @@ int main(int argc, char* argv[])
                get(boost::vertex_index, graph));
   std::cout << "time elapsed: " << gSim->getTime() << std::endl;
   if (outputGraphviz) write_graph(graph, "images/start",-1);
-  if (file) write_graph_data(graph, gSim->getTime(),*file,possibleStates);
+  if (file) write_graph_data(graph, gSim->getTime(), *file,
+                             possibleStates, possibleEdgeTypes);
   print_graph_statistics(graph, possibleStates, possibleEdgeTypes);
    
   /******************************************************************/
@@ -631,14 +632,16 @@ int main(int argc, char* argv[])
         while (gSim->getTime() > nextPass);
         ++outputNum;
       }
-      if (file) write_graph_data(graph, gSim->getTime(),*file,possibleStates);
+      if (file) write_graph_data(graph, gSim->getTime(), *file,
+                                 possibleStates, possibleEdgeTypes);
     }
     ++steps;
   }
    
   std::cout << "Final status:" << std::endl;
   if (outputGraphviz) write_graph(graph, "images/end", gSim->getTime());
-  if (file) write_graph_data(graph, gSim->getTime(),*file,possibleStates);
+  if (file) write_graph_data(graph, gSim->getTime(), *file,
+                             possibleStates, possibleEdgeTypes);
   print_graph_statistics(graph, possibleStates, possibleEdgeTypes);
 
   if (file) file->close();
