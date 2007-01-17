@@ -326,8 +326,8 @@ int main(int argc, char* argv[])
   if (vm.count("graphviz")) {
     outputGraphviz = vm["graphviz"].as<double>();
   }
-  if (vm.count("graphdir")) {
-    graphDir = vm["graphdir"].as<std::string>();
+  if (vm.count("graph-dir")) {
+    graphDir = vm["graph-dir"].as<std::string>();
   } 
 
   if (vm.count("write-file")) {
@@ -339,7 +339,7 @@ int main(int argc, char* argv[])
     catch (std::exception &e) {
       std::cerr << "Unable to open output file: " << e.what() << std::endl;
     }
-    initFileName = (vm["init-file"].as<std::string>())+"init";
+    initFileName = (vm["write-file"].as<std::string>())+".init";
     try {
       initFile = new std::ofstream();
       initFile->open(initFileName.c_str(), std::ios::out);
@@ -644,7 +644,9 @@ int main(int argc, char* argv[])
   if (verbose) std::cout << "time elapsed: " << gSim->getTime() << std::endl;
   if (outputGraphviz) write_graph(graph, (graphDir + "/start"),-1);
   if (outputFile) write_graph_data(graph, gSim->getTime(), *outputFile,
-                             possibleStates, possibleEdgeTypes);
+                                   possibleStates, possibleEdgeTypes);
+  if (initFile) write_graph_data(graph, -1, *initFile,
+                                 possibleStates, possibleEdgeTypes, true);
   if (verbose) print_graph_statistics(graph, possibleStates, possibleEdgeTypes);
    
   /******************************************************************/
