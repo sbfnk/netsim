@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
   command_line_options.add_options()
     ("help,h",
      "produce help message")
-    ("longhelp,h",
+    ("longhelp,hh",
      "produce long help message including all options")
     ("verbose,v",
      "produce verbose outpu")
