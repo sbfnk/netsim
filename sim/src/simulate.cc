@@ -82,6 +82,7 @@ int main(int argc, char* argv[])
   unsigned int outputSteps;
 
   double outputGraphviz = 0.;
+  std::string graphDir = "images";
   std::string outputFile = "";
   std::ofstream* file = 0;
    
@@ -108,6 +109,8 @@ int main(int argc, char* argv[])
      "display status every N steps (0 for display only at start and end")
     ("graphviz,g", po::value<double>()->default_value(1.),
      "create graphviz output in the images directory at arg timesteps")
+    ("graph-dir", po::value<std::string>()->default_value(graphDir),
+     "set ouput dir for graphs")
     ("write-file,f", po::value<std::string>(),
      "output data to file (.sim.dat will be appended)")
     ;
@@ -312,6 +315,10 @@ int main(int argc, char* argv[])
   if (vm.count("graphviz")) {
     outputGraphviz = vm["graphviz"].as<double>();
   }
+  if (vm.count("graphdir")) {
+    graphDir = vm["graphdir"].as<std::string>();
+  } 
+
   if (vm.count("write-file")) {
     outputFile = (vm["write-file"].as<std::string>())+".sim.dat";
     
@@ -617,7 +624,7 @@ int main(int argc, char* argv[])
   generateTree(tree,graph,get(&Vertex::rateSum, graph),
                get(boost::vertex_index, graph));
   std::cout << "time elapsed: " << gSim->getTime() << std::endl;
-  if (outputGraphviz) write_graph(graph, "images/start",-1);
+  if (outputGraphviz) write_graph(graph, (graphDir + "/start"),-1);
   if (file) write_graph_data(graph, gSim->getTime(), *file,
                              possibleStates, possibleEdgeTypes);
   print_graph_statistics(graph, possibleStates, possibleEdgeTypes);
