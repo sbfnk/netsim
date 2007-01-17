@@ -83,8 +83,13 @@ int main(int argc, char* argv[])
 
   double outputGraphviz = 0.;
   std::string graphDir = "images";
-  std::string outputFile = "";
-  std::ofstream* file = 0;
+  std::string outputFileName = "";
+  std::string initFileName = "";
+  
+  std::ofstream* outputFile = 0;
+  std::ofstream* initFile = 0;
+
+  bool verbose = false;
    
   po::options_description command_line_options
     ("Usage: simulate -p params_file [options]... \n\nAllowed options");
@@ -94,6 +99,8 @@ int main(int argc, char* argv[])
      "produce help message")
     ("longhelp,h",
      "produce long help message including all options")
+    ("verbose,v",
+     "produce verbose outpu")
     ("params-file,p",po::value<std::string>(),
      "file containing graph parameters")
     ("model-file,m",po::value<std::string>(),
@@ -272,13 +279,17 @@ int main(int argc, char* argv[])
     return 1;
   }
 
+  if (vm.count("verbose")) {
+    verbose = true;
+  }
+
   if (vm.count("params-file")) {
     std::ifstream ifs(vm["params-file"].as<std::string>().c_str());
     try {
       po::store(po::parse_config_file(ifs, all_options), vm);
     }
     catch (std::exception& e) {
-      std::cout << "Error parsing params file: " << e.what() << std::endl;
+      std::cerr << "Error parsing params file: " << e.what() << std::endl;
       return 1;
     }
   }
@@ -289,7 +300,7 @@ int main(int argc, char* argv[])
       po::store(po::parse_config_file(ifs, all_options), vm);
     }
     catch (std::exception& e) {
-      std::cout << "Error parsing model file: " << e.what() << std::endl;
+      std::cerr << "Error parsing model file: " << e.what() << std::endl;
       return 1;
     }
   }
@@ -320,14 +331,21 @@ int main(int argc, char* argv[])
   } 
 
   if (vm.count("write-file")) {
-    outputFile = (vm["write-file"].as<std::string>())+".sim.dat";
-    
+    outputFileName = (vm["write-file"].as<std::string>())+".sim.dat";
     try {
-      file = new std::ofstream();
-      file->open(outputFile.c_str(), std::ios::out);
+      outputFile = new std::ofstream();
+      outputFile->open(outputFileName.c_str(), std::ios::out);
     }
     catch (std::exception &e) {
-      std::cout << "Unable to open output file: " << e.what() << std::endl;
+      std::cerr << "Unable to open output file: " << e.what() << std::endl;
+    }
+    initFileName = (vm["init-file"].as<std::string>())+"init";
+    try {
+      initFile = new std::ofstream();
+      initFile->open(initFileName.c_str(), std::ios::out);
+    }
+    catch (std::exception &e) {
+      std::cerr << "Unable to open init file: " << e.what() << std::endl;
     }
   }
    
@@ -459,7 +477,7 @@ int main(int argc, char* argv[])
       } else {
         std::cerr << "ERROR: no number of edges specified" << std::endl;
         std::cerr << std::endl;
-        std::cout << lattice_options[*etIt] << std::endl;
+        std::cerr << lattice_options[*etIt] << std::endl;
         return 1;
       }
 
@@ -597,7 +615,7 @@ int main(int argc, char* argv[])
   }
    
   if (initSum > N) {
-    std::cout << "Error: number of vertices to select randomly"
+    std::cerr << "Error: number of vertices to select randomly"
               << " higher than number of total vertices" << std::endl;
   }
    
@@ -623,11 +641,11 @@ int main(int argc, char* argv[])
   gSim->initialize(model);
   generateTree(tree,graph,get(&Vertex::rateSum, graph),
                get(boost::vertex_index, graph));
-  std::cout << "time elapsed: " << gSim->getTime() << std::endl;
+  if (verbose) std::cout << "time elapsed: " << gSim->getTime() << std::endl;
   if (outputGraphviz) write_graph(graph, (graphDir + "/start"),-1);
-  if (file) write_graph_data(graph, gSim->getTime(), *file,
+  if (outputFile) write_graph_data(graph, gSim->getTime(), *outputFile,
                              possibleStates, possibleEdgeTypes);
-  print_graph_statistics(graph, possibleStates, possibleEdgeTypes);
+  if (verbose) print_graph_statistics(graph, possibleStates, possibleEdgeTypes);
    
   /******************************************************************/
   // run simulation
@@ -637,29 +655,32 @@ int main(int argc, char* argv[])
   
   while (gSim->getTime()<stop && gSim->updateState(model)) {
     if ((outputSteps > 0) && (steps%outputSteps == 0)) {
-      std::cout << "time elapsed: " << gSim->getTime() << std::endl;
+      if (verbose) std::cout << "time elapsed: " << gSim->getTime() << std::endl;
       if (gSim->getTime() > nextPass) {
-        write_graph(graph, generateFileName("images/frame", outputNum),
-                                            gSim->getTime());
+        write_graph(graph, generateFileName((graphDir +"/frame"), outputNum),
+                    gSim->getTime());
         do {
           nextPass += outputGraphviz;
         }
         while (gSim->getTime() > nextPass);
         ++outputNum;
       }
-      if (file) write_graph_data(graph, gSim->getTime(), *file,
-                                 possibleStates, possibleEdgeTypes);
+      if (outputFile) write_graph_data(graph, gSim->getTime(), *outputFile,
+                                       possibleStates, possibleEdgeTypes);
     }
     ++steps;
   }
    
-  std::cout << "Final status:" << std::endl;
-  if (outputGraphviz) write_graph(graph, "images/end", gSim->getTime());
-  if (file) write_graph_data(graph, gSim->getTime(), *file,
-                             possibleStates, possibleEdgeTypes);
-  print_graph_statistics(graph, possibleStates, possibleEdgeTypes);
+  if (verbose) std::cout << "Final status:" << std::endl;
+  if (outputGraphviz) write_graph(graph, (graphDir + "/end"), gSim->getTime());
+  if (outputFile) {
+    write_graph_data(graph, gSim->getTime(), *outputFile,
+                     possibleStates, possibleEdgeTypes);
+    outputFile->close();
+  }
+  
+  if (verbose) print_graph_statistics(graph, possibleStates, possibleEdgeTypes);
 
-  if (file) file->close();
 
   return 0;
 }
