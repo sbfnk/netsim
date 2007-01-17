@@ -91,6 +91,8 @@ int main(int argc, char* argv[])
   command_line_options.add_options()
     ("help,h",
      "produce help message")
+    ("longhelp,h",
+     "produce long help message including all options")
     ("params-file,p",po::value<std::string>(),
      "file containing graph parameters")
     ("model-file,m",po::value<std::string>(),
@@ -107,7 +109,7 @@ int main(int argc, char* argv[])
     ("graphviz,g", po::value<double>()->default_value(1.),
      "create graphviz output in the images directory at arg timesteps")
     ("write-file,f", po::value<std::string>(),
-     "output data to file")
+     "output data to file (.sim.dat will be appended)")
     ;
 
   po::options_description graph_options;
@@ -262,6 +264,11 @@ int main(int argc, char* argv[])
     return 1;
   }
 
+  if (vm.count("longhelp")) {
+    std::cout << all_options << std::endl;
+    return 1;
+  }
+
   if (vm.count("params-file")) {
     std::ifstream ifs(vm["params-file"].as<std::string>().c_str());
     try {
@@ -306,7 +313,8 @@ int main(int argc, char* argv[])
     outputGraphviz = vm["graphviz"].as<double>();
   }
   if (vm.count("write-file")) {
-    outputFile = vm["write-file"].as<std::string>();
+    outputFile = (vm["write-file"].as<std::string>())+".sim.dat";
+    
     try {
       file = new std::ofstream();
       file->open(outputFile.c_str(), std::ios::out);
