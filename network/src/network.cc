@@ -79,10 +79,11 @@ int main(int argc, char* argv[])
   std::string topology;
   unsigned int N;
   double stop;
-  unsigned int outputSteps;
 
+  double outputData = 0.;
   double outputGraphviz = 0.;
   std::string graphDir = "images";
+
   std::string outputFileName = "";
   std::string initFileName = "";
   
@@ -97,10 +98,10 @@ int main(int argc, char* argv[])
   command_line_options.add_options()
     ("help,h",
      "produce help message")
-    ("longhelp,hh",
+    ("longhelp,H",
      "produce long help message including all options")
     ("verbose,v",
-     "produce verbose outpu")
+     "produce verbose output")
     ("params-file,p",po::value<std::string>(),
      "file containing graph parameters")
     ("model-file,m",po::value<std::string>(),
@@ -110,10 +111,10 @@ int main(int argc, char* argv[])
   po::options_description main_options;
 
   main_options.add_options()
-    ("stop,s", po::value<double>()->default_value(100.),
+    ("tmax", po::value<double>()->default_value(100.),
      "time after which to stop")
-    ("output,o", po::value<unsigned int>()->default_value(1),
-     "display status every N steps (0 for display only at start and end")
+    ("output", po::value<double>()->default_value(0.),
+     "write output data at arg timesteps")
     ("graphviz,g", po::value<double>()->default_value(1.),
      "create graphviz output in the images directory at arg timesteps")
     ("graph-dir", po::value<std::string>()->default_value(graphDir),
@@ -122,11 +123,18 @@ int main(int argc, char* argv[])
      "output data to file (.sim.dat will be appended)")
     ;
 
+  // declare hidden option for suppression of graph output --
+  // needed for do_all script so that graphviz output
+  // is not generated at each run
+  po::options_description hidden_option;
+  hidden_option.add_options()
+    ("no-graph",
+     "do not produce graphviz output no matter what the other settings")
+    ;
+  
   po::options_description graph_options;
   
   graph_options.add_options()
-    ("vertices,N", po::value<unsigned int>(),
-     "number of vertices")
     ("d-topology", po::value<std::string>(),
      "disease network topology\n((tri-)lattice,random,small-world,scale-free,complete)")
     ("i-topology", po::value<std::string>(),
@@ -227,6 +235,8 @@ int main(int argc, char* argv[])
     ("Model parameters");
   
   model_options.add_options()
+    ("vertices,N", po::value<unsigned int>(),
+     "number of vertices")
     ("beta--", po::value<double>(),
      "disease transmission rate uninformed->uninformed")
     ("beta+-", po::value<double>(),
@@ -254,9 +264,13 @@ int main(int argc, char* argv[])
     ;
 
   // read options from command line
-  po::options_description all_options;
-  all_options.add(command_line_options).add(main_options).add(graph_options).
+  po::options_description visible_options;
+  visible_options.add(command_line_options).add(main_options).add(graph_options).
     add(model_options);
+  
+  po::options_description all_options;
+  all_options.add(visible_options).add(hidden_option);
+  
   for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
        etIt != possibleEdgeTypes.end(); etIt++) {
     all_options.add(lattice_options[*etIt]);
@@ -275,7 +289,7 @@ int main(int argc, char* argv[])
   }
 
   if (vm.count("longhelp")) {
-    std::cout << all_options << std::endl;
+    std::cout << visible_options << std::endl;
     return 1;
   }
 
@@ -321,14 +335,18 @@ int main(int argc, char* argv[])
   gillespie_graph& graph = gSim->graph;
   Tree<unsigned int>& tree = gSim->tree;
 
-  stop = vm["stop"].as<double>();
-  outputSteps = vm["output"].as<unsigned int>();
+  stop = vm["tmax"].as<double>();
+  outputData = vm["output"].as<double>();
   if (vm.count("graphviz")) {
     outputGraphviz = vm["graphviz"].as<double>();
   }
   if (vm.count("graph-dir")) {
     graphDir = vm["graph-dir"].as<std::string>();
-  } 
+  }
+  // no-graph overrides other graph options
+  if (vm.count("no-graph")) {
+    outputGraphviz = 0.;
+  }
 
   if (vm.count("write-file")) {
     outputFileName = (vm["write-file"].as<std::string>())+".sim.dat";
@@ -642,7 +660,7 @@ int main(int argc, char* argv[])
   generateTree(tree,graph,get(&Vertex::rateSum, graph),
                get(boost::vertex_index, graph));
   if (verbose) std::cout << "time elapsed: " << gSim->getTime() << std::endl;
-  if (outputGraphviz) write_graph(graph, (graphDir + "/start"),-1);
+  if (outputGraphviz > 0) write_graph(graph, (graphDir + "/start"),-1);
   if (outputFile) write_graph_data(graph, gSim->getTime(), *outputFile,
                                    possibleStates, possibleEdgeTypes);
   if (initFile) write_graph_data(graph, -1, *initFile,
@@ -652,29 +670,38 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // run simulation
   /******************************************************************/
-  unsigned int steps = 1;
-  double nextPass = outputGraphviz;
+  double nextGraphStep = outputGraphviz;
+  double nextDataStep = outputData;
   
-  while (gSim->getTime()<stop && gSim->updateState(model)) {
-    if ((outputSteps > 0) && (steps%outputSteps == 0)) {
-      if (verbose) std::cout << "time elapsed: " << gSim->getTime() << std::endl;
-      if (gSim->getTime() > nextPass) {
-        write_graph(graph, generateFileName((graphDir +"/frame"), outputNum),
-                    gSim->getTime());
+  unsigned int steps = 0;
+  
+  while (gSim->updateState(model) && gSim->getTime()<stop) {
+    if (verbose && steps%100 == 0) {
+      std::cout << "time elapsed: " << gSim->getTime() << std::endl;
+    }
+
+    if ((outputGraphviz > 0) && (gSim->getTime() > nextGraphStep)) {
+      write_graph(graph, generateFileName((graphDir +"/frame"), outputNum),
+                  gSim->getTime());
+      do {
+        nextGraphStep += outputGraphviz;
+      } while (gSim->getTime() > nextGraphStep);
+      ++outputNum;
+    }
+    if (outputFile && gSim->getTime() > nextDataStep) {
+      write_graph_data(graph, gSim->getTime(), *outputFile,
+                       possibleStates, possibleEdgeTypes);
+      if (outputData > 0) {
         do {
-          nextPass += outputGraphviz;
-        }
-        while (gSim->getTime() > nextPass);
-        ++outputNum;
+          nextDataStep += outputData;
+        } while (gSim->getTime() > nextDataStep);
       }
-      if (outputFile) write_graph_data(graph, gSim->getTime(), *outputFile,
-                                       possibleStates, possibleEdgeTypes);
     }
     ++steps;
   }
    
   if (verbose) std::cout << "Final status:" << std::endl;
-  if (outputGraphviz) write_graph(graph, (graphDir + "/end"), gSim->getTime());
+  if (outputGraphviz > 0) write_graph(graph, (graphDir + "/end"), gSim->getTime());
   if (outputFile) {
     write_graph_data(graph, gSim->getTime(), *outputFile,
                      possibleStates, possibleEdgeTypes);
