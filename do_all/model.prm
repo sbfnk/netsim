@@ -1,7 +1,7 @@
 # %%% Mean Field Approx Parameters File %%%%%%%%%
 
 # Model parameters: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-vertices   = 10000
+vertices   = 100
 beta--     = 0.5
 gamma-     = 0.1
 delta-     = 1.0
