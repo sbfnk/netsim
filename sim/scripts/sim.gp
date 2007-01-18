@@ -12,7 +12,7 @@ set format y "%3.1e"
 
 #####################################
 
-set output 'sim_nofix.ps'
+set output 'sim.ps'
 set title "simulation"
 plot 'FILE_ID.sim.dat' u 1:2 title 'S' w l \
    , 'FILE_ID.sim.dat' u 1:3 title 'I' w l \
