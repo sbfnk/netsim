@@ -6,11 +6,9 @@
 
 namespace po = boost::program_options;
 
-std::vector<std::string> split(const std::string& str,
-                          const std::string delimiters)
+void split(const std::string& str,const std::string delimiters,
+           std::vector<std::string>& tokens)
 {
-  std::vector<std::string> tokens; 
-
   std::string::size_type lastPos = str.find_first_not_of(delimiters, 0);
   std::string::size_type pos     = str.find_first_of(delimiters, lastPos);
   
@@ -19,44 +17,39 @@ std::vector<std::string> split(const std::string& str,
     lastPos = str.find_first_not_of(delimiters, pos);
     pos     = str.find_first_of(delimiters, lastPos);
   }
-
-  return tokens;
 }
 
-std::vector<double> split_to_double(const std::string &str,
-                                    const std::string delimiters ) {
-  
-  std::vector<std::string> tokens = split(str, delimiters);
-  std::vector<double> values;
+void split_to_float(const std::string &str, const std::string delimiters,
+                     std::vector<float>& values)
+{
+  std::vector<std::string> tokens;
+  split(str, delimiters, tokens);
   std::vector<std::string>::iterator it;
-  double f;
+  float f;
 
   for (it = tokens.begin(); it != tokens.end(); it++) {
     std::stringstream ss(*it);
     ss >> f;
     values.push_back(f);
   }
-  return values;
 }
 
 
 int main(int argc, char* argv[])
 {
 
-  double timeStep;
-  double stopTime;
+  float timeStep = 0.;
+  float stopTime = 0.;
   
   std::vector<std::string> inputFiles;
-  std::string outputFile;
+  std::string outputBase;
   
   po::options_description command_line_options
     ("Usage: average_runs -d arg -s arg -o arg [input-files]\n\nAllowed options");
   command_line_options.add_options()
     ("help", "produce help message")    
-    ("time-step,d", po::value<double>(),
+    ("time-step,d", po::value<float>(),
      "discretized time step")    
-    ("stop,s", po::value<double>(),
-     "stopping time")    
     ("output-file,o", po::value<std::string>(),
      "output file")    
     ;
@@ -79,23 +72,15 @@ int main(int argc, char* argv[])
   po::notify(vm);
 
   if (vm.count("time-step")) {
-    timeStep = vm["time-step"].as<double>();
+    timeStep = vm["time-step"].as<float>();
   } else {
     std::cerr << "ERROR: no time-step specified" << std::endl;
     std::cerr << command_line_options << std::endl;
     return 1;
   }
   
-  if (vm.count("stop")) {
-    stopTime = vm["stop"].as<double>();
-  } else {
-    std::cerr << "ERROR: no stop time specified" << std::endl;
-    std::cerr << command_line_options << std::endl;
-    return 1;
-  }
-  
   if (vm.count("output-file")) {
-    outputFile = vm["output-file"].as<std::string>();
+    outputBase = vm["output-file"].as<std::string>();
   } else {
     std::cerr << "ERROR: no output file specified" << std::endl;
     std::cerr << command_line_options << std::endl;
@@ -110,71 +95,99 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  double nSteps = (stopTime / timeStep);
-  
-  std::vector< std::vector<double> > values;
+  std::vector< std::vector<float> > values;
 
   unsigned int nFiles = inputFiles.size();
   unsigned int nColumns = 0;
+  bool firstFile = true;
 
   for (std::vector<std::string>::iterator it = inputFiles.begin();
        it != inputFiles.end(); it++) {
     std::ifstream ifs((*it).c_str());
     if (ifs.is_open()) {
       std::string line;
-      unsigned int lineCount = 0;
+      std::getline(ifs, line);
+      unsigned int lineCount = 1;
       unsigned int nextStep = 0;
       
-      while (!ifs.eof() && !(nextStep*timeStep > stopTime)) {
-        lineCount++;
-        std::getline(ifs, line);
-        
-        std::vector<double> line_contents = split_to_double(line, " \t");
-        
-        if (line_contents.size() > 0) {
-          if (nColumns == 0) {
-            // set number of columns
-            nColumns = line_contents.size()-1;
-            // fill vector with zeros
-            std::vector<double> v(nColumns,0.);
-            values.resize(static_cast<unsigned int>(nSteps)+1, v);
-          } else if (nColumns+1 != line_contents.size()) {
-            std::cerr << "Warning: wrong number of columns in line "
-                      << lineCount << ": " << line_contents.size()
-                      << " instead of " << nColumns << std::endl;
-          }
-          std::vector<double>::iterator lineIt = line_contents.begin();
-          for (double time = *lineIt;
-               !(time < nextStep*timeStep) && !(nextStep*timeStep > stopTime);
-               ++nextStep) {
-            std::vector<double>::iterator lineIt = ++(line_contents.begin());
-            for (unsigned int i=0; lineIt != line_contents.end();
-                 lineIt++, i++) {
-              values[nextStep][i] += *lineIt;
+      std::vector<float> line_contents;
+      
+      while (!ifs.eof() && (firstFile || !(nextStep*timeStep > stopTime)))
+        {
+          lineCount++;
+          line_contents.clear();
+          split_to_float(line, " \t", line_contents);          
+          if (line_contents.size() > 0) {
+            if (nColumns == 0) {
+              // set number of columns
+              nColumns = line_contents.size();
+            } else if (nColumns != line_contents.size()) {
+              std::cerr << "Warning: wrong number of columns in line "
+                        << lineCount << ": " << line_contents.size()
+                        << " instead of " << nColumns << std::endl;
             }
-          } 
+            std::vector<float>::iterator lineIt = line_contents.begin();
+            
+            for (float time = *lineIt;
+                 nextStep*timeStep <= time &&
+                   (firstFile || stopTime > nextStep*timeStep);
+                 ++nextStep) {
+              std::vector<float> v;
+              std::vector<float>::iterator lineIt = ++(line_contents.begin());
+              // create line vector
+              if (firstFile) {
+                for (unsigned int i=1; i < nColumns; i++) {
+                   v.push_back(line_contents[i]);
+                }
+                values.push_back(v);
+                stopTime = nextStep*timeStep;
+              } else {
+                for (unsigned int i=1; i < nColumns; i++) {
+                  values[nextStep][i-1] += line_contents[i];
+                }
+              }
+            }
+          }
+          std::getline(ifs, line);
+          if (firstFile && !ifs.eof()) stopTime = nextStep*timeStep;
         }
-      }
+      firstFile = false;
       ifs.close();
     } else {
       std::cout << "Error reading " << *it << "." << std::endl;
     }
   }
-  double time = 0.;
-  std::ofstream ofs(outputFile.c_str(), std::ios::out);
+  float time = 0.;
+  std::ofstream ofs((outputBase+".sim.dat").c_str(), std::ios::out);
 
   if (ofs.is_open()) {
-    for (std::vector< std::vector<double> >::iterator it = values.begin();
+    for (std::vector< std::vector<float> >::iterator it = values.begin();
          it != values.end(); it++, time+=timeStep) {
       ofs << time;
-      for (std::vector<double>::iterator dit = (*it).begin();
+      for (std::vector<float>::iterator dit = (*it).begin();
            dit != (*it).end(); dit++) {
         ofs << " " << (*dit)/nFiles;
       }
       ofs << std::endl;
     }
+    ofs.close();
   } else {
-    std::cout << "Error writing to " << outputFile << "." << std::endl;
+    std::cout << "Error writing to " << outputBase  << ".sim.dat" << std::endl;
+    return 1;
+  }
+
+  // write file with averaged initial conditions
+  ofs.open((outputBase+".init").c_str(), std::ios::out);
+  if (ofs.is_open()) {
+    std::vector<float> firstLine = (*values.begin());
+    for (std::vector<float>::iterator it = firstLine.begin();
+         it != firstLine.end(); it++) {
+      ofs << (*it)/nFiles << std::endl;
+    }
+    ofs << std::endl;
+    ofs.close();
+  } else {
+    std::cout << "Error writing to " << outputBase << ".init" << std::endl;
     return 1;
   }
 
