@@ -54,7 +54,6 @@ public:
     // exit if nothing can happen -- exit also if the rate sum is very small
     // to prevent rounding problems
     if (tree.getTopBin()->getRateSum() < 1e-10) {
-      std::cout << "Nothing can happen" << std::endl;
       return false;
     }
          
@@ -77,7 +76,7 @@ public:
       }
       if (tempSum < randNo) {
         // should not happen
-        std::cout << "Could not pick event" << std::endl;
+        std::cerr << "Could not pick event" << std::endl;
         return false;
       }
       it--;
