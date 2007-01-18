@@ -1,0 +1,7 @@
+model=$CODEDIR/do_all/model.prm # file containing the model paramters
+ode=$CODEDIR/do_all/ode.prm     # file containing the ode parameters
+sim=$CODEDIR/do_all/sim.prm     # file containing the simulation parameters
+
+num_sims=100                    # number of simulations to run
+
+dt=0.1                          # discrete timestep for averaging
