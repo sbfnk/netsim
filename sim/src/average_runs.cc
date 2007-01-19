@@ -108,53 +108,64 @@ int main(int argc, char* argv[])
       std::string line;
       std::getline(ifs, line);
       unsigned int lineCount = 1;
-      unsigned int nextStep = 0;
+      float currentTime = 0;
+      unsigned int currentStep = 0;
       
       std::vector<float> line_contents;
-      
-      while (!ifs.eof() && (firstFile || !(nextStep*timeStep > stopTime)))
-        {
-          lineCount++;
-          line_contents.clear();
-          split_to_float(line, " \t", line_contents);          
-          if (line_contents.size() > 0) {
-            if (nColumns == 0) {
-              // set number of columns
-              nColumns = line_contents.size();
-            } else if (nColumns != line_contents.size()) {
-              std::cerr << "Warning: wrong number of columns in line "
-                        << lineCount << ": " << line_contents.size()
-                        << " instead of " << nColumns << std::endl;
-            }
-            std::vector<float>::iterator lineIt = line_contents.begin();
-            
-            for (float time = *lineIt;
-                 nextStep*timeStep <= time &&
-                   (firstFile || stopTime > nextStep*timeStep);
-                 ++nextStep) {
-              std::vector<float> v;
-              std::vector<float>::iterator lineIt = ++(line_contents.begin());
-              // create line vector
+      std::vector<float> previous_line_contents;
+
+      while (!ifs.eof() && (firstFile || (currentTime <= stopTime))) {
+        
+        lineCount++;
+        line_contents.clear();
+        split_to_float(line, " \t", line_contents);          
+        if (line_contents.size() > 0) {
+          if (nColumns == 0) {
+            // set number of columns
+            nColumns = line_contents.size();
+          } else if (nColumns != line_contents.size()) {
+            std::cerr << "Warning: wrong number of columns in line "
+                      << lineCount << ": " << line_contents.size()
+                      << " instead of " << nColumns << std::endl;
+          }
+          
+          currentTime = *(line_contents.begin());
+
+          if (currentTime >= currentStep*timeStep) {
+            while ((currentTime-timeStep) > (currentStep*timeStep)
+                   && (firstFile || (stopTime > currentStep*timeStep))) {
               if (firstFile) {
-                for (unsigned int i=1; i < nColumns; i++) {
-                   v.push_back(line_contents[i]);
-                }
-                values.push_back(v);
-                stopTime = nextStep*timeStep;
+                values.push_back(std::vector<float>(previous_line_contents.begin()+1,
+                                                    previous_line_contents.end()));
+                stopTime = (currentStep+1)*timeStep;
               } else {
                 for (unsigned int i=1; i < nColumns; i++) {
-                  values[nextStep][i-1] += line_contents[i];
+                  values[currentStep][i-1] += previous_line_contents[i];
                 }
               }
+              ++currentStep;
             }
+            
+            // create line vector
+            if (firstFile) {
+              values.push_back(std::vector<float>(line_contents.begin()+1,
+                                                  line_contents.end()));
+              stopTime = (currentStep+1)*timeStep;
+            } else {
+              for (unsigned int i=1; i < nColumns; i++) {
+                values[currentStep][i-1] += line_contents[i];
+              }
+            }
+            ++currentStep;
           }
+          previous_line_contents = std::vector<float>(line_contents);
           std::getline(ifs, line);
-          if (firstFile && !ifs.eof()) stopTime = nextStep*timeStep;
         }
+      }
       firstFile = false;
       ifs.close();
     } else {
-      std::cout << "Error reading " << *it << "." << std::endl;
+      std::cerr << "Error reading " << *it << "." << std::endl;
     }
   }
   float time = 0.;
@@ -172,7 +183,7 @@ int main(int argc, char* argv[])
     }
     ofs.close();
   } else {
-    std::cout << "Error writing to " << outputBase  << ".sim.dat" << std::endl;
+    std::cerr << "Error writing to " << outputBase  << ".sim.dat" << std::endl;
     return 1;
   }
 
