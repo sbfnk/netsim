@@ -85,10 +85,8 @@ int main(int argc, char* argv[])
   std::string graphDir = "images";
 
   std::string outputFileName = "";
-  std::string initFileName = "";
   
   std::ofstream* outputFile = 0;
-  std::ofstream* initFile = 0;
 
   bool verbose = false;
    
@@ -356,14 +354,6 @@ int main(int argc, char* argv[])
     }
     catch (std::exception &e) {
       std::cerr << "Unable to open output file: " << e.what() << std::endl;
-    }
-    initFileName = (vm["write-file"].as<std::string>())+".init";
-    try {
-      initFile = new std::ofstream();
-      initFile->open(initFileName.c_str(), std::ios::out);
-    }
-    catch (std::exception &e) {
-      std::cerr << "Unable to open init file: " << e.what() << std::endl;
     }
   }
    
@@ -661,10 +651,11 @@ int main(int argc, char* argv[])
                get(boost::vertex_index, graph));
   if (verbose) std::cout << "time elapsed: " << gSim->getTime() << std::endl;
   if (outputGraphviz > 0) write_graph(graph, (graphDir + "/start"),-1);
-  if (outputFile) write_graph_data(graph, gSim->getTime(), *outputFile,
-                                   possibleStates, possibleEdgeTypes);
-  if (initFile) write_graph_data(graph, -1, *initFile,
-                                 possibleStates, possibleEdgeTypes, true);
+  std::string lastLine = "";
+  if (outputFile) {
+    lastLine = write_graph_data(graph, gSim->getTime(), *outputFile,
+                                 possibleStates, possibleEdgeTypes);
+  }
   if (verbose) print_graph_statistics(graph, possibleStates, possibleEdgeTypes);
    
   /******************************************************************/
@@ -674,14 +665,14 @@ int main(int argc, char* argv[])
   double nextDataStep = outputData;
   
   unsigned int steps = 0;
-  
+
   while (gSim->updateState(model) && gSim->getTime()<stop) {
     if (verbose && steps%100 == 0) {
       std::cout << "time elapsed: " << gSim->getTime() << std::endl;
     }
 
     if ((outputGraphviz > 0) && (gSim->getTime() > nextGraphStep)) {
-      write_graph(graph, generateFileName((graphDir +"/frame"), outputNum),
+      write_graph(graph, generateFileName((graphDir +"/frame"),outputNum),
                   gSim->getTime());
       do {
         nextGraphStep += outputGraphviz;
@@ -689,8 +680,9 @@ int main(int argc, char* argv[])
       ++outputNum;
     }
     if (outputFile && gSim->getTime() > nextDataStep) {
-      write_graph_data(graph, gSim->getTime(), *outputFile,
-                       possibleStates, possibleEdgeTypes);
+      lastLine = 
+        write_graph_data(graph, gSim->getTime(), *outputFile,
+                         possibleStates, possibleEdgeTypes);
       if (outputData > 0) {
         do {
           nextDataStep += outputData;
@@ -703,8 +695,7 @@ int main(int argc, char* argv[])
   if (verbose) std::cout << "Final status:" << std::endl;
   if (outputGraphviz > 0) write_graph(graph, (graphDir + "/end"), gSim->getTime());
   if (outputFile) {
-    write_graph_data(graph, gSim->getTime(), *outputFile,
-                     possibleStates, possibleEdgeTypes);
+    *outputFile << stop << '\t' << lastLine;
     outputFile->close();
   }
   
