@@ -104,7 +104,6 @@ int main(int argc, char* argv[])
   for (std::vector<std::string>::iterator it = inputFiles.begin();
        it != inputFiles.end(); it++) {
     std::ifstream ifs((*it).c_str());
-    std::cout << (*it) << std::endl;
     
     if (ifs.is_open()) {
       std::string line;
