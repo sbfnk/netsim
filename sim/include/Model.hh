@@ -106,7 +106,7 @@ class Model
                            VertexState state) const;
       double getEdgeEvents(eventList& events,
                            VertexState state, EdgeType edge,
-                           VertexState nbState) const;
+                           VertexState nbState, unsigned int outEdges) const;
 
       std::vector<VertexState> getPossibleStates();
       std::vector<EdgeType> getPossibleEdgeTypes();

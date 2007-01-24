@@ -180,7 +180,7 @@ double Model::getNodeEvents(eventList& events,
 /******************************************************************/
 double Model::getEdgeEvents(eventList& events,
                             VertexState state, EdgeType edge,
-                            VertexState nbState) const
+                            VertexState nbState, unsigned int outEdges) const
 {
    double rateSum(.0);
    if (edge.getType() == Disease) {
@@ -192,7 +192,7 @@ double Model::getEdgeEvents(eventList& events,
          infection.newState.setInfo(state.getInfo());
          infection.newState.setDisease(Infected);
          events.push_back(infection);
-         rateSum += infection.rate;
+         rateSum += infection.rate/outEdges;
       }
    } else if (edge.getType() == Information) {
       // information transmission
@@ -202,7 +202,7 @@ double Model::getEdgeEvents(eventList& events,
          infoTransmission.newState.setDisease(state.getDisease());
          infoTransmission.newState.setInfo(Informed);
          events.push_back(infoTransmission);
-         rateSum += infoTransmission.rate;
+         rateSum += infoTransmission.rate/outEdges;
       }
       // information generation
       if (state.getInfo() == Uninformed && nbState.getDisease() == Infected) {
@@ -211,7 +211,7 @@ double Model::getEdgeEvents(eventList& events,
          infoGeneration.newState.setDisease(state.getDisease());
          infoGeneration.newState.setInfo(Informed);
          events.push_back(infoGeneration);
-         rateSum += infoGeneration.rate;
+         rateSum += infoGeneration.rate/outEdges;
       }
    }
 

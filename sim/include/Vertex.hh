@@ -69,13 +69,21 @@ double generateEventList(Graph& graph, VertexClass v,
 
    // get edge events
    out_edge_iterator oi, oi_end;;
+
+//    unsigned int out_degrees;
+   
+//    for (tie(oi, oi_end) = boost::out_edges(v, graph);
+//         oi != oi_end; ++oi) {
+//    }
+   
    for (tie(oi, oi_end) = boost::out_edges(v, graph);
         oi != oi_end; ++oi) {
       edge_descriptor e = *oi;
       vertex_descriptor t =  target(e, graph);
       tempSum +=
          model.getEdgeEvents(graph[v].events, graph[v].state,
-                             graph[e].type, graph[t].state);
+                             graph[e].type, graph[t].state,
+                             out_degree(v, graph)/2);
    }
    
    // calculate difference between new and old sum of rates
