@@ -81,7 +81,7 @@ $sim_command
 
 if [ $num_sims -gt 1 ]; then
     for ((i=101;i<(100+$num_sims);i++)); do
-	sim_command="$sim_base --write-file $output_dir/$file_id$i"
+	sim_command="$sim_base --write-file $output_dir/$file_id$i --no-graph"
         $sim_command
     done
 fi
