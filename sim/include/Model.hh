@@ -108,8 +108,13 @@ class Model
                            VertexState state, EdgeType edge,
                            VertexState nbState, unsigned int outEdges) const;
 
-      std::vector<VertexState> getPossibleStates();
-      std::vector<EdgeType> getPossibleEdgeTypes();
+      const std::vector<VertexState>& getPossibleStates() const;
+      const std::vector<EdgeType>& getPossibleEdgeTypes() const;
+
+    private:
+  
+      std::vector<VertexState> possibleStates;
+      std::vector<EdgeType> possibleEdgeTypes;
 
       double gamma[2], delta[2]; // model parameters
       double beta[2][2], alpha, nu, lambda, omega; // model parameters

@@ -21,6 +21,15 @@ double read_dbl_val(std::ifstream& ifile);
 /******************************************************************/
 Model::Model()
 {
+  possibleStates.push_back(VertexState(Susceptible, Uninformed));
+  possibleStates.push_back(VertexState(Infected, Uninformed));
+  possibleStates.push_back(VertexState(Recovered, Uninformed));
+  possibleStates.push_back(VertexState(Susceptible, Informed));
+  possibleStates.push_back(VertexState(Infected, Informed));
+  possibleStates.push_back(VertexState(Recovered, Informed));
+
+  possibleEdgeTypes.push_back(Disease);
+  possibleEdgeTypes.push_back(Information);
 }
 
 /******************************************************************/
@@ -218,24 +227,14 @@ double Model::getEdgeEvents(eventList& events,
    return rateSum;
 }
 
-std::vector<VertexState> Model::getPossibleStates()
+const std::vector<VertexState>& Model::getPossibleStates() const
 {
-   std::vector<VertexState> v;
-   v.push_back(VertexState(Susceptible, Uninformed));
-   v.push_back(VertexState(Infected, Uninformed));
-   v.push_back(VertexState(Recovered, Uninformed));
-   v.push_back(VertexState(Susceptible, Informed));
-   v.push_back(VertexState(Infected, Informed));
-   v.push_back(VertexState(Recovered, Informed));
-   return v;
+  return possibleStates;
 }
 
-std::vector<EdgeType> Model::getPossibleEdgeTypes()
+const std::vector<EdgeType>& Model::getPossibleEdgeTypes() const
 {
-   std::vector<EdgeType> e;
-   e.push_back(Disease);
-   e.push_back(Information);
-   return e;
+  return possibleEdgeTypes;
 }
 
 /******************************************************************/

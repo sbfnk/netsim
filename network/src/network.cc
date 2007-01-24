@@ -65,8 +65,6 @@ std::string generateFileName(std::string nameBase, unsigned int id)
 int main(int argc, char* argv[])
 {
   Model model;
-  std::vector<VertexState> possibleStates = model.getPossibleStates();
-  std::vector<EdgeType> possibleEdgeTypes = model.getPossibleEdgeTypes();
 
   std::map<VertexState, unsigned int> init;
   VertexState base;
@@ -157,8 +155,9 @@ int main(int argc, char* argv[])
 
   // lattice
   std::map<EdgeType, po::options_description> lattice_options;
-  for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
-       etIt != possibleEdgeTypes.end(); etIt++) {
+  for (std::vector<EdgeType>::const_iterator etIt =
+         model.getPossibleEdgeTypes().begin();
+       etIt != model.getPossibleEdgeTypes().end(); etIt++) {
     std::stringstream s;
     s << *etIt << "-Lattice Options";
     po::options_description lo(s.str().c_str());
@@ -176,8 +175,9 @@ int main(int argc, char* argv[])
 
   // random graph
   std::map<EdgeType, po::options_description> rg_options;
-  for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
-       etIt != possibleEdgeTypes.end(); etIt++) {
+  for (std::vector<EdgeType>::const_iterator etIt =
+         model.getPossibleEdgeTypes().begin();
+       etIt != model.getPossibleEdgeTypes().end(); etIt++) {
     std::stringstream s;
     s << *etIt << "-RandomGraph Options";
     po::options_description ro(s.str().c_str());
@@ -191,8 +191,9 @@ int main(int argc, char* argv[])
 
   // small-world graph
   std::map<EdgeType, po::options_description> sw_options;
-  for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
-       etIt != possibleEdgeTypes.end(); etIt++) {
+  for (std::vector<EdgeType>::const_iterator etIt =
+         model.getPossibleEdgeTypes().begin();
+       etIt != model.getPossibleEdgeTypes().end(); etIt++) {
     std::stringstream s;
     s << *etIt << "-SmallWorld Options";
     po::options_description swo(s.str().c_str());
@@ -211,8 +212,9 @@ int main(int argc, char* argv[])
 
   // scale-free graph
   std::map<EdgeType, po::options_description> sf_options;
-  for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
-       etIt != possibleEdgeTypes.end(); etIt++) {
+  for (std::vector<EdgeType>::const_iterator etIt =
+         model.getPossibleEdgeTypes().begin();
+       etIt != model.getPossibleEdgeTypes().end(); etIt++) {
     std::stringstream s;
     s << *etIt << "-ScaleFree Options";
     po::options_description sfo(s.str().c_str());
@@ -269,8 +271,9 @@ int main(int argc, char* argv[])
   po::options_description all_options;
   all_options.add(visible_options).add(hidden_option);
   
-  for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
-       etIt != possibleEdgeTypes.end(); etIt++) {
+  for (std::vector<EdgeType>::const_iterator etIt =
+         model.getPossibleEdgeTypes().begin();
+       etIt != model.getPossibleEdgeTypes().end(); etIt++) {
     all_options.add(lattice_options[*etIt]);
     all_options.add(rg_options[*etIt]);
     all_options.add(sw_options[*etIt]);
@@ -357,8 +360,9 @@ int main(int argc, char* argv[])
     }
   }
    
-  for (std::vector<VertexState>::iterator it = possibleStates.begin();
-       it != possibleStates.end(); it++) {
+  for (std::vector<VertexState>::const_iterator it =
+         model.getPossibleStates().begin();
+       it != model.getPossibleStates().end(); it++) {
     std::stringstream ss;
     ss << (*it).getString();
     std::string s(ss.str());
@@ -384,8 +388,9 @@ int main(int argc, char* argv[])
   boost::add_vertices(graph, N, Vertex(base));
 
   // generate edges
-  for (std::vector<EdgeType>::iterator etIt = possibleEdgeTypes.begin();
-       etIt != possibleEdgeTypes.end(); etIt++) {
+  for (std::vector<EdgeType>::const_iterator etIt =
+         model.getPossibleEdgeTypes().begin();
+       etIt != model.getPossibleEdgeTypes().end(); etIt++) {
 
     onetype_graph temp_graph;
     boost::add_vertices(temp_graph, N);
@@ -590,7 +595,7 @@ int main(int argc, char* argv[])
     } else if (topology == "copy") {
       boost::graph_traits<gillespie_graph>::edge_iterator ei, ei_end;
       for (tie(ei, ei_end) = edges(graph); ei != ei_end; ei++) {
-        if (graph[*ei].type == *(possibleEdgeTypes.begin())) {
+        if (graph[*ei].type == *(model.getPossibleEdgeTypes().begin())) {
           add_edge(source(*ei, temp_graph), target(*ei, temp_graph),
                    Edge(*etIt), temp_graph);
         }
@@ -654,9 +659,11 @@ int main(int argc, char* argv[])
   std::string lastLine = "";
   if (outputFile) {
     lastLine = write_graph_data(graph, gSim->getTime(), *outputFile,
-                                 possibleStates, possibleEdgeTypes);
+                                model.getPossibleStates(),
+                                model.getPossibleEdgeTypes());
   }
-  if (verbose) print_graph_statistics(graph, possibleStates, possibleEdgeTypes);
+  if (verbose) print_graph_statistics(graph, model.getPossibleStates(),
+                                      model.getPossibleEdgeTypes());
    
   /******************************************************************/
   // run simulation
@@ -682,7 +689,7 @@ int main(int argc, char* argv[])
     if (outputFile && gSim->getTime() > nextDataStep) {
       lastLine = 
         write_graph_data(graph, gSim->getTime(), *outputFile,
-                         possibleStates, possibleEdgeTypes);
+                         model.getPossibleStates(), model.getPossibleEdgeTypes());
       if (outputData > 0) {
         do {
           nextDataStep += outputData;
@@ -699,8 +706,8 @@ int main(int argc, char* argv[])
     outputFile->close();
   }
   
-  if (verbose) print_graph_statistics(graph, possibleStates, possibleEdgeTypes);
-
+  if (verbose) print_graph_statistics(graph, model.getPossibleStates(),
+                                      model.getPossibleEdgeTypes());
 
   return 0;
 }
