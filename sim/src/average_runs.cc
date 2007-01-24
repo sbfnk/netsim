@@ -104,6 +104,8 @@ int main(int argc, char* argv[])
   for (std::vector<std::string>::iterator it = inputFiles.begin();
        it != inputFiles.end(); it++) {
     std::ifstream ifs((*it).c_str());
+    std::cout << (*it) << std::endl;
+    
     if (ifs.is_open()) {
       std::string line;
       std::getline(ifs, line);
@@ -151,7 +153,7 @@ int main(int argc, char* argv[])
               values.push_back(std::vector<float>(line_contents.begin()+1,
                                                   line_contents.end()));
               stopTime = (currentStep+1)*timeStep;
-            } else {
+            } else if (stopTime > currentStep*timeStep) {
               for (unsigned int i=1; i < nColumns; i++) {
                 values[currentStep][i-1] += line_contents[i];
               }
