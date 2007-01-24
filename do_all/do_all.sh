@@ -41,11 +41,8 @@ done
 if [ -d $output_dir ]; then
     if [ $force == "y" ]; then
 	echo "Overwriting contents of $output_dir"
-        if [ -d $output_dir/images ]; then
-  	    rm -f $output_dir/images/*
-        else
-            mkdir $output_dir/images
-        fi
+        rm -rf $output_dir/*
+        mkdir $output_dir/images
     else
 	echo "Error: $output_dir exists"
 	echo "Use -f to override"
@@ -93,7 +90,7 @@ avg_command="$avg_command $output_dir/$file_id???.sim.dat"
 
 $avg_command
 
-rm $output_dir/$file_id???.sim.dat
+#rm $output_dir/$file_id???.sim.dat
 
 echo "Running ode..."
 
