@@ -74,15 +74,18 @@ sim_base="$sim_base --graph-dir $output_dir/images $sim_options"
 sim_base="$sim_base $options"
 sim_command="$sim_base --write-file $output_dir/$file_id""100"
 
+echo -ne .
 $sim_command
 
 if [ $num_sims -gt 1 ]; then
     for ((i=101;i<(100+$num_sims);i++)); do
+	echo -ne .
 	sim_command="$sim_base --write-file $output_dir/$file_id$i --no-graph"
         $sim_command
     done
 fi
 
+echo 
 echo "Averaging runs..."
 
 avg_command="$CODEDIR/graph/average_runs -d $dt -o $output_dir/$file_id"
