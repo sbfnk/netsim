@@ -63,11 +63,15 @@ dvips -q -o $output_dir/$1.singlets.ps singlets.dvi > /dev/null
 latex pairs.tex  > /dev/null 
 dvips -q -o $output_dir/$1.pairs.ps pairs.dvi > /dev/null
 
+mv sim.eps $output_dir/$1.sim.eps
+mv mf.eps $output_dir/$1.mf.eps
+mv pa.eps $output_dir/$1.pa.eps
+
 # clean
 rm -f singlets.log singlets.aux singlets.dvi 
 rm -f pairs.log pairs.aux pairs.dvi 
-rm -f mf.ps  mf.eps 
-rm -f pa.ps  pa.eps
+rm -f mf.ps
+rm -f pa.ps 
 rm -f pa1.ps pa1.eps 
 rm -f pa2.ps pa2.eps 
 rm -f pa3.ps pa3.eps 
@@ -80,7 +84,7 @@ rm -f Cxx1.ps Cxx1.eps
 rm -f Cxx2.ps Cxx2.eps
 rm -f Cxx3.ps Cxx3.eps
 rm -f Cxx4.ps Cxx4.eps
-rm -f sim.ps sim.eps
+rm -f sim.ps
 rm -f pairs1.ps pairs1.eps
 rm -f pairs2.ps pairs2.eps
 rm -f pairs3.ps pairs3.eps
