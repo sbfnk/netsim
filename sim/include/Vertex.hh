@@ -90,8 +90,7 @@ double generateEventList(Graph& graph, VertexClass v,
       vertex_descriptor t =  target(e, graph);
       tempSum +=
          model.getEdgeEvents(graph[v].events, graph[v].state,
-                             graph[e].type, graph[t].state,
-                             out_degrees[graph[e].type]);
+                             graph[e].type, graph[t].state);
    }
    
    // calculate difference between new and old sum of rates
