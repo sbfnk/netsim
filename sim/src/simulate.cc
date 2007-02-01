@@ -617,6 +617,15 @@ int main(int argc, char* argv[])
   }
 
   /******************************************************************/
+  // set Q_di
+  /******************************************************************/
+
+  std::vector<float> Q_di;
+  unsigned int double_edges = boost::count_double_edges(graph);
+
+  Q_di.push_back(2*static_cast<float>(double_edges)/num_vertices(graph));
+  
+  /******************************************************************/
   // set vertex states
   /******************************************************************/
    
@@ -660,7 +669,7 @@ int main(int argc, char* argv[])
   if (outputFile) {
     lastLine = write_graph_data(graph, gSim->getTime(), *outputFile,
                                 model.getPossibleStates(),
-                                model.getPossibleEdgeTypes());
+                                model.getPossibleEdgeTypes(), &Q_di);
   }
   if (verbose) print_graph_statistics(graph, model.getPossibleStates(),
                                       model.getPossibleEdgeTypes());
@@ -689,7 +698,8 @@ int main(int argc, char* argv[])
     if (outputFile && gSim->getTime() > nextDataStep) {
       lastLine = 
         write_graph_data(graph, gSim->getTime(), *outputFile,
-                         model.getPossibleStates(), model.getPossibleEdgeTypes());
+                         model.getPossibleStates(),
+                         model.getPossibleEdgeTypes(), &Q_di);
       if (outputData > 0) {
         do {
           nextDataStep += outputData;

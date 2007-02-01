@@ -46,6 +46,43 @@ namespace boost {
          ++ei;
       }
    }
+
+   template <typename Graph>
+   unsigned int count_double_edges(Graph& g)
+   {
+     typename graph_traits<Graph>::edge_iterator ei, ei_end;
+     typename graph_traits<Graph>::out_edge_iterator oi, oi_end;
+     typename Graph::vertex_descriptor s, t;
+
+     unsigned int parallel_edges = 0;
+
+     // loop over all edges
+     for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
+
+       s = source(*ei, g);
+       t = target(*ei, g);
+
+       // check if more than one edge is going to the same target
+       // from the edge's source
+       
+       unsigned int parallel_outgoing = 0;
+       tie(oi, oi_end) = out_edges(s, g);
+       
+       for (tie(oi, oi_end) = out_edges(s, g); oi != oi_end; oi++) {
+         if (target(*oi, g) == t) parallel_outgoing++;
+       }
+       
+       if (parallel_outgoing > 1) parallel_edges++;
+       
+     }
+
+     // since we looped over all edges, we have count the parallels double
+     parallel_edges = parallel_edges / 2;
+       
+     return parallel_edges;
+     
+   }
 }
 
+  
 #endif
