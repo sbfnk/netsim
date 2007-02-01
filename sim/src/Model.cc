@@ -14,8 +14,6 @@
 
 #include "Model.hh"
 
-double read_dbl_val(std::ifstream& ifile);
-
 /******************************************************************/
 // Model constructor
 /******************************************************************/
@@ -360,28 +358,3 @@ std::ostream& operator<<(std::ostream& os, const VertexState& v)
    v.print(os);
    return os;
 }
-
-
-/******************************************************************/
-// read_dbl_val from ode_io_utils.cc, needed for InitFromFile
-/******************************************************************/
-double read_dbl_val(std::ifstream& ifile)
-{
-   std::string line, str_tmp;
-   
-   getline(ifile,line); 
-   int i=line.find("="); // looking for the =  
-   if(i>=0) // check if = was found 
-   {
-      str_tmp=line.substr(i+2,line.length()-i); // extracting substring
-   }
-   else
-   {
-      std::cout << "... problem reading params, no = was found\n";
-      exit(1);
-   }
-
-   return atof(str_tmp.c_str());
-
-}
-
