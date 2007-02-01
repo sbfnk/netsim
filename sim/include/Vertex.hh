@@ -70,20 +70,6 @@ double generateEventList(Graph& graph, VertexClass v,
    // get edge events
    out_edge_iterator oi, oi_end;;
 
-   std::map<EdgeType,unsigned int> out_degrees;
-
-   for (std::vector<EdgeType>::const_iterator it =
-          model.getPossibleEdgeTypes().begin();
-        it != model.getPossibleEdgeTypes().end(); it++) {
-     out_degrees.insert(std::make_pair(*it, 0));
-   }
-   
-   for (tie(oi, oi_end) = boost::out_edges(v, graph);
-        oi != oi_end; ++oi) {
-     edge_descriptor e = *oi;
-     out_degrees[graph[e].type]++;
-   }
-   
    for (tie(oi, oi_end) = boost::out_edges(v, graph);
         oi != oi_end; ++oi) {
       edge_descriptor e = *oi;
