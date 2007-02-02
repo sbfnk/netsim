@@ -105,6 +105,3 @@ rm -f pairs8.ps pairs8.eps
 #    rm -f tmp.dvi tmp.log tmp.aux tmp.ps tmp.tex $fig
 #done	
 
-# ghostview
-gv $output_dir/$1.pairs.ps &
-gv $output_dir/$1.singlets.ps &

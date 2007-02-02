@@ -3,12 +3,13 @@
 . $CODEDIR/do_all/config
 
 usage="Usage: do_all.sh file_id [-m model_file] [-o ode_file]"
-usage="$usage [-s sim_file] [-n num_sims] [-d timestep] [model_options]"
+usage="$usage [-s sim_file] [-n num_sims] [-d timestep] [-q] [model_options]"
 
 file_id=$1
 output_dir="$DATADIR/$file_id"
 
 force=n
+quiet=n
 
 if [ -z $file_id ]; then
   echo "Error: file_id not set"
@@ -31,6 +32,7 @@ do
       -n) shift; num_sims=$1;;
       -d) shift; dt=$1;;
       -f) force="y";;
+      -q) quiet="y";;
       -h) echo $usage; exit 0;;
       *) options="$options $1";;
   esac
@@ -108,6 +110,12 @@ ode_command="$CODEDIR/ode/ode_solve --file_id $output_dir/$file_id"
 ode_command="$ode_command $ode_options $options"
 $ode_command
 
-echo "Making plots"
-plot_command="$CODEDIR/do_all/makeplot.bash $file_id"
-$plot_command
+if [ $quiet == "n" ]; then
+    echo "Making plots"
+    plot_command="$CODEDIR/do_all/makeplot.bash $file_id"
+    $plot_command
+    
+# ghostview
+    gv $output_dir/$file_id.pairs.ps &
+    gv $output_dir/$file_id.singlets.ps &
+fi
