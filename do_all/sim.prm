@@ -7,12 +7,12 @@ graphviz     = 0.  # timesteps at which to generate graphs
 d-topology   = tri-lattice # topology of disease network
 i-topology   = copy        # topology of information network
 base         = S   # base state of individuals (S,s,I,i,R,r)
-#S-           = 5   # number of random uninformed susceptibles
-I-           = 5   # number of random uninformed infected
-#R-           = 5   # number of random uninformed recovered
-#S+           = 5   # number of random informed susceptibles
-#I+           = 5   # number of random informed infected
-#R+           = 5   # number of random informed recovered
+#S-          = 5   # number of random uninformed susceptibles
+I-           = 1   # number of random uninformed infected
+R-           = 1   # number of random uninformed recovered
+S+           = 1   # number of random informed susceptibles
+I+           = 1   # number of random informed infected
+R+           = 1   # number of random informed recovered
 
 # lattice options: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #d-dim        = 2    # number of lattice dimensions
