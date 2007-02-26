@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
   double stop;
 
   double outputData = 0.;
-  double outputGraphviz = 0.;
+  int outputGraphviz = 0;
   std::string graphDir = "images";
 
   std::string outputFileName = "";
@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
      "time after which to stop")
     ("output", po::value<double>()->default_value(0.),
      "write output data at arg timesteps")
-    ("graphviz,g", po::value<double>()->default_value(1.),
+    ("graphviz,g", po::value<int>()->default_value(0),
      "create graphviz output in the images directory at arg timesteps")
     ("graph-dir", po::value<std::string>()->default_value(graphDir),
      "set ouput dir for graphs")
@@ -331,22 +331,21 @@ int main(int argc, char* argv[])
   seed = tv.tv_sec + tv.tv_usec;
   
   boost::mt19937 gen(seed);
-  GillespieSimulator<boost::mt19937>* gSim =
-    new GillespieSimulator<boost::mt19937>(gen);
-  gillespie_graph& graph = gSim->graph;
-  Tree<unsigned int>& tree = gSim->tree;
+  dualtype_graph graph;
+  Simulator<Model>* sim =
+    new GillespieSimulator<boost::mt19937, dualtype_graph, Model>(gen, graph);
 
   stop = vm["tmax"].as<double>();
   outputData = vm["output"].as<double>();
   if (vm.count("graphviz")) {
-    outputGraphviz = vm["graphviz"].as<double>();
+    outputGraphviz = vm["graphviz"].as<int>();
   }
   if (vm.count("graph-dir")) {
     graphDir = vm["graph-dir"].as<std::string>();
   }
   // no-graph overrides other graph options
   if (vm.count("no-graph")) {
-    outputGraphviz = 0.;
+    outputGraphviz = -1;
   }
 
   if (vm.count("write-file")) {
@@ -435,7 +434,7 @@ int main(int argc, char* argv[])
       /******************************************************************/
       // generate lattice with desired properties
       /******************************************************************/
-      typedef boost::lattice_iterator<gillespie_graph> lattice_iterator;
+      typedef boost::lattice_iterator<dualtype_graph> lattice_iterator;
       
       lattice_iterator li(opt.sideLength,opt.dimensions,opt.periodicBoundary);
       lattice_iterator li_end;
@@ -468,7 +467,7 @@ int main(int argc, char* argv[])
       /******************************************************************/
       // generate lattice with desired properties
       /******************************************************************/
-      typedef boost::tri_lattice_iterator<gillespie_graph> tri_lattice_iterator;
+      typedef boost::tri_lattice_iterator<dualtype_graph> tri_lattice_iterator;
       
       tri_lattice_iterator tli(opt.sideLength,opt.periodicBoundary);
       tri_lattice_iterator tli_end;
@@ -497,7 +496,7 @@ int main(int argc, char* argv[])
       /******************************************************************/
       // generate random graph with desired properties
       /******************************************************************/
-      typedef boost::erdos_renyi_iterator2<boost::mt19937, gillespie_graph>
+      typedef boost::erdos_renyi_iterator2<boost::mt19937, dualtype_graph>
         rg_iterator;
       
       double p = (double)opt.edges*2/(double)(N*(N-1));
@@ -538,7 +537,7 @@ int main(int argc, char* argv[])
       /******************************************************************/
       // generate small-world graph with desired properties
       /******************************************************************/
-      typedef boost::small_world_iterator<boost::mt19937, gillespie_graph>
+      typedef boost::small_world_iterator<boost::mt19937, dualtype_graph>
         sw_iterator;
 
       sw_iterator swi(gen,N,opt.neighbours, opt.rewiringProb);
@@ -577,7 +576,7 @@ int main(int argc, char* argv[])
       /******************************************************************/
       // generate scale-free graph with desired properties
       /******************************************************************/
-      typedef boost::plod_iterator<boost::mt19937, gillespie_graph>
+      typedef boost::plod_iterator<boost::mt19937, dualtype_graph>
         sf_iterator;
       
       sf_iterator sfi(gen,N,opt.alpha,opt.beta);
@@ -585,15 +584,15 @@ int main(int argc, char* argv[])
       
       boost::add_edge_structure(temp_graph, sfi, sfi_end, Edge(*etIt));
     } else if (topology == "complete") {
-      boost::graph_traits<gillespie_graph>::vertex_iterator vi, vi_end;
+      boost::graph_traits<dualtype_graph>::vertex_iterator vi, vi_end;
       for (tie(vi, vi_end) = vertices(graph); vi != vi_end; vi++) {
-        boost::graph_traits<gillespie_graph>::vertex_iterator vi2;
+        boost::graph_traits<dualtype_graph>::vertex_iterator vi2;
         for (vi2 = vi+1; vi2 != vi_end; vi2++) {
           add_edge(*vi, *vi2, Edge(*etIt), temp_graph);
         }
       }
     } else if (topology == "copy") {
-      boost::graph_traits<gillespie_graph>::edge_iterator ei, ei_end;
+      boost::graph_traits<dualtype_graph>::edge_iterator ei, ei_end;
       for (tie(ei, ei_end) = edges(graph); ei != ei_end; ei++) {
         if (graph[*ei].type == *(model.getPossibleEdgeTypes().begin())) {
           add_edge(source(*ei, temp_graph), target(*ei, temp_graph),
@@ -609,7 +608,7 @@ int main(int argc, char* argv[])
     }
 
     // copy edges to main graph
-    boost::graph_traits<gillespie_graph>::edge_iterator ei, ei_end;
+    boost::graph_traits<dualtype_graph>::edge_iterator ei, ei_end;
     for (tie(ei, ei_end) = edges(temp_graph); ei != ei_end; ei++) {
       add_edge(source(*ei, temp_graph), target(*ei, temp_graph),
                Edge(temp_graph[*ei].type), graph);
@@ -641,7 +640,7 @@ int main(int argc, char* argv[])
               << " higher than number of total vertices" << std::endl;
   }
    
-  boost::graph_traits<gillespie_graph>::vertex_descriptor v;
+  boost::graph_traits<dualtype_graph>::vertex_descriptor v;
   for (std::map<VertexState, unsigned int>::iterator it =
          init.begin();
        it != init.end(); it++) {
@@ -660,14 +659,12 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // initalize GillespieSimulator
   /******************************************************************/
-  gSim->initialize(model);
-  generateTree(tree,graph,get(&Vertex::rateSum, graph),
-               get(boost::vertex_index, graph));
-  if (verbose) std::cout << "time elapsed: " << gSim->getTime() << std::endl;
-  if (outputGraphviz > 0) write_graph(graph, (graphDir + "/start"),-1);
+  sim->initialize(model);
+  if (verbose) std::cout << "time elapsed: " << sim->getTime() << std::endl;
+  if (outputGraphviz >= 0) write_graph(graph, (graphDir + "/start"),-1);
   std::string lastLine = "";
   if (outputFile) {
-    lastLine = write_graph_data(graph, gSim->getTime(), *outputFile,
+    lastLine = write_graph_data(graph, sim->getTime(), *outputFile,
                                 model.getPossibleStates(),
                                 model.getPossibleEdgeTypes(), &Q_di);
   }
@@ -677,40 +674,40 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // run simulation
   /******************************************************************/
-  double nextGraphStep = outputGraphviz;
   double nextDataStep = outputData;
   
   unsigned int steps = 0;
 
-  while (gSim->updateState(model) && gSim->getTime()<stop) {
+//   sim->print();
+
+  while (sim->updateState(model) && sim->getTime()<stop) {
+//     sim->print();
+    
     if (verbose && steps%100 == 0) {
-      std::cout << "time elapsed: " << gSim->getTime() << std::endl;
+      std::cout << "time elapsed: " << sim->getTime() << std::endl;
     }
 
-    if ((outputGraphviz > 0) && (gSim->getTime() > nextGraphStep)) {
+    if ((outputGraphviz > 0) && (outputGraphviz % steps == 0)) {
       write_graph(graph, generateFileName((graphDir +"/frame"),outputNum),
-                  gSim->getTime());
-      do {
-        nextGraphStep += outputGraphviz;
-      } while (gSim->getTime() > nextGraphStep);
+                  sim->getTime());
       ++outputNum;
     }
-    if (outputFile && gSim->getTime() > nextDataStep) {
+    if (outputFile && sim->getTime() > nextDataStep) {
       lastLine = 
-        write_graph_data(graph, gSim->getTime(), *outputFile,
+        write_graph_data(graph, sim->getTime(), *outputFile,
                          model.getPossibleStates(),
                          model.getPossibleEdgeTypes(), &Q_di);
       if (outputData > 0) {
         do {
           nextDataStep += outputData;
-        } while (gSim->getTime() > nextDataStep);
+        } while (sim->getTime() > nextDataStep);
       }
     }
     ++steps;
   }
    
   if (verbose) std::cout << "Final status:" << std::endl;
-  if (outputGraphviz > 0) write_graph(graph, (graphDir + "/end"), gSim->getTime());
+  if (outputGraphviz >= 0) write_graph(graph, (graphDir + "/end"), sim->getTime());
   if (outputFile) {
     *outputFile << stop << '\t' << lastLine;
     outputFile->close();
