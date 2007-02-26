@@ -65,8 +65,7 @@ cleaner:
 #-------------------------------------------------------------------
 # DO NOT DELETE
 
-GillespieSimulator.o: Vertex.hh Model.hh GillespieSimulator.hh Tree.hh 
 main.o: Vertex.hh GillespieSimulator.hh Tree.hh Bin.hh Model.hh \
-	lattice_generator.hh graph_structure.hh erdos_renyi_generator2.hh \
-	visualize_graph.hh
+        lattice_generator.hh graph_structure.hh erdos_renyi_generator2.hh \
+        visualize_graph.hh
 
