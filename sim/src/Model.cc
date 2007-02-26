@@ -145,8 +145,10 @@ double Model::getNodeEvents(eventList& events,
       immunityLoss.rate = delta[state.getInfo()];
       immunityLoss.newState.setDisease(Susceptible);
       immunityLoss.newState.setInfo(state.getInfo());
-      events.push_back(immunityLoss);
-      rateSum += immunityLoss.rate;
+      if (immunityLoss.rate > 0) {
+        events.push_back(immunityLoss);
+        rateSum += immunityLoss.rate;
+      }
    } else
    if (state.getDisease() == Infected) {
       // recovery
@@ -154,16 +156,20 @@ double Model::getNodeEvents(eventList& events,
       recovery.rate = gamma[state.getInfo()];
       recovery.newState.setDisease(Recovered);
       recovery.newState.setInfo(state.getInfo());
-      events.push_back(recovery);
-      rateSum += recovery.rate;
+      if (recovery.rate > 0) {
+        events.push_back(recovery);
+        rateSum += recovery.rate;
+      }
       if (state.getInfo() == Uninformed) {
         // local information generation
         event localInfo;
         localInfo.rate = omega;
         localInfo.newState.setDisease(state.getDisease());
         localInfo.newState.setInfo(Informed);
-        events.push_back(localInfo);
-        rateSum += localInfo.rate;
+        if (localInfo.rate > 0) {
+          events.push_back(localInfo);
+          rateSum += localInfo.rate;
+        }
       }
    }
    // information loss
@@ -172,8 +178,10 @@ double Model::getNodeEvents(eventList& events,
       infoLoss.rate = lambda;
       infoLoss.newState.setDisease(state.getDisease());
       infoLoss.newState.setInfo(Uninformed);
-      events.push_back(infoLoss);
-      rateSum += infoLoss.rate;
+      if (infoLoss.rate > 0) {
+        events.push_back(infoLoss);
+        rateSum += infoLoss.rate;
+      }
    }
 
    return rateSum;
@@ -198,8 +206,10 @@ double Model::getEdgeEvents(eventList& events,
          infection.rate = beta[state.getInfo()][nbState.getInfo()];
          infection.newState.setInfo(state.getInfo());
          infection.newState.setDisease(Infected);
-         events.push_back(infection);
-         rateSum += infection.rate;
+         if (infection.rate > 0) {
+           events.push_back(infection);
+           rateSum += infection.rate;
+         }
       }
    } else if (edge.getType() == Information) {
       // information transmission
@@ -208,8 +218,10 @@ double Model::getEdgeEvents(eventList& events,
          infoTransmission.rate = alpha;
          infoTransmission.newState.setDisease(state.getDisease());
          infoTransmission.newState.setInfo(Informed);
-         events.push_back(infoTransmission);
-         rateSum += infoTransmission.rate;
+         if (infoTransmission.rate > 0) {
+           events.push_back(infoTransmission);
+           rateSum += infoTransmission.rate;
+         }
       }
       // information generation
       if (state.getInfo() == Uninformed && nbState.getDisease() == Infected) {
@@ -217,8 +229,10 @@ double Model::getEdgeEvents(eventList& events,
          infoGeneration.rate = nu;
          infoGeneration.newState.setDisease(state.getDisease());
          infoGeneration.newState.setInfo(Informed);
-         events.push_back(infoGeneration);
-         rateSum += infoGeneration.rate;
+         if (infoGeneration.rate > 0) {
+           events.push_back(infoGeneration);
+           rateSum += infoGeneration.rate;
+         }
       }
    }
 
