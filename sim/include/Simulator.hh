@@ -17,7 +17,8 @@ public:
   virtual ~Simulator() {;}
       
   virtual void initialize(const Model& model) {;}
-  virtual bool updateState(const Model& model) { return true;}
+  
+  virtual bool updateState(const Model& model) = 0;
 
   virtual void print() {;}
 
