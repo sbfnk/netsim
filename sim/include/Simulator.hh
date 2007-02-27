@@ -1,29 +1,28 @@
 #ifndef SIMULATOR_HH
 #define SIMULATOR_HH
 
-// define dualtype_graph derived from boost adjacency list
-typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
-                              Vertex, Edge> dualtype_graph;
-typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
-                              Vertex, Edge> onetype_graph;
+#include "Model.hh"
 
-template <typename Model>
 class Simulator
 {
 
 public:
       
-  Simulator() : time(0.) {}
+  Simulator(const Model& m) : model(m), time(0.) {}
   virtual ~Simulator() {;}
       
-  virtual void initialize(const Model& model) {;}
+  virtual void initialize() {;}
   
-  virtual bool updateState(const Model& model) = 0;
+  virtual bool updateState() = 0;
 
   virtual void print() {;}
 
   double getTime() const { return time; };
   void updateTime(double t) { time += t; };
+
+protected:
+  
+  const Model& model;
 
 private:
 

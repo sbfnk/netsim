@@ -9,15 +9,13 @@
 
 #include <list>
 
-#include "Model.hh"
-
 class Edge {
 
 public:
 
-  Edge(): type(Disease) {;}
-  Edge(EdgeType eType): type(eType) {;}
-  EdgeType type;
+  Edge(): type(0) {;}
+  Edge(int eType): type(eType) {;}
+  unsigned int type;
 
 };
 
@@ -25,18 +23,15 @@ class Vertex {
   
 public:
   
-  Vertex() : state(VertexState(Susceptible, Uninformed)) {;}
-  Vertex(int diseaseState, int infoState)
-    : state(VertexState(diseaseState, infoState)) {;}
-  
-  Vertex(VertexState vs)
-    : state(vs) {;}
+  Vertex() : state(0) {;}
+  Vertex(int s)
+    : state(s) {;}
   
   virtual ~Vertex() {;}
   
-  VertexState state; // present (disease and information) state
+  unsigned int state; // present (disease and information) state
   double rateSum; // sum of the rates of all events that can
-  // affect the vertex (change its state)
+                  // affect the vertex (change its state)
   
   eventList events; // list of events associated with vertex
   

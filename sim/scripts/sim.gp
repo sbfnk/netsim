@@ -5,8 +5,8 @@ set tmargin 1
 set rmargin 1
 set lmargin 1
 
-set xlabel "time" 0.000000,0.000000
-set ylabel "" 0.000000,0.000000
+set xlabel "time"
+set ylabel "" 
 
 set format y "%3.1e"
 
@@ -23,94 +23,94 @@ plot 'FILE_ID.sim.dat' u 1:2 title 'S' w l \
 
 #####################################
 
-set output 'pairs1.ps'
-set title "Simulation"
-plot 'FILE_ID.sim.dat' u 1:8 title 'SSd' w l \
-   , 'FILE_ID.sim.dat' u 1:9 title 'SId' w l \
-   , 'FILE_ID.sim.dat' u 1:10 title 'SRd' w l \
-   , 'FILE_ID.sim.dat' u 1:14 title 'IId' w l \
-   , 'FILE_ID.sim.dat' u 1:15 title 'IRd' w l \
-   , 'FILE_ID.sim.dat' u 1:19 title 'RRd' w l
-
-#####################################
-
-set output 'pairs2.ps'
-set title "Simulation"
-plot 'FILE_ID.sim.dat' u 1:29 title 'SSi' w l \
-   , 'FILE_ID.sim.dat' u 1:30 title 'SIi' w l \
-   , 'FILE_ID.sim.dat' u 1:31 title 'SRi' w l \
-   , 'FILE_ID.sim.dat' u 1:35 title 'IIi' w l \
-   , 'FILE_ID.sim.dat' u 1:36 title 'IRi' w l \
-   , 'FILE_ID.sim.dat' u 1:40 title 'RRi' w l
-
-#####################################
-
-set output 'pairs3.ps'
-set title "Simulation"
-plot 'FILE_ID.sim.dat' u 1:23 title 'ssd' w l \
-   , 'FILE_ID.sim.dat' u 1:24 title 'sid' w l \
-   , 'FILE_ID.sim.dat' u 1:25 title 'srd' w l \
-   , 'FILE_ID.sim.dat' u 1:26 title 'iid' w l \
-   , 'FILE_ID.sim.dat' u 1:27 title 'ird' w l \
-   , 'FILE_ID.sim.dat' u 1:28 title 'rrd' w l
-
-#####################################
-
-set output 'pairs4.ps'
-set title "Simulation"
-plot 'FILE_ID.sim.dat' u 1:44 title 'ssi' w l \
-   , 'FILE_ID.sim.dat' u 1:45 title 'sii' w l \
-   , 'FILE_ID.sim.dat' u 1:46 title 'sri' w l \
-   , 'FILE_ID.sim.dat' u 1:47 title 'iii' w l \
-   , 'FILE_ID.sim.dat' u 1:48 title 'iri' w l \
-   , 'FILE_ID.sim.dat' u 1:49 title 'rri' w l
-
-#####################################
-
-set output 'pairs5.ps'
-set title "Simulation"
-plot 'FILE_ID.sim.dat' u 1:11 title 'Ssd' w l \
-   , 'FILE_ID.sim.dat' u 1:12 title 'Sid' w l \
-   , 'FILE_ID.sim.dat' u 1:13 title 'Srd' w l \
-   , 'FILE_ID.sim.dat' u 1:17 title 'Iid' w l \
-   , 'FILE_ID.sim.dat' u 1:18 title 'Ird' w l \
-   , 'FILE_ID.sim.dat' u 1:22 title 'Rrd' w l
-
-#####################################
-
-set output 'pairs6.ps'
-set title "Simulation"
-plot 'FILE_ID.sim.dat' u 1:32 title 'Ssi' w l \
-   , 'FILE_ID.sim.dat' u 1:33 title 'Sii' w l \
-   , 'FILE_ID.sim.dat' u 1:34 title 'Sri' w l \
-   , 'FILE_ID.sim.dat' u 1:38 title 'Iii' w l \
-   , 'FILE_ID.sim.dat' u 1:39 title 'Iri' w l \
-   , 'FILE_ID.sim.dat' u 1:43 title 'Rri' w l
-
-#####################################
-
-set output 'pairs7.ps'
-set title "Simulation"
-plot 'FILE_ID.sim.dat' u 1:16 title 'sId' w l \
-   , 'FILE_ID.sim.dat' u 1:20 title 'sRd' w l \
-   , 'FILE_ID.sim.dat' u 1:21 title 'iRd' w l \
-
-#####################################
-
-set output 'pairs8.ps'
-set title "Simulation"
-plot 'FILE_ID.sim.dat' u 1:37 title 'sIi' w l \
-   , 'FILE_ID.sim.dat' u 1:41 title 'sRi' w l \
-   , 'FILE_ID.sim.dat' u 1:42 title 'iRi' w l \
-
-#####################################
-
-### CHANGE AS NEEDED !!!!!!!!!!!!!
-#N=1e5
-#Qd=3
-#Qi=3
-### CHANGE AS NEEDED !!!!!!!!!!!!!
-
+#set output 'pairs1.ps'
+#set title "Simulation"
+#plot 'FILE_ID.sim.dat' u 1:8 title 'SSd' w l \
+#   , 'FILE_ID.sim.dat' u 1:9 title 'SId' w l \
+#   , 'FILE_ID.sim.dat' u 1:10 title 'SRd' w l \
+#   , 'FILE_ID.sim.dat' u 1:14 title 'IId' w l \
+#   , 'FILE_ID.sim.dat' u 1:15 title 'IRd' w l \
+#   , 'FILE_ID.sim.dat' u 1:19 title 'RRd' w l
+#
+######################################
+#
+#set output 'pairs2.ps'
+#set title "Simulation"
+#plot 'FILE_ID.sim.dat' u 1:29 title 'SSi' w l \
+#   , 'FILE_ID.sim.dat' u 1:30 title 'SIi' w l \
+#   , 'FILE_ID.sim.dat' u 1:31 title 'SRi' w l \
+#   , 'FILE_ID.sim.dat' u 1:35 title 'IIi' w l \
+#   , 'FILE_ID.sim.dat' u 1:36 title 'IRi' w l \
+#   , 'FILE_ID.sim.dat' u 1:40 title 'RRi' w l
+#
+######################################
+#
+#set output 'pairs3.ps'
+#set title "Simulation"
+#plot 'FILE_ID.sim.dat' u 1:23 title 'ssd' w l \
+#   , 'FILE_ID.sim.dat' u 1:24 title 'sid' w l \
+#   , 'FILE_ID.sim.dat' u 1:25 title 'srd' w l \
+#   , 'FILE_ID.sim.dat' u 1:26 title 'iid' w l \
+#   , 'FILE_ID.sim.dat' u 1:27 title 'ird' w l \
+#   , 'FILE_ID.sim.dat' u 1:28 title 'rrd' w l
+#
+######################################
+#
+#set output 'pairs4.ps'
+#set title "Simulation"
+#plot 'FILE_ID.sim.dat' u 1:44 title 'ssi' w l \
+#   , 'FILE_ID.sim.dat' u 1:45 title 'sii' w l \
+#   , 'FILE_ID.sim.dat' u 1:46 title 'sri' w l \
+#   , 'FILE_ID.sim.dat' u 1:47 title 'iii' w l \
+#   , 'FILE_ID.sim.dat' u 1:48 title 'iri' w l \
+#   , 'FILE_ID.sim.dat' u 1:49 title 'rri' w l
+#
+######################################
+#
+#set output 'pairs5.ps'
+#set title "Simulation"
+#plot 'FILE_ID.sim.dat' u 1:11 title 'Ssd' w l \
+#   , 'FILE_ID.sim.dat' u 1:12 title 'Sid' w l \
+#   , 'FILE_ID.sim.dat' u 1:13 title 'Srd' w l \
+#   , 'FILE_ID.sim.dat' u 1:17 title 'Iid' w l \
+#   , 'FILE_ID.sim.dat' u 1:18 title 'Ird' w l \
+#   , 'FILE_ID.sim.dat' u 1:22 title 'Rrd' w l
+#
+######################################
+#
+#set output 'pairs6.ps'
+#set title "Simulation"
+#plot 'FILE_ID.sim.dat' u 1:32 title 'Ssi' w l \
+#   , 'FILE_ID.sim.dat' u 1:33 title 'Sii' w l \
+#   , 'FILE_ID.sim.dat' u 1:34 title 'Sri' w l \
+#   , 'FILE_ID.sim.dat' u 1:38 title 'Iii' w l \
+#   , 'FILE_ID.sim.dat' u 1:39 title 'Iri' w l \
+#   , 'FILE_ID.sim.dat' u 1:43 title 'Rri' w l
+#
+######################################
+#
+#set output 'pairs7.ps'
+#set title "Simulation"
+#plot 'FILE_ID.sim.dat' u 1:16 title 'sId' w l \
+#   , 'FILE_ID.sim.dat' u 1:20 title 'sRd' w l \
+#   , 'FILE_ID.sim.dat' u 1:21 title 'iRd' w l \
+#
+######################################
+#
+#set output 'pairs8.ps'
+#set title "Simulation"
+#plot 'FILE_ID.sim.dat' u 1:37 title 'sIi' w l \
+#   , 'FILE_ID.sim.dat' u 1:41 title 'sRi' w l \
+#   , 'FILE_ID.sim.dat' u 1:42 title 'iRi' w l \
+#
+######################################
+#
+#### CHANGE AS NEEDED !!!!!!!!!!!!!
+##N=1e5
+##Qd=3
+##Qi=3
+#### CHANGE AS NEEDED !!!!!!!!!!!!!
+#
 #set output 'Cxx1.ps'
 #set title "Correlation"
 #set xrange [0:20]

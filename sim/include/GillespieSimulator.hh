@@ -4,36 +4,40 @@
 #include "Tree.hh"
 #include "Simulator.hh"
 
-template <typename RandomGenerator, typename Graph, typename Model>
+template <typename RandomGenerator, typename Graph>
 class GillespieSimulator :
-  virtual public Simulator<Model>
+  virtual public Simulator
 {
   
   // type definitions for easy access of boost graph properties
-  typedef boost::graph_traits<dualtype_graph>::vertex_descriptor
+  typedef typename boost::graph_traits<Graph>::vertex_descriptor
   vertex_descriptor;
-  typedef boost::graph_traits<dualtype_graph>::vertex_iterator
+  typedef typename boost::graph_traits<Graph>::vertex_iterator
   vertex_iterator;
-  typedef boost::graph_traits<dualtype_graph>::adjacency_iterator
+  typedef typename boost::graph_traits<Graph>::adjacency_iterator
   adjacency_iterator;
-  typedef boost::property_map<dualtype_graph, boost::vertex_index_t>::type
+  typedef typename boost::property_map<Graph, boost::vertex_index_t>::type
   vertex_index_type;
-  typedef boost::uniform_01<RandomGenerator, double> uniform_gen;
+  typedef typename boost::vertex_property_type<Graph>::type::value_type
+    vertex_property_type;
+
+  typedef typename boost::uniform_01<RandomGenerator, double> uniform_gen;
 
 public:
 
-  GillespieSimulator(RandomGenerator r, Graph& g) : randGen(r), graph(g) {;}
+  GillespieSimulator(RandomGenerator r, Graph& g, Model& m) :
+    Simulator(m), randGen(r), graph(g) {;}
   ~GillespieSimulator() {;}
       
-  void initialize(const Model& model);
-  bool updateState(const Model& model);
+  void initialize();
+  bool updateState();
   
   void print();
 
 private:
   
   uniform_gen randGen; // random generator
-  Graph graph;
+  Graph& graph;
   Tree<unsigned int> tree; // contains the tree structure
 
 };
@@ -42,14 +46,17 @@ private:
 // GillespieSimulator<RandomGenerator>::initialize
 // initializes the graph with the rates for the possible processes
 /******************************************************************/
-template <typename RandomGenerator, typename Graph, typename Model>
-void GillespieSimulator<RandomGenerator, Graph, Model>::initialize
-(const Model& model)
+template <typename RandomGenerator, typename Graph>
+void GillespieSimulator<RandomGenerator, Graph>::initialize()
 {
   vertex_iterator vi, vi_end;
   for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
     generateEventList(graph, *vi, model);
   }
+
+  generateTree(tree,graph,
+               get(&vertex_property_type::rateSum,graph),
+               get(boost::vertex_index,graph));
 }
 
 /******************************************************************/
@@ -57,9 +64,8 @@ void GillespieSimulator<RandomGenerator, Graph, Model>::initialize
 // updates the state of the graph by advancing one time step
 // and choosing an event to process
 /******************************************************************/
-template <typename RandomGenerator, typename Graph, typename Model>
-bool GillespieSimulator<RandomGenerator, Graph, Model>::updateState
-(const Model& model)
+template <typename RandomGenerator, typename Graph>
+bool GillespieSimulator<RandomGenerator, Graph>::updateState()
 {
   // exit if nothing can happen -- exit also if the rate sum is very small
   // to prevent rounding problems
@@ -69,7 +75,7 @@ bool GillespieSimulator<RandomGenerator, Graph, Model>::updateState
          
   // draw a random number from [0,1) for the timestep advance
   double randNo = (randGen)();
-  Simulator<Model>::updateTime(-log(randNo)/tree.getTopBin()->getRateSum());
+  Simulator::updateTime(-log(randNo)/tree.getTopBin()->getRateSum());
          
   // draw another random number from [0,1) for picking the event
   randNo = (randGen)();
@@ -116,9 +122,8 @@ bool GillespieSimulator<RandomGenerator, Graph, Model>::updateState
   }
 }
 
-template <typename RandomGenerator, typename Graph, typename Model>
-void GillespieSimulator<RandomGenerator, Graph, Model>::print
-()
+template <typename RandomGenerator, typename Graph>
+void GillespieSimulator<RandomGenerator, Graph>::print()
 {
   std::vector<Leaf<unsigned int>*>::iterator it;
   for (it = tree.getLeaves().begin(); it != tree.getLeaves().end(); it++) {

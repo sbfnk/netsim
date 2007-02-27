@@ -110,7 +110,7 @@ void Tree<T>::addLeaf(double rateSum, T leafItem)
   }
   // set the new leaf to be the new last leaf
   lastLeaf = newLeaf;
-  leaves.push_back(newLeaf);
+  getLeaves().push_back(newLeaf);
   return;
 }
 
@@ -118,7 +118,8 @@ void Tree<T>::addLeaf(double rateSum, T leafItem)
 // generateTree
 // generates a tree from a graph
 /******************************************************************/
-template <class T, class Graph, class ratesPropertyMap, class indexPropertyMap>
+template <class T, class Graph, class ratesPropertyMap,
+          class indexPropertyMap>
 void generateTree(Tree<T>& t, const Graph& g,
                   ratesPropertyMap rates, indexPropertyMap indices)
 {
@@ -128,10 +129,10 @@ void generateTree(Tree<T>& t, const Graph& g,
    vertex_iterator vi, vi_end;
    for (tie(vi, vi_end) = vertices(g);
         vi != vi_end; ++vi) {
-      // add item to tree
-      t.addLeaf(get(rates, *vi), get(indices, *vi));
-      // update rate sum
-      t.leaves.back()->updateRateSum(get(rates, *vi));
+     // add item to tree
+     t.addLeaf(get(rates, *vi), get(indices, *vi));
+     // update rate sum
+     t.getLeaves().back()->updateRateSum(get(rates, *vi));
    }
 }
 

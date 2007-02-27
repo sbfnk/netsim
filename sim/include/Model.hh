@@ -1,13 +1,14 @@
 /******************************************************************/
 // Model.hh
 // 
-// this contains all classes related to the model:
-//   -- VertexState
-//        for the state a vertex can assume
+// this contains the classes related to the model:
 //   -- event
 //        for the events that can happen in the simulation
 //   -- Model
-//        for the model parameters and the events associated with it
+//        class implementing the used model, i.e. parameters and
+//        dependance of the rates of various processes on node states
+//        and edge properties
+//
 /******************************************************************/
 #ifndef MODEL_HH
 #define MODEL_HH
@@ -15,109 +16,96 @@
 #include <list>
 #include <vector>
 #include <string>
+#include <iostream>
 
 #include <boost/program_options.hpp>
 
 namespace po = boost::program_options;
 
-
-enum diseaseStates {Susceptible,Infected,Recovered};
-enum infoStates {Uninformed, Informed};
-enum edgeTypes {Disease, Information};
-
-class EdgeType
-{
-public:
-  EdgeType() : edgeType(Disease) {;}
-  EdgeType(int eType) : edgeType(eType) {;}
-  
-  int getType() const { return edgeType; }
-  void setType(int newType) { edgeType = newType; }
-  
-  void print(std::ostream& os) const;
-  
-  bool operator==(const EdgeType& rhs) const
-  { return edgeType==rhs.getType(); }
-  
-  bool operator<(const EdgeType& rhs) const
-  { return edgeType<rhs.getType(); }
-  
-private:
-  int edgeType;
-};      
-
-class VertexState
-{
-   public:
-
-      VertexState() :
-         disease(Susceptible), info(Uninformed) {;}
-      VertexState(int dState, int iState)
-         : disease(dState), info(iState) {;}
-      ~VertexState() {;}
-      
-      int getDisease() const { return disease; }
-      int getInfo() const { return info; }
-
-      void setDisease(int newDisease) { disease = newDisease; }
-      void setInfo(int newInfo) { info = newInfo; }
-
-      bool operator==(const VertexState& rhs) const
-      { return disease==rhs.getDisease() && info == rhs.getInfo(); }
-
-      VertexState& operator=(const VertexState& rhs) 
-      { setDisease(rhs.getDisease()); setInfo(rhs.getInfo()); return *this; }
-
-      bool operator<(const VertexState& rhs) const
-      { return ((getInfo() < rhs.getInfo()) ||
-            (getInfo() == rhs.getInfo() && getDisease() < rhs.getDisease())); }
-      
-      void set(std::string s);
-      std::string getString() const;
-      void print(std::ostream& os) const;
-
-   private:
-      int disease; // Suspected, Infected or Recovered
-      int info; // Informed or Uninformed
-};
-
-// streams a letter associated VertexState/EdgeType, useful for easy printout
-std::ostream& operator<<(std::ostream& os, const VertexState& v);
-std::ostream& operator<<(std::ostream& os, const EdgeType& e);
-      
 struct event
 {
       double rate; // rate at which an event occurs (depends on
                    // model parameters) 
-      VertexState newState; // state an event will change a vertex to
+      int newState; // state an event will change a vertex to
 };
 
 typedef std::list<event> eventList;
 
+class Label
+{
+
+public:
+
+  Label(std::string t, std::string c, std::string d = "") :
+    text(t), color(c), drawOption(d) {}
+  
+  const std::string& getText() const
+  { return text; }
+
+  void print(std::ostream &os) const
+  { std::cout << "print" << std::endl;
+    os << "\033[" << color << "m" << text << "\033[0m"; }
+
+  const std::string& getDrawOption() const
+  { return drawOption; }
+  
+private:
+  
+  std::string text;
+  std::string color;
+  std::string drawOption;
+  
+};
+
+// streams a letter associated VertexState/EdgeType, useful for easy printout
+std::ostream& operator<<(std::ostream& os, const Label& l);
+
 class Model
 {
-   public:
-      Model();
-      ~Model();
-      
-      void Init(po::variables_map& vm);
-         
-      double getNodeEvents(eventList& events,
-                           VertexState state) const;
-      double getEdgeEvents(eventList& events,
-                           VertexState state, EdgeType edge,
-                           VertexState nbState) const;
-
-      const std::vector<VertexState>& getPossibleStates() const;
-      const std::vector<EdgeType>& getPossibleEdgeTypes() const;
-
-    private:
   
-      std::vector<VertexState> possibleStates;
-      std::vector<EdgeType> possibleEdgeTypes;
+public:
 
-      double gamma[2], delta[2]; // model parameters
-      double beta[2][2], alpha, nu, lambda, omega; // model parameters
+  Model() {}
+  virtual ~Model() {}
+  
+  double assignParam(po::variables_map& vm, std::string p);
+  void Init(po::variables_map& vm);
+  
+  virtual double getNodeEvents(eventList& events,
+                               unsigned int state) const = 0;
+  virtual double getEdgeEvents(eventList& events,
+                               unsigned int state, unsigned int edge,
+                               unsigned int nbState) const = 0;
+
+  const std::vector<Label>& getVertexStates() const
+  { return vertexStates; }
+
+  const Label& getVertexState(unsigned int id) const
+  { std::cout << "getVertexState: " << id << std::endl;
+    std::cout << "size: " << vertexStates.size() << std::endl;
+    //    std::cout << "vertex: " << vertexStates[id] << std::endl;
+//     std::cout << "text: " << vertexStates[id].getText() << std::endl;
+//     std::cout << "drawOption: " << vertexStates[id].getDrawOption() << std::endl;
+    return vertexStates[id];
+  }
+  
+  const std::vector<Label>& getEdgeTypes() const
+  { return edgeTypes; }
+
+  const po::options_description& getOptions() const
+  { return model_options; }
+
+
+  int getId(std::string s) const;
+
+protected:
+  
+  std::vector<Label> vertexStates;
+  std::vector<Label> edgeTypes;
+
+  po::options_description model_options;
+  
+  std::map<std::string, double*> params;
   
 };
 
