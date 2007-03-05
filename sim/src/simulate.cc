@@ -26,7 +26,6 @@
 #include "visualize_graph.hh"
 
 #include "GillespieSimulator.hh"
-#include "ChrisSimulator.hh"
 #include "Vertex.hh"
 #include "InfoSIRS.hh"
 
@@ -319,9 +318,9 @@ int main(int argc, char* argv[])
     if (simType == "Gillespie") {
       sim = new GillespieSimulator<boost::mt19937, dualtype_graph>
         (gen, graph, model);
-    } else if (simType == "Chris") {
-      sim = new ChrisSimulator<boost::mt19937, dualtype_graph>
-        (gen, graph, model);
+//     } else if (simType == "Chris") {
+//       sim = new ChrisSimulator<boost::mt19937, dualtype_graph>
+//         (gen, graph, model);
     } else {
       std::cerr << "Error: unknown simulator: " << simType << std::endl;
       return 1;
