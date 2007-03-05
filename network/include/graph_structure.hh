@@ -76,7 +76,7 @@ namespace boost {
        
      }
 
-     // since we looped over all edges, we have count the parallels double
+     // since we looped over all edges, we have counted parallels twice
      parallel_edges = parallel_edges / 2;
        
      return parallel_edges;
