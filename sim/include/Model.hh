@@ -43,8 +43,7 @@ public:
   { return text; }
 
   void print(std::ostream &os) const
-  { std::cout << "print" << std::endl;
-    os << "\033[" << color << "m" << text << "\033[0m"; }
+  { os << "\033[" << color << "m" << text << "\033[0m"; }
 
   const std::string& getDrawOption() const
   { return drawOption; }
@@ -68,7 +67,6 @@ public:
   Model() {}
   virtual ~Model() {}
   
-  double assignParam(po::variables_map& vm, std::string p);
   void Init(po::variables_map& vm);
   
   virtual double getNodeEvents(eventList& events,
@@ -81,22 +79,13 @@ public:
   { return vertexStates; }
 
   const Label& getVertexState(unsigned int id) const
-  { std::cout << "getVertexState: " << id << std::endl;
-    std::cout << "size: " << vertexStates.size() << std::endl;
-    //    std::cout << "vertex: " << vertexStates[id] << std::endl;
-//     std::cout << "text: " << vertexStates[id].getText() << std::endl;
-//     std::cout << "drawOption: " << vertexStates[id].getDrawOption() << std::endl;
-    return vertexStates[id];
-  }
+  { return vertexStates[id]; }
   
   const std::vector<Label>& getEdgeTypes() const
   { return edgeTypes; }
 
   const po::options_description& getOptions() const
   { return model_options; }
-
-
-  int getId(std::string s) const;
 
 protected:
   
