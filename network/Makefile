@@ -44,7 +44,7 @@ $(EXEC): $(OBJECTS)
 $(AVG): average_runs.o
 	$(LINKER) $(LDFLAGS) $(OPTFLAGS) $(CPPFLAGS) average_runs.o -o $@
 
-%.o : %.cc
+%.o : %.cc %.hh
 	@echo ... compiling $<:
 	$(CC) -c $(CPPFLAGS) $(OPTFLAGS) $< -o $@
 	@echo
@@ -65,7 +65,9 @@ cleaner:
 #-------------------------------------------------------------------
 # DO NOT DELETE
 
-main.o: Vertex.hh Simulator.hh GillespieSimulator.hh Tree.hh Bin.hh \
-        InfoSIRS.hh Model.hh lattice_generator.hh graph_structure.hh \
-        erdos_renyi_generator2.hh visualize_graph.hh
+InfoSIRS.o: InfoSIRS.hh Model.hh
+
+main.o: Vertex.hh Simulator.hh GillespieSimulator.hh ChrisSimulator.hh \
+        Tree.hh Bin.hh InfoSIRS.hh Model.hh lattice_generator.hh \
+        graph_structure.hh erdos_renyi_generator2.hh visualize_graph.hh
 
