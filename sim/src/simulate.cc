@@ -26,6 +26,7 @@
 #include "visualize_graph.hh"
 
 #include "GillespieSimulator.hh"
+#include "ChrisSimulator.hh"
 #include "Vertex.hh"
 #include "InfoSIRS.hh"
 
@@ -80,6 +81,7 @@ int main(int argc, char* argv[])
   // read parameters
   /******************************************************************/
   std::string topology;
+  
   unsigned int N;
   double stop;
 
@@ -110,6 +112,8 @@ int main(int argc, char* argv[])
   po::options_description main_options;
 
   main_options.add_options()
+    ("sim", po::value<std::string>()->default_value("Gillespie"),
+     "simulator to use (Gillespie, Chris)")
     ("tmax", po::value<double>()->default_value(100.),
      "time after which to stop")
     ("output", po::value<double>()->default_value(0.),
@@ -141,7 +145,7 @@ int main(int argc, char* argv[])
      "information network topology\n((tri-)lattice,random,small-world,scale-free,complete,copy)")
     ("base,b", po::value<std::string>()->default_value
      (model.getVertexStates().begin()->getText()),
-     "base state of individuals\n(S,s,I,i,R,r)")
+     "base state of individuals")
     ("S+", po::value<unsigned int>()->default_value(0),
      "number of randomly chosen informed susceptibles")
     ("S-", po::value<unsigned int>()->default_value(0),
@@ -308,9 +312,25 @@ int main(int argc, char* argv[])
   seed = tv.tv_sec + tv.tv_usec;
   boost::mt19937 gen(seed);
   dualtype_graph graph;
-  Simulator* sim =
-    new GillespieSimulator<boost::mt19937, dualtype_graph>(gen, graph, model);
+  Simulator* sim;
 
+  if (vm.count("sim")) {
+    std::string simType = vm["sim"].as<std::string>();
+    if (simType == "Gillespie") {
+      sim = new GillespieSimulator<boost::mt19937, dualtype_graph>
+        (gen, graph, model);
+    } else if (simType == "Chris") {
+      sim = new ChrisSimulator<boost::mt19937, dualtype_graph>
+        (gen, graph, model);
+    } else {
+      std::cerr << "Error: unknown simulator: " << simType << std::endl;
+      return 1;
+    }
+  } else {
+    std::cerr << "Error: no simulator specified" << std::endl;
+    return 1;
+  }
+  
   /******************************************************************/
   // read simulation paramters
   /******************************************************************/
@@ -396,8 +416,8 @@ int main(int argc, char* argv[])
   }
    
   boost::graph_traits<dualtype_graph>::vertex_descriptor v;
-  for (unsigned int i=0; i<init.size(); i++) {
-    for (unsigned int j=0; j<i; j++) {
+  for (unsigned int i=0; i<model.getVertexStates().size(); i++) {
+    for (unsigned int j=0; j<init[i]; j++) {
       bool inserted = false;
       while (!inserted) {
         v = boost::random_vertex(graph, gen);
