@@ -165,16 +165,16 @@ int main(int argc, char* argv[])
   std::vector<po::options_description*> lattice_options;
   for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model.getEdgeTypes()[i] << "-Lattice Options";
+    s << model.getEdgeTypes()[i].getText() << "-Lattice Options";
     po::options_description* lo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << model.getEdgeTypes()[i] << "-dim";
+    s << model.getEdgeTypes()[i].getText() << "-dim";
     lo->add_options()
       (s.str().c_str(),  po::value<unsigned int>()->default_value(2),
        "number of dimensions");
     s.str("");
-    s << model.getEdgeTypes()[i] << "-pb";
+    s << model.getEdgeTypes()[i].getText() << "-pb";
     lo->add_options()
       (s.str().c_str(), "periodic boundary conditions");
     lattice_options.push_back(lo);
@@ -184,11 +184,11 @@ int main(int argc, char* argv[])
   std::vector<po::options_description*> rg_options;
   for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model.getEdgeTypes()[i] << "-RandomGraph Options";
+    s << model.getEdgeTypes()[i].getText() << "-RandomGraph Options";
     po::options_description* ro
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << model.getEdgeTypes()[i] << "-edges";
+    s << model.getEdgeTypes()[i].getText() << "-edges";
     ro->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "number of edges");
@@ -199,16 +199,16 @@ int main(int argc, char* argv[])
   std::vector<po::options_description*> sw_options;
   for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model.getEdgeTypes()[i] << "-SmallWorld Options";
+    s << model.getEdgeTypes()[i].getText() << "-SmallWorld Options";
     po::options_description* swo
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << model.getEdgeTypes()[i] << "-neighbours";
+    s << model.getEdgeTypes()[i].getText() << "-neighbours";
     swo->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "number of neighbours of each node");
     s.str("");
-    s << model.getEdgeTypes()[i] << "-rewiring-prob";
+    s << model.getEdgeTypes()[i].getText() << "-rewiring-prob";
     swo->add_options()
       (s.str().c_str(), po::value<double>(),
        "rewiring probability");
@@ -219,16 +219,16 @@ int main(int argc, char* argv[])
   std::vector<po::options_description*> sf_options;
   for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model.getEdgeTypes()[i] << "-ScaleFree Options";
+    s << model.getEdgeTypes()[i].getText() << "-ScaleFree Options";
     po::options_description* sfo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << model.getEdgeTypes()[i] << "-alpha";
+    s << model.getEdgeTypes()[i].getText() << "-alpha";
     sfo->add_options()
       (s.str().c_str(), po::value<double>(),
        "alpha (index of power law)");
     s.str("");
-    s << model.getEdgeTypes()[i] << "-beta";
+    s << model.getEdgeTypes()[i].getText() << "-beta";
     sfo->add_options()
       (s.str().c_str(), po::value<double>(),
        "beta (multiplicative factor of power law)");
@@ -262,7 +262,7 @@ int main(int argc, char* argv[])
   }
 
   if (vm.count("longhelp")) {
-    std::cout << visible_options << std::endl;
+    std::cout << all_options << std::endl;
     return 1;
   }
 
@@ -457,7 +457,7 @@ int main(int argc, char* argv[])
       
       latticeOptions opt;
       s.str("");
-      s << model.getEdgeTypes()[i] << "-dim";
+      s << model.getEdgeTypes()[i].getText() << "-dim";
       opt.dimensions = vm[s.str()].as<unsigned int>();
       
       opt.sideLength = static_cast<int>(pow(N, 1.0/opt.dimensions));
@@ -468,7 +468,7 @@ int main(int argc, char* argv[])
       }
 
       s.str("");
-      s << model.getEdgeTypes()[i] << "-pb";
+      s << model.getEdgeTypes()[i].getText() << "-pb";
       if (vm.count(s.str())) {
         opt.periodicBoundary = true;
       } else {
@@ -501,7 +501,7 @@ int main(int argc, char* argv[])
         return 1;
       }
 
-      s << model.getEdgeTypes()[i] << "-pb";
+      s << model.getEdgeTypes()[i].getText() << "-pb";
       if (vm.count(s.str())) {
         opt.periodicBoundary = true;
       } else {
@@ -527,13 +527,13 @@ int main(int argc, char* argv[])
       rgOptions opt;
       
       s.str("");
-      s << model.getEdgeTypes()[i] << "-edges";
+      s << model.getEdgeTypes()[i].getText() << "-edges";
       if (vm.count(s.str())) {
         opt.edges = vm[s.str()].as<unsigned int>();
       } else {
         std::cerr << "ERROR: no number of edges specified" << std::endl;
         std::cerr << std::endl;
-        std::cerr << lattice_options[i] << std::endl;
+        std::cerr << rg_options[i] << std::endl;
         return 1;
       }
 
@@ -558,7 +558,7 @@ int main(int argc, char* argv[])
       swOptions opt;
       
       s.str("");
-      s << model.getEdgeTypes()[i] << "-neighbours";
+      s << model.getEdgeTypes()[i].getText() << "-neighbours";
       if (vm.count(s.str())) {
         opt.neighbours = vm[s.str()].as<unsigned int>();
       } else {
@@ -568,7 +568,7 @@ int main(int argc, char* argv[])
         return 1;
       }
       s.str("");
-      s << model.getEdgeTypes()[i] << "-rewiring-prob";
+      s << model.getEdgeTypes()[i].getText() << "-rewiring-prob";
       if (vm.count(s.str())) {
         opt.rewiringProb = vm[s.str()].as<double>();
       } else {
@@ -597,7 +597,7 @@ int main(int argc, char* argv[])
       sfOptions opt;
       
       s.str("");
-      s << model.getEdgeTypes()[i] << "-alpha";
+      s << model.getEdgeTypes()[i].getText() << "-alpha";
       if (vm.count(s.str())) {
         opt.alpha = vm[s.str()].as<double>();
       } else {
@@ -607,7 +607,7 @@ int main(int argc, char* argv[])
         return 1;
       }
       s.str("");
-      s << model.getEdgeTypes()[i] << "-beta";
+      s << model.getEdgeTypes()[i].getText() << "-beta";
       if (vm.count(s.str())) {
         opt.beta = vm[s.str()].as<double>();
       } else {
