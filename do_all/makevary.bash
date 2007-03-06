@@ -30,6 +30,8 @@ ps2epsi sim.ps sim.eps
 # create ps files
 latex vary.tex > /dev/null 
 dvips -q -o $output_dir/$1.ps vary.dvi > /dev/null
+mv mf.eps $output_dir/$1.mf.eps
+mv sim.eps $output_dir/$1.sim.eps
 
 # clean
 rm -f vary.log vary.aux vary.dvi 
