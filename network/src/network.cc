@@ -687,7 +687,7 @@ int main(int argc, char* argv[])
       std::cout << "time elapsed: " << sim->getTime() << std::endl;
     }
 
-    if ((outputGraphviz > 0) && (outputGraphviz % steps == 0)) {
+    if ((outputGraphviz > 0) && (steps % outputGraphviz == 0)) {
       write_graph(graph, model,
                   generateFileName((graphDir +"/frame"),outputNum),
                   sim->getTime());
