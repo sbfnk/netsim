@@ -24,19 +24,20 @@ rm -f $output_dir/$1.ode.tmp.gp
 
 # ps -> eps
 ps2epsi mf.ps mf.eps
-ps2epsi pa.ps pa.eps
-ps2epsi pa1.ps pa1.eps
-ps2epsi pa2.ps pa2.eps
-ps2epsi pa3.ps pa3.eps
-ps2epsi pa4.ps pa4.eps
-ps2epsi pa5.ps pa5.eps
-ps2epsi pa6.ps pa6.eps
-ps2epsi pa7.ps pa7.eps
-ps2epsi pa8.ps pa8.eps
-ps2epsi Cxx1.ps Cxx1.eps
-ps2epsi Cxx2.ps Cxx2.eps
-ps2epsi Cxx3.ps Cxx3.eps
-ps2epsi Cxx4.ps Cxx4.eps
+ps2epsi mf_sir.ps mf_sir.eps
+#ps2epsi pa.ps pa.eps
+#ps2epsi pa1.ps pa1.eps
+#ps2epsi pa2.ps pa2.eps
+#ps2epsi pa3.ps pa3.eps
+#ps2epsi pa4.ps pa4.eps
+#ps2epsi pa5.ps pa5.eps
+#ps2epsi pa6.ps pa6.eps
+#ps2epsi pa7.ps pa7.eps
+#ps2epsi pa8.ps pa8.eps
+#ps2epsi Cxx1.ps Cxx1.eps
+#ps2epsi Cxx2.ps Cxx2.eps
+#ps2epsi Cxx3.ps Cxx3.eps
+#ps2epsi Cxx4.ps Cxx4.eps
 
 # create gnuplot script for simulaion
 cat $output_dir/$1.gp > $output_dir/$1.sim.tmp.gp
@@ -48,29 +49,32 @@ rm -f $output_dir/$1.sim.tmp.gp
 
 # ps -> eps
 ps2epsi sim.ps sim.eps
-ps2epsi pairs1.ps pairs1.eps
-ps2epsi pairs2.ps pairs2.eps
-ps2epsi pairs3.ps pairs3.eps
-ps2epsi pairs4.ps pairs4.eps
-ps2epsi pairs5.ps pairs5.eps
-ps2epsi pairs6.ps pairs6.eps
-ps2epsi pairs7.ps pairs7.eps
-ps2epsi pairs8.ps pairs8.eps
+ps2epsi sim_sir.ps sim_sir.eps
+#ps2epsi pairs1.ps pairs1.eps
+#ps2epsi pairs2.ps pairs2.eps
+#ps2epsi pairs3.ps pairs3.eps
+#ps2epsi pairs4.ps pairs4.eps
+#ps2epsi pairs5.ps pairs5.eps
+#ps2epsi pairs6.ps pairs6.eps
+#ps2epsi pairs7.ps pairs7.eps
+#ps2epsi pairs8.ps pairs8.eps
 
 # create ps files
 latex singlets.tex > /dev/null 
 dvips -q -o $output_dir/$1.singlets.ps singlets.dvi > /dev/null
-latex pairs.tex  > /dev/null 
-dvips -q -o $output_dir/$1.pairs.ps pairs.dvi > /dev/null
+#latex pairs.tex  > /dev/null 
+#dvips -q -o $output_dir/$1.pairs.ps pairs.dvi > /dev/null
 
 mv sim.eps $output_dir/$1.sim.eps
 mv mf.eps $output_dir/$1.mf.eps
-mv pa.eps $output_dir/$1.pa.eps
+mv sim_sir.eps $output_dir/$1.sim_sir.eps
+mv mf_sir.eps $output_dir/$1.mf_sir.eps
+#mv pa.eps $output_dir/$1.pa.eps
 
 # clean
 rm -f singlets.log singlets.aux singlets.dvi 
 rm -f pairs.log pairs.aux pairs.dvi 
-rm -f mf.ps
+rm -f mf.ps mf_sir.ps
 rm -f pa.ps 
 rm -f pa1.ps pa1.eps 
 rm -f pa2.ps pa2.eps 
@@ -84,7 +88,7 @@ rm -f Cxx1.ps Cxx1.eps
 rm -f Cxx2.ps Cxx2.eps
 rm -f Cxx3.ps Cxx3.eps
 rm -f Cxx4.ps Cxx4.eps
-rm -f sim.ps
+rm -f sim.ps sim_sir.ps
 rm -f pairs1.ps pairs1.eps
 rm -f pairs2.ps pairs2.eps
 rm -f pairs3.ps pairs3.eps
