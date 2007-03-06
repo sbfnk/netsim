@@ -41,14 +41,14 @@ if ( -d "$data_dir/$file_id" ) {
 mkdir("$data_dir/$file_id") or die ("Could not create $data_dir/$file_dir\n");
 
 my %outfiles = ("mf" => "$data_dir/$file_id/$file_id.mf.dat",
-		"pa" => "$data_dir/$file_id/$file_id.pa.dat",
+#		"pa" => "$data_dir/$file_id/$file_id.pa.dat",
 		"sim" => "$data_dir/$file_id/$file_id.sim.dat");
 
 for ($i = $lower; $i < $upper; $i = $i + $step) {
   system("$code_dir/do_all/do_all.sh $file_id"."_$i -q --$param=$i".
 	 " @ARGV");
   my %infiles = ("mf"=>"$data_dir/$file_id"."_$i/$file_id"."_$i.mf.dat",
-		 "pa"=>"$data_dir/$file_id"."_$i/$file_id"."_$i.pa.dat",
+#		 "pa"=>"$data_dir/$file_id"."_$i/$file_id"."_$i.pa.dat",
 		 "sim"=>"$data_dir/$file_id"."_$i/$file_id"."_$i.sim.dat");
   while (($type, $filename) = each(%infiles)) {
     open(IN, $filename) or die "Can't read $filename\n";
