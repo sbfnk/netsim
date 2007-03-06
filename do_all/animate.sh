@@ -4,7 +4,7 @@
 # default delay is specified below
 
 ANIM_CMD=gifsicle
-DISP_CMD=animate
+DISP_CMD=firefox
 DELAY=10 # 0.1 seconds
 
 program=$(which $ANIM_CMD)
