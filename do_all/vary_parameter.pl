@@ -17,18 +17,20 @@ my $data_dir = @ENV{'DATADIR'};
 GetOptions("lower=f" => \$lower,
 	   "upper=f" => \$upper,
 	   "step=f" => \$step,
-	   "param=s" => \$param,
+	   "params=s" => \@params,
 	   "id=s" => \$file_id,
 	   "force" => \$force);
 
-my $usage = "Usage: vary_parameter.pl file_id -p param -l lower_bound ".
+my $usage = "Usage: vary_parameter.pl -f file_id -p param -l lower_bound ".
   "-u upper_bound -s step\n";
 
-(($file_id ne "") && ($param ne "")) || die ($usage);
+(($file_id ne "") && (@params > 0)) || die ($usage);
 ($code_dir ne "") || die("CODEDIR not set\n");
 ($data_dir ne "") || die("DATADIR not set\n");
 
-$file_id = "$file_id"."_$param";
+@params = split(/,/,join(',',@params));
+
+$file_id = "$file_id";
 
 if ( -d "$data_dir/$file_id" ) {
   if ($force == 0) {
@@ -45,7 +47,11 @@ my %outfiles = ("mf" => "$data_dir/$file_id/$file_id.mf.dat",
 		"sim" => "$data_dir/$file_id/$file_id.sim.dat");
 
 for ($i = $lower; $i < $upper; $i = $i + $step) {
-  system("$code_dir/do_all/do_all.sh $file_id"."_$i -q --$param=$i".
+  my $param_str = "";
+  foreach $param (@params) {
+    $param_str = "$param_str --$param=$i";
+  }
+  system("$code_dir/do_all/do_all.sh $file_id"."_$i -q $param_str".
 	 " @ARGV");
   my %infiles = ("mf"=>"$data_dir/$file_id"."_$i/$file_id"."_$i.mf.dat",
 #		 "pa"=>"$data_dir/$file_id"."_$i/$file_id"."_$i.pa.dat",
