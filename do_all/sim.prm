@@ -1,12 +1,12 @@
 # Simulation Parameters File %%%%%%%%%
 
 # General parameters: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-tmax         = 20. # time to elapse until stop
+tmax         = 20 # time to elapse until stop
 output       = 0.1 # timesteps at which there is data output
-graphviz     = 0.  # timesteps at which to generate graphs
-d-topology   = tri-lattice # topology of disease network
+graphviz     = 10 # timesteps at which to generate graphs
+d-topology   = lattice # topology of disease network
 i-topology   = copy        # topology of information network
-base         = S   # base state of individuals (S,s,I,i,R,r)
+base         = S-   # base state of individuals (S,s,I,i,R,r)
 #S-          = 5   # number of random uninformed susceptibles
 I-           = 1   # number of random uninformed infected
 R-           = 1   # number of random uninformed recovered
