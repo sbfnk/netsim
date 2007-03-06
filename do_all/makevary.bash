@@ -24,7 +24,7 @@ gnuplot $output_dir/$1.tmp.gp > /dev/null
 
 # ps -> eps
 ps2epsi mf.ps mf.eps
-ps2epsi pa.ps pa.eps
+#ps2epsi pa.ps pa.eps
 ps2epsi sim.ps sim.eps
 
 # create ps files
@@ -33,4 +33,4 @@ dvips -q -o $output_dir/$1.ps vary.dvi > /dev/null
 
 # clean
 rm -f vary.log vary.aux vary.dvi 
-rm -f mf.ps pa.ps sim.ps
+rm -f mf.ps sim.ps #pa.ps
