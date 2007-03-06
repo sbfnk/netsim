@@ -116,6 +116,6 @@ if [ $quiet == "n" ]; then
     $plot_command
     
 # ghostview
-    gv $output_dir/$file_id.pairs.ps &
+#    gv $output_dir/$file_id.pairs.ps &
     gv $output_dir/$file_id.singlets.ps &
 fi
