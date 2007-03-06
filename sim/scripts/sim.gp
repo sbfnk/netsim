@@ -10,16 +10,32 @@ set ylabel ""
 
 set format y "%3.1e"
 
+set style line 1 lt 1 lc rgb "blue"  lw 2
+set style line 2 lt 1 lc rgb "red"   lw 2
+set style line 3 lt 1 lc rgb "green" lw 2
+set style line 4 lt 2 lc rgb "blue"  lw 3
+set style line 5 lt 2 lc rgb "red"   lw 3
+set style line 6 lt 2 lc rgb "green" lw 3
+
 #####################################
 
 set output 'sim.ps'
 set title "simulation"
-plot 'FILE_ID.sim.dat' u 1:2 title 'S' w l \
-   , 'FILE_ID.sim.dat' u 1:3 title 'I' w l \
-   , 'FILE_ID.sim.dat' u 1:4 title 'R' w l \
-   , 'FILE_ID.sim.dat' u 1:5 title 's' w l \
-   , 'FILE_ID.sim.dat' u 1:6 title 'i' w l \
-   , 'FILE_ID.sim.dat' u 1:7 title 'r' w l
+plot 'FILE_ID.sim.dat' u 1:2 ls 1 title 'S-' w l \
+   , 'FILE_ID.sim.dat' u 1:3 ls 2 title 'I-' w l \
+   , 'FILE_ID.sim.dat' u 1:4 ls 3 title 'R-' w l \
+   , 'FILE_ID.sim.dat' u 1:5 ls 4 title 'S+' w l \
+   , 'FILE_ID.sim.dat' u 1:6 ls 5 title 'I+' w l \
+   , 'FILE_ID.sim.dat' u 1:7 ls 6 title 'R+' w l
+
+#####################################
+
+set output 'sim_sir.ps'
+set title "simulation"
+plot 'FILE_ID.mf.dat' u 1:($2+$5) ls 1 title 'S' w l \
+   , 'FILE_ID.mf.dat' u 1:($3+$6) ls 2 title 'I' w l \
+   , 'FILE_ID.mf.dat' u 1:($4+$7) ls 3 title 'R' w l
+
 
 #####################################
 
