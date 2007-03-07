@@ -9,32 +9,34 @@
 
 #include <list>
 
-class Edge {
-
-public:
-
-  Edge(): type(0) {;}
-  Edge(int eType): type(eType) {;}
-  unsigned int type;
-
+class Edge
+{      
+   public:
+      
+      Edge(): type(0), parallel(false) {;}
+      Edge(int eType): type(eType), parallel(false) {;}
+      
+      unsigned int type;
+      bool parallel;
+      
 };
 
-class Vertex {
-  
-public:
-  
-  Vertex() : state(0) {;}
-  Vertex(int s)
-    : state(s) {;}
-  
-  virtual ~Vertex() {;}
-  
-  unsigned int state; // present (disease and information) state
-  double rateSum; // sum of the rates of all events that can
-                  // affect the vertex (change its state)
-  
-  eventList events; // list of events associated with vertex
-  
+class Vertex
+{      
+   public:
+      
+      Vertex() : state(0) {;}
+      Vertex(int s)
+         : state(s) {;}
+      
+      virtual ~Vertex() {;}
+      
+      unsigned int state; // present (disease and information) state
+      double rateSum; // sum of the rates of all events that can
+      // affect the vertex (change its state)
+      
+      eventList events; // list of events associated with vertex
+      
 };
 
 #endif
