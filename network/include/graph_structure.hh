@@ -58,7 +58,7 @@ namespace boost {
    //----------------------------------------------------------
    
    template <typename Graph>
-   unsigned int count_parallel_edges(Graph& g)
+   unsigned int mark_parallel_edges(Graph& g)
    {
       typename graph_traits<Graph>::edge_iterator ei, ei_end;
       typename graph_traits<Graph>::out_edge_iterator oi, oi_end;
