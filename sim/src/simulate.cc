@@ -659,6 +659,11 @@ int main(int argc, char* argv[])
     }
   }
 
+  // mark parallel edges
+  unsigned int parallel_edges = count_parallel_edges(graph);
+  if (verbose) std::cout << "No. of parallel edges is: " << parallel_edges
+                         << std::endl;
+  
   /******************************************************************/
   // initalize Simulator
   /******************************************************************/
