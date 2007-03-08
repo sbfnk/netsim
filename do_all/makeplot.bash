@@ -1,9 +1,14 @@
 #!/bin/bash
 
-gp_ode_script=$CODEDIR/ode/mfpa.gp
-gp_sim_script=$CODEDIR/graph/sim.gp
+# execute in this shell 
+. config
 
-fixf=$CODEDIR/ode/fix21.tex
+# set script path
+ode_dir=$CODEDIR/ode_solver
+graph_dir=$CODEDIR/graph
+
+gp_ode_script=$ode_dir/mfpa.gp
+gp_sim_script=$graph_dir/sim.gp
 
 # check command-line args
 if [[ $# != 1 ]]; then
@@ -12,6 +17,7 @@ if [[ $# != 1 ]]; then
     exit 1
 fi
 
+# output directory
 output_dir=$DATADIR/$1
 
 # create gnuplot script for ode
@@ -24,7 +30,8 @@ rm -f $output_dir/$1.ode.tmp.gp
 
 # ps -> eps
 ps2epsi mf.ps mf.eps
-ps2epsi mf_sir.ps mf_sir.eps
+ps2epsi pa-di.ps pa-di.eps
+ps2epsi pa-dib.ps pa-dib.eps
 #ps2epsi pa.ps pa.eps
 #ps2epsi pa1.ps pa1.eps
 #ps2epsi pa2.ps pa2.eps
@@ -39,6 +46,21 @@ ps2epsi mf_sir.ps mf_sir.eps
 #ps2epsi Cxx3.ps Cxx3.eps
 #ps2epsi Cxx4.ps Cxx4.eps
 
+# fix fonts
+cp -f $ode_dir/fix1.tex .
+latex fix1.tex > /dev/null 
+dvips -q -o $output_dir/$1.mfpa.ps fix1.dvi > /dev/null
+rm -f fix1.tex fix1.log fix1.aux fix1.dvi
+
+# fix lines
+sed -e "s/PL \[4 dl1 2 dl2\]/PL \[12 dl1 6 dl2\]/g" $output_dir/$1.mfpa.ps > tmp.ps
+mv -f tmp.ps $output_dir/$1.mfpa.ps
+
+# clean
+rm -f mf.ps mf.eps
+rm -f pa-di.ps pa-di.eps
+rm -f pa-dib.ps pa-dib.eps
+
 # create gnuplot script for simulaion
 cat $output_dir/$1.gp > $output_dir/$1.sim.tmp.gp
 sed -e s:FILE_ID:$output_dir/$1:g $gp_sim_script >> $output_dir/$1.sim.tmp.gp
@@ -49,7 +71,10 @@ rm -f $output_dir/$1.sim.tmp.gp
 
 # ps -> eps
 ps2epsi sim.ps sim.eps
-ps2epsi sim_sir.ps sim_sir.eps
+ps2epsi mf.ps mf.eps
+ps2epsi pa-di.ps pa-di.eps
+ps2epsi pa-dib.ps pa-dib.eps
+#ps2epsi sim_sir.ps sim_sir.eps
 #ps2epsi pairs1.ps pairs1.eps
 #ps2epsi pairs2.ps pairs2.eps
 #ps2epsi pairs3.ps pairs3.eps
@@ -65,17 +90,26 @@ dvips -q -o $output_dir/$1.singlets.ps singlets.dvi > /dev/null
 #latex pairs.tex  > /dev/null 
 #dvips -q -o $output_dir/$1.pairs.ps pairs.dvi > /dev/null
 
-mv sim.eps $output_dir/$1.sim.eps
-mv mf.eps $output_dir/$1.mf.eps
-mv sim_sir.eps $output_dir/$1.sim_sir.eps
-mv mf_sir.eps $output_dir/$1.mf_sir.eps
+# fix lines
+sed -e "s/PL \[4 dl1 2 dl2\]/PL \[12 dl1 6 dl2\]/g" $output_dir/$1.singlets.ps > tmp.ps
+mv -f tmp.ps $output_dir/$1.singlets.ps
+
+#mv sim.eps $output_dir/$1.sim.eps
+#mv mf.eps $output_dir/$1.mf.eps
+#mv sim_sir.eps $output_dir/$1.sim_sir.eps
+#mv mf_sir.eps $output_dir/$1.mf_sir.eps
 #mv pa.eps $output_dir/$1.pa.eps
 
 # clean
+rm -f sim.ps sim.eps
+rm -f mf.ps mf.eps
+rm -f pa-di.ps pa-di.eps
+rm -f pa-dib.ps pa-dib.eps
 rm -f singlets.log singlets.aux singlets.dvi 
 rm -f pairs.log pairs.aux pairs.dvi 
 rm -f mf.ps mf_sir.ps
-rm -f pa.ps 
+rm -f pa-di.ps pa-di.eps
+rm -f pa-dib.ps pa-dib.eps
 rm -f pa1.ps pa1.eps 
 rm -f pa2.ps pa2.eps 
 rm -f pa3.ps pa3.eps 
@@ -109,3 +143,4 @@ rm -f pairs8.ps pairs8.eps
 #    rm -f tmp.dvi tmp.log tmp.aux tmp.ps tmp.tex $fig
 #done	
 
+exit 0
