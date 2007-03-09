@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# execute in this shell 
-. config
-
 # set script path
 ode_dir=$CODEDIR/ode_solver
 graph_dir=$CODEDIR/graph
