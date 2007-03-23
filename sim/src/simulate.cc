@@ -137,6 +137,8 @@ int main(int argc, char* argv[])
        "generate graph structure and initial state and stop")
       ("degree-dist",
        "write degree distribution to baseName.degree file")
+      ("generate-ode-ic-file", po::value<std::string>(),
+       "generate init file for ode solver and stop")
       ;
 
    // declare hidden option for suppression of graph output --
@@ -773,6 +775,43 @@ int main(int argc, char* argv[])
       
    } // end generateIC
 
+   /******************************************************************/
+   // check for generate-ode-ic-file
+   /******************************************************************/
+
+   if (vm.count("generate-ode-ic-file")) {
+      std::ofstream odeIcFile;
+      std::string odeIcFileName = (vm["generate-ode-ic-file"].as<std::string>());
+
+      // open ode ic file for writing
+      try {
+         odeIcFile.open(odeIcFileName.c_str(), std::ios::out);
+      }
+      catch (std::exception& e) {
+         std::cerr << "ERROR:  unable to open file fro ode ic file: "
+                   << e.what() << std::endl;
+         return 1;
+      }
+      
+      // write ode ic file
+      bool status = write_ode_ic_file(graph, model, odeIcFile);
+      
+      // print message
+      if (verbose) 
+         if (!status) {
+            std::cout << "ode ic file " << odeIcFileName << " written ok\n";
+         } else {
+            std::cout << "ERROR: something wrong in writing ode ic file "
+                      << odeIcFileName << std::endl;
+            return 1;
+         }
+
+      // close file
+      odeIcFile.close();
+      
+      // stop
+      return 0;   
+   }
    
    /******************************************************************/
    // check for generate-graph-mode
