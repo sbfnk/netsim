@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
   bool verbose = false;
   
   std::string readGraph = ""; // default is to generate graph.
-  bool generateIC = true; // default is not to generate i.c.
+  bool generateIC = true; // default is to generate i.c.
             
   po::options_description command_line_options
     ("Usage: simulate -p params_file [options]... \n\nAllowed options");
@@ -754,7 +754,8 @@ int main(int argc, char* argv[])
 
   if (vm.count("generate-ode-ic-file")) {
     std::ofstream odeIcFile;
-    std::string odeIcFileName = (vm["generate-ode-ic-file"].as<std::string>());
+    std::string odeIcFileName =
+      (vm["generate-ode-ic-file"].as<std::string>());
 
     // open ode ic file for writing
     try {
