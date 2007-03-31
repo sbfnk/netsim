@@ -1,7 +1,7 @@
 #------ GNU g++ -----------------------------------------------------
 
 CC         = g++
-CPPFLAGS     = -Wall -O3 #-g
+CPPFLAGS     = -Wall -O3 -g
 
 LINKER      = g++
 LDFLAGS     = -lboost_program_options
