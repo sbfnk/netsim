@@ -147,7 +147,7 @@ fi
 # set ode command
 ode_command="$CODEDIR/ode_solver/$ode_solver --file-id $output_dir/$file_id"
 ode_command="$ode_command --ic-file $output_dir/$file_id.init"
-ode_command="$ode_command $ode_options $options"
+ode_command="$ode_command $ode_options --di-model --mf-model $options"
 
 # execute ode solver
 $ode_command
