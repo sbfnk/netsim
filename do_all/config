@@ -1,5 +1,3 @@
-CODEDIR=/home/erez/Reseach/Code/dev
-DATADIR=/home/erez/Reseach/Code/dev/data
 model=$CODEDIR/do_all/model.prm # file containing the model paramters
 ode=$CODEDIR/do_all/ode.prm     # file containing the ode parameters
 sim=$CODEDIR/do_all/sim.prm     # file containing the simulation parameters
