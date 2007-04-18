@@ -1,24 +1,10 @@
 #------ GNU g++ -----------------------------------------------------
 
 CC         = g++
-CPPFLAGS     = -Wall -O3 -g
+CPPFLAGS     = -Wall -O3 -g -I${CODEDIR} -Iinclude
 
 LINKER      = g++
-LDFLAGS     = -lboost_program_options
-
-#------ Intel icpc  --------------------------------------------------
-
-#CC         = icpc
-#CPPFLAGS     = -g -Wall
-#OPTFLAGS   = -O3 -ipo -fnsplit -ip -ftz -funroll-loops
-#OPTFLAGS   = -static
-#OPTFLAGS   = -fast / -mp / 
-#OPTFLAGS   = 
-
-#LINKER      = icpc
-#LDFLAGS   = -lm -lscs -lmkl 
-#LDFLAGS   = -i-dynamic/static
-#LDFLAGS     = 
+LDFLAGS     = -lboost_program_options -lgsl -lgslcblas
 
 #--------------------------------------------------------------------
 
@@ -27,24 +13,24 @@ DEPENDFLAGS = -m
 
 #--------------------------------------------------------------------
 
-SOURCES     = main.cc Bin.cc InfoSIRS.cc Model.cc
-OBJECTS     = $(SOURCES:.cc=.o)
+SOURCES     = simulate.cc Bin.cc InfoSIRS.cc Model.cc
+OBJECTS     = $(patsubst %.cc,out/%.o,${SOURCES})
 
 EXEC        = simulate
 AVG         = average_runs
 #--------------------------------------------------------------------
 
-all:  $(EXEC) $(AVG)
+all:  bin/$(EXEC) bin/$(AVG)
 
-$(EXEC): $(OBJECTS) 
+bin/$(EXEC): $(OBJECTS) 
 	@echo ... linking:
 	$(LINKER) $(LDFLAGS) $(OPTFLAGS) $(CPPFLAGS) $(OBJECTS) -o $@
 	@echo
 
-$(AVG): average_runs.o
-	$(LINKER) $(LDFLAGS) $(OPTFLAGS) $(CPPFLAGS) average_runs.o -o $@
+bin/$(AVG): out/average_runs.o
+	$(LINKER) $(LDFLAGS) $(OPTFLAGS) $(CPPFLAGS) $< -o $@
 
-%.o : %.cc %.hh
+out/%.o : src/%.cc include/%.hh
 	@echo ... compiling $<:
 	$(CC) -c $(CPPFLAGS) $(OPTFLAGS) $< -o $@
 	@echo
@@ -70,4 +56,3 @@ InfoSIRS.o: InfoSIRS.hh Model.hh
 main.o: Vertex.hh Simulator.hh GillespieSimulator.hh ChrisSimulator.hh \
         Tree.hh Bin.hh InfoSIRS.hh Model.hh lattice_generator.hh \
         graph_structure.hh erdos_renyi_generator2.hh visualize_graph.hh
-
