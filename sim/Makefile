@@ -36,16 +36,16 @@ out/%.o : src/%.cc include/%.hh
 	@echo
 
 depend:
-	$(MAKEDEPEND) $(DEPENDFLAGS) *.cc
+	$(MAKEDEPEND) $(DEPENDFLAGS) src/*.cc
 
 clean:
 	@echo ... cleaning $(OBJECTS) $(EXEC)
-	@rm -f $(OBJECTS) $(EXEC)
+	@rm -f bin/* out/*
 	@echo ... done
 
 cleaner:
 	@echo '... cleaning also *~'
-	@rm -f $(OBJECTS) *~
+	@rm -f bin/* out/* *~ .#*
 	@echo ... done
 
 #-------------------------------------------------------------------
