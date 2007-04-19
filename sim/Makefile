@@ -51,8 +51,11 @@ cleaner:
 #-------------------------------------------------------------------
 # DO NOT DELETE
 
-InfoSIRS.o: InfoSIRS.hh Model.hh
+out/InfoSIRS.o: include/InfoSIRS.hh include/Model.hh
 
-main.o: Vertex.hh Simulator.hh GillespieSimulator.hh ChrisSimulator.hh \
-        Tree.hh Bin.hh InfoSIRS.hh Model.hh lattice_generator.hh \
-        graph_structure.hh erdos_renyi_generator2.hh visualize_graph.hh
+out/simulate.o: include/Vertex.hh include/Simulator.hh \
+	include/GillespieSimulator.hh \
+	include/ChrisSimulator.hh include/Tree.hh include/Bin.hh \
+	include/InfoSIRS.hh include/Model.hh include/lattice_generator.hh \
+	include/graph_structure.hh include/erdos_renyi_generator2.hh \
+	include/visualize_graph.hh
