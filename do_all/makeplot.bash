@@ -5,7 +5,7 @@ ode_dir=$CODEDIR/ode_solver
 graph_dir=$CODEDIR/graph
 
 gp_ode_script=$ode_dir/mfpa.gp
-gp_sim_script=$graph_dir/sim.gp
+gp_sim_script=$graph_dir/scripts/sim.gp
 
 # check command-line args
 if [[ $# != 1 ]]; then
@@ -91,11 +91,12 @@ dvips -q -o $output_dir/$1.singlets.ps singlets.dvi > /dev/null
 sed -e "s/PL \[4 dl1 2 dl2\]/PL \[12 dl1 6 dl2\]/g" $output_dir/$1.singlets.ps > tmp.ps
 mv -f tmp.ps $output_dir/$1.singlets.ps
 
-#mv sim.eps $output_dir/$1.sim.eps
-#mv mf.eps $output_dir/$1.mf.eps
+mv sim.eps $output_dir/$1.sim.eps
+mv mf.eps $output_dir/$1.mf.eps
+mv pa-di.eps $output_dir/$1.pa-di.eps
+mv pa-dib.eps $output_dir/$1.pa-dib.eps
 #mv sim_sir.eps $output_dir/$1.sim_sir.eps
 #mv mf_sir.eps $output_dir/$1.mf_sir.eps
-#mv pa.eps $output_dir/$1.pa.eps
 
 # clean
 rm -f sim.ps sim.eps
