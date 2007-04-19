@@ -1,7 +1,3 @@
-/******************************************************************/
-// main.cc
-// contains the main simulation program
-/******************************************************************/
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -74,8 +70,6 @@ int main(int argc, char* argv[])
 
   std::vector <unsigned int> init;
 
-  unsigned int outputNum = 0;
-
   /******************************************************************/
   // read parameters
   /******************************************************************/
@@ -117,7 +111,7 @@ int main(int argc, char* argv[])
     ("sim", po::value<std::string>()->default_value("Gillespie"),
      "simulator to use (Gillespie, Chris)")
     ("tmax", po::value<double>()->default_value(100.),
-     "time after which to stop")
+     "time after which to stop\n(use tmax=0 to just generate graph and exit)")
     ("output", po::value<double>()->default_value(0.),
      "write output data at arg timesteps")
     ("graphviz,g", po::value<int>()->default_value(0),
@@ -130,8 +124,6 @@ int main(int argc, char* argv[])
      "read graph structure and i.c. from file")
     ("generate-ic",
      "generate initial state from scratch")
-    ("generate-graph-mode",
-     "generate graph structure and initial state and stop")
     ("degree-dist",
      "write degree distribution to baseName.degree file")
     ("generate-ode-ic-file", po::value<std::string>(),
@@ -317,12 +309,6 @@ int main(int argc, char* argv[])
       generateIC = false;
     }
   }
-
-  // checking conflict
-//   if (vm.count("read-graph") && vm.count("generate-graph-mode")) {
-//     std::cerr << "ERROR: Choose read-graph OR generate-graph-mode\n";
-//     return 1;
-//   } 
 
   if (vm.count("vertices")) {
     N = vm["vertices"].as<unsigned int>();
@@ -783,27 +769,9 @@ int main(int argc, char* argv[])
     // close file
     odeIcFile.close();
       
-    // stop
+    // exit
     return 0;   
   }
-   
-  /******************************************************************/
-  // check for generate-graph-mode
-  /******************************************************************/
-   
-  if (vm.count("generate-graph-mode")) {
-    std::string outputGraph = (vm["write-file"].as<std::string>())+".graph";
-      
-    // write graph
-    write_graph(graph, model, outputGraph, -1);
-
-    // print statistics
-    if (verbose) std::cout << "In generate-graph-mode\n";
-    if (verbose) print_graph_statistics(graph, model);
-      
-    // stop
-    return 0;
-  }     
    
   /******************************************************************/
   // open output file
@@ -818,6 +786,15 @@ int main(int argc, char* argv[])
     catch (std::exception &e) {
       std::cerr << "Unable to open output file: " << e.what() << std::endl;
     }
+
+    if (outputGraphviz >=0) {
+
+      std::string outputGraphName =
+        (vm["write-file"].as<std::string>())+".graph";
+
+      // write graph
+      write_graph(graph, model, outputGraphName, -1);
+    }
   }   
 
   /******************************************************************/
@@ -831,7 +808,7 @@ int main(int argc, char* argv[])
 
   // GraphViz output
   if (outputGraphviz >= 0)
-    write_graph(graph, model, (graphDir + "/start"), -1);
+    write_graph(graph, model, (graphDir + "/frame000"), -1);
 
   // prints data to outputFile
   std::string lastLine = "";
@@ -846,6 +823,7 @@ int main(int argc, char* argv[])
   double nextDataStep = outputData;
   
   unsigned int steps = 0;
+  unsigned int outputNum = 1;
 
   while (sim->updateState() && sim->getTime()<stop) {
     
@@ -872,8 +850,10 @@ int main(int argc, char* argv[])
   }
    
   if (verbose) std::cout << "Final status:" << std::endl;
-  if (outputGraphviz >= 0) {
-    write_graph(graph, model, (graphDir + "/end"), sim->getTime());
+  if (stop > 0 && outputGraphviz >= 0) {
+      write_graph(graph, model,
+                  generateFileName((graphDir +"/frame"),outputNum),
+                  sim->getTime());
   }
   
   if (outputFile) {
