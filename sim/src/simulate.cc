@@ -57,6 +57,11 @@ struct sfOptions {
   double beta;
 };
 
+struct readFileOptions {
+  std::string fileName;
+  bool getStates;
+};
+
 std::string generateFileName(std::string nameBase, unsigned int id)
 {
   std::stringstream s;
@@ -75,7 +80,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
   std::string topology;
   
-  unsigned int N;
+  unsigned int N = 0;
   double stop;
 
   double outputData = 0.;
@@ -120,10 +125,6 @@ int main(int argc, char* argv[])
      "set ouput dir for graphs")
     ("write-file,f", po::value<std::string>(),
      "output data to file (.sim.dat will be appended)")
-    ("read-graph", po::value<std::string>(),
-     "read graph structure and i.c. from file")
-    ("generate-ic",
-     "generate initial state from scratch")
     ("degree-dist",
      "write degree distribution to baseName.degree file")
     ("generate-ode-ic-file", po::value<std::string>(),
@@ -144,9 +145,9 @@ int main(int argc, char* argv[])
     ("vertices,N", po::value<unsigned int>(),
      "number of vertices")
     ("d-topology", po::value<std::string>(),
-     "disease network topology\n((tri-)lattice,random,small-world,scale-free,complete)")
+     "disease network topology\n((tri-)lattice,random,small-world,scale-free,complete,read,null)")
     ("i-topology", po::value<std::string>(),
-     "information network topology\n((tri-)lattice,random,small-world,scale-free,complete,copy)")
+     "information network topology\n((tri-)lattice,random,small-world,scale-free,complete,read,null)")
     ("base,b", po::value<std::string>()->default_value
      (model.getVertexStates().begin()->getText()),
      "base state of individuals")
@@ -240,6 +241,25 @@ int main(int argc, char* argv[])
     sf_options.push_back(sfo);
   }
 
+  std::vector<po::options_description*> readFile_options;
+  for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
+    std::stringstream s;
+    s << model.getEdgeTypes()[i].getText() << "-Read Options";
+    po::options_description* rfo =
+      new po::options_description(s.str().c_str());
+    s.str("");
+    s << model.getEdgeTypes()[i].getText() << "-file";
+    rfo->add_options()
+      (s.str().c_str(), po::value<std::string>(),
+       "name of graph file to read");
+    s.str("");
+    s << model.getEdgeTypes()[i].getText() << "-getstates";
+    rfo->add_options()
+      (s.str().c_str(), 
+       "get vertex states as well (and do not randomize initial conditions)");
+    readFile_options.push_back(rfo);
+  }
+
   po::options_description model_options = model.getOptions();
 
   // read options from command line
@@ -255,6 +275,7 @@ int main(int argc, char* argv[])
     all_options.add(*(rg_options[i]));
     all_options.add(*(sw_options[i]));
     all_options.add(*(sf_options[i]));
+    all_options.add(*(readFile_options[i]));
   }
   po::variables_map vm;
   po::store(po::command_line_parser(argc, argv).options(all_options).
@@ -299,25 +320,15 @@ int main(int argc, char* argv[])
   
   po::notify(vm);
   
-  if (vm.count("read-graph")) {
-      
-    // read graph structure AND initial state from file
-    readGraph = (vm["read-graph"].as<std::string>());
-
-    // check for generate-ic
-    if (vm.count("generate-ic") == 0) {
-      generateIC = false;
-    }
-  }
-
   if (vm.count("vertices")) {
     N = vm["vertices"].as<unsigned int>();
-  } else {
-    std::cerr << "ERROR: Number of vertices not specified" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << command_line_options << main_options << std::endl;
-    return 1;
   }
+//   else {
+//     std::cerr << "ERROR: Number of vertices not specified" << std::endl;
+//     std::cerr << std::endl;
+//     std::cerr << command_line_options << main_options << std::endl;
+//     return 1;
+//   }
 
   /******************************************************************/
   // initialize model
@@ -379,263 +390,288 @@ int main(int argc, char* argv[])
   // adding N vertices to graph
   boost::add_vertices(graph, N);
   
-  if (readGraph.size() > 0) { // reading graph from file
+  /******************************************************************/
+  // generate edges
+  /******************************************************************/
+  
+  for (unsigned int i = 0; i < model.getEdgeTypes().size() ; i++) {
     
-    // reading graph structure and initial state from file
-    bool status = read_graph(graph, model, readGraph, verbose);
+    onetype_graph temp_graph;
+    boost::add_vertices(temp_graph, N);
     
-    if (verbose) {
-      if (!status) {
-        std::cout << "graph file " << readGraph << " was read ok\n";
-      } else {
-        std::cout << "ERROR: something wrong in read graph from "
-                  << readGraph << std::endl;
-      }
+    std::stringstream s;
+    s << model.getEdgeTypes()[i].getText() << "-topology";
+    if (vm.count(s.str())) {
+      topology = vm[s.str()].as<std::string>();
+    } else {
+      std::cerr << "ERROR: no " << s.str() << " specified" << std::endl;
+      std::cerr << std::endl;
+      std::cerr << command_line_options << main_options << std::endl;
+      return 1;
     }
-  } else { // generate edges
     
-    /******************************************************************/
-    // generate edges
-    /******************************************************************/
-    
-    for (unsigned int i = 0; i < model.getEdgeTypes().size() ; i++) {
+    if (topology == "lattice") {
       
-      onetype_graph temp_graph;
-      boost::add_vertices(temp_graph, N);
-    
-      std::stringstream s;
-      s << model.getEdgeTypes()[i].getText() << "-topology";
+      /******************************************************************/
+      // read lattice specific parameters
+      /******************************************************************/
+      
+      latticeOptions opt;
+      s.str("");
+      s << model.getEdgeTypes()[i].getText() << "-dim";
+      opt.dimensions = vm[s.str()].as<unsigned int>();
+      
+      opt.sideLength = static_cast<int>(pow(N, 1.0/opt.dimensions));
+      if (pow(opt.sideLength, opt.dimensions) != N) { 
+        std::cerr << "ERROR: cannot generate square lattice out of " << N
+                  << " vertices." << std::endl;
+        return 1;
+      }
+      s.str("");
+      s << model.getEdgeTypes()[i].getText() << "-pb";
       if (vm.count(s.str())) {
-        topology = vm[s.str()].as<std::string>();
+        opt.periodicBoundary = true;
       } else {
-        std::cerr << "ERROR: no " << s.str() << " specified" << std::endl;
-        std::cerr << std::endl;
-        std::cerr << command_line_options << main_options << std::endl;
+        opt.periodicBoundary = false;
+      }
+      
+      /******************************************************************/
+      // generate lattice with desired properties
+      /******************************************************************/
+      typedef boost::lattice_iterator<dualtype_graph> lattice_iterator;
+      
+      lattice_iterator li(opt.sideLength,opt.dimensions,opt.periodicBoundary);
+      lattice_iterator li_end;
+      
+      boost::add_edge_structure(temp_graph, li, li_end, Edge(i));
+      
+    } else if (topology == "tri-lattice") {
+      
+      /******************************************************************/
+      // read tri-lattice specific parameters
+      /******************************************************************/
+      
+      latticeOptions opt;
+      s.str("");
+      
+      opt.sideLength = static_cast<int>(sqrt(N));
+      if (pow(opt.sideLength, 2) != N) { 
+        std::cerr << "ERROR: cannot generate square lattice out of " << N
+                  << " vertices." << std::endl;
         return 1;
       }
-
-      if (topology == "lattice") {
-
-        /******************************************************************/
-        // read lattice specific parameters
-        /******************************************************************/
       
-        latticeOptions opt;
-        s.str("");
-        s << model.getEdgeTypes()[i].getText() << "-dim";
-        opt.dimensions = vm[s.str()].as<unsigned int>();
-      
-        opt.sideLength = static_cast<int>(pow(N, 1.0/opt.dimensions));
-        if (pow(opt.sideLength, opt.dimensions) != N) { 
-          std::cerr << "ERROR: cannot generate square lattice out of " << N
-                    << " vertices." << std::endl;
-          return 1;
-        }
-        s.str("");
-        s << model.getEdgeTypes()[i].getText() << "-pb";
-        if (vm.count(s.str())) {
-          opt.periodicBoundary = true;
-        } else {
-          opt.periodicBoundary = false;
-        }
-
-        /******************************************************************/
-        // generate lattice with desired properties
-        /******************************************************************/
-        typedef boost::lattice_iterator<dualtype_graph> lattice_iterator;
-      
-        lattice_iterator li(opt.sideLength,opt.dimensions,opt.periodicBoundary);
-        lattice_iterator li_end;
-      
-        boost::add_edge_structure(temp_graph, li, li_end, Edge(i));
-      
-      } else if (topology == "tri-lattice") {
-
-        /******************************************************************/
-        // read tri-lattice specific parameters
-        /******************************************************************/
-      
-        latticeOptions opt;
-        s.str("");
-
-        opt.sideLength = static_cast<int>(sqrt(N));
-        if (pow(opt.sideLength, 2) != N) { 
-          std::cerr << "ERROR: cannot generate square lattice out of " << N
-                    << " vertices." << std::endl;
-          return 1;
-        }
-
-        s << model.getEdgeTypes()[i].getText() << "-pb";
-        if (vm.count(s.str())) {
-          opt.periodicBoundary = true;
-        } else {
-          opt.periodicBoundary = false;
-        }
-
-        /******************************************************************/
-        // generate lattice with desired properties
-        /******************************************************************/
-        typedef boost::tri_lattice_iterator<dualtype_graph> tri_lattice_iterator;
-      
-        tri_lattice_iterator tli(opt.sideLength,opt.periodicBoundary);
-        tri_lattice_iterator tli_end;
-      
-        boost::add_edge_structure(temp_graph, tli, tli_end, Edge(i));
-
-      } else if (topology == "random") {
-
-        /******************************************************************/
-        // read random graph specific parameters
-        /******************************************************************/
-      
-        rgOptions opt;
-      
-        s.str("");
-        s << model.getEdgeTypes()[i].getText() << "-edges";
-        if (vm.count(s.str())) {
-          opt.edges = vm[s.str()].as<unsigned int>();
-        } else {
-          std::cerr << "ERROR: no number of edges specified" << std::endl;
-          std::cerr << std::endl;
-          std::cerr << rg_options[i] << std::endl;
-          return 1;
-        }
-
-        /******************************************************************/
-        // generate random graph with desired properties
-        /******************************************************************/
-        typedef boost::erdos_renyi_iterator2<boost::mt19937, dualtype_graph>
-          rg_iterator;
-
-//         typedef boost::erdos_renyi_iterator<boost::mt19937, dualtype_graph>
-//           rg_iterator;
-            
-        double p = (double)opt.edges*2.0/((double)N*(double)(N-1));
-            
-        // fix for E = p * N * N
-//         p = p * ((double)(N-1) / (double)N);
-
-//         std::cout << "p=" << p << std::endl;
-//         std::cout << p*(double)N*(double)N << std::endl;
-//         std::cout << (int)(p*N*N)/2 << std::endl;
-            
-        rg_iterator ri(gen, N, p);
-        rg_iterator ri_end;
-      
-        boost::add_edge_structure(temp_graph, ri, ri_end, Edge(i));
-      
-      } else if (topology == "small-world") {
-
-        /******************************************************************/
-        // read small-world graph specific parameters
-        /******************************************************************/
-      
-        swOptions opt;
-      
-        s.str("");
-        s << model.getEdgeTypes()[i].getText() << "-neighbours";
-        if (vm.count(s.str())) {
-          opt.neighbours = vm[s.str()].as<unsigned int>();
-        } else {
-          std::cerr << "ERROR: no number of neighbours specified" << std::endl;
-          std::cerr << std::endl;
-          std::cerr << sw_options[i] << std::endl;
-          return 1;
-        }
-        s.str("");
-        s << model.getEdgeTypes()[i].getText() << "-rewiring-prob";
-        if (vm.count(s.str())) {
-          opt.rewiringProb = vm[s.str()].as<double>();
-        } else {
-          std::cerr << "ERROR: no rewiring probability" << std::endl;
-          std::cerr << std::endl;
-          std::cerr << sw_options[i] << std::endl;
-          return 1;
-        }
-
-        /******************************************************************/
-        // generate small-world graph with desired properties
-        /******************************************************************/
-        typedef boost::small_world_iterator<boost::mt19937, dualtype_graph>
-          sw_iterator;
-
-        sw_iterator swi(gen,N,opt.neighbours, opt.rewiringProb);
-        sw_iterator swi_end;
-      
-        boost::add_edge_structure(temp_graph, swi, swi_end, Edge(i));
-      } else if (topology == "scale-free") {
-
-        /******************************************************************/
-        // read scale-free graph specific parameters
-        /******************************************************************/
-      
-        sfOptions opt;
-      
-        s.str("");
-        s << model.getEdgeTypes()[i].getText() << "-alpha";
-        if (vm.count(s.str())) {
-          opt.alpha = vm[s.str()].as<double>();
-        } else {
-          std::cerr << "ERROR: no alpha specified" << std::endl;
-          std::cerr << std::endl;
-          std::cerr << sf_options[i] << std::endl;
-          return 1;
-        }
-        s.str("");
-        s << model.getEdgeTypes()[i].getText() << "-beta";
-        if (vm.count(s.str())) {
-          opt.beta = vm[s.str()].as<double>();
-        } else {
-          std::cerr << "ERROR: no beta specified" << std::endl;
-          std::cerr << std::endl;
-          std::cerr << sf_options[i] << std::endl;
-          return 1;
-        }
-
-        /******************************************************************/
-        // generate scale-free graph with desired properties
-        /******************************************************************/
-        typedef boost::plod_iterator<boost::mt19937, dualtype_graph>
-          sf_iterator;
-      
-        sf_iterator sfi(gen,N,opt.alpha,opt.beta);
-        sf_iterator sfi_end;
-      
-        boost::add_edge_structure(temp_graph, sfi, sfi_end, Edge(i));
-      } else if (topology == "complete") {
-        boost::graph_traits<dualtype_graph>::vertex_iterator vi, vi_end;
-        for (tie(vi, vi_end) = vertices(graph); vi != vi_end; vi++) {
-          boost::graph_traits<dualtype_graph>::vertex_iterator vi2;
-          for (vi2 = vi+1; vi2 != vi_end; vi2++) {
-            add_edge(*vi, *vi2, Edge(i), temp_graph);
-          }
-        }
-      } else if (topology == "copy") {
-        boost::graph_traits<dualtype_graph>::edge_iterator ei, ei_end;
-        for (tie(ei, ei_end) = edges(graph); ei != ei_end; ei++) {
-          if (graph[*ei].type == 0) {
-            add_edge(source(*ei, temp_graph), target(*ei, temp_graph),
-                     Edge(i), temp_graph);
-          }
-        }
+      s << model.getEdgeTypes()[i].getText() << "-pb";
+      if (vm.count(s.str())) {
+        opt.periodicBoundary = true;
       } else {
-        std::cerr << "ERROR: unknown " << s.str() << ": " << topology
-                  << std::endl;
+        opt.periodicBoundary = false;
+      }
+      
+      /******************************************************************/
+      // generate lattice with desired properties
+      /******************************************************************/
+      typedef boost::tri_lattice_iterator<dualtype_graph> tri_lattice_iterator;
+      
+      tri_lattice_iterator tli(opt.sideLength,opt.periodicBoundary);
+      tri_lattice_iterator tli_end;
+      
+      boost::add_edge_structure(temp_graph, tli, tli_end, Edge(i));
+      
+    } else if (topology == "random") {
+      
+      /******************************************************************/
+      // read random graph specific parameters
+      /******************************************************************/
+      
+      rgOptions opt;
+      
+      s.str("");
+      s << model.getEdgeTypes()[i].getText() << "-edges";
+      if (vm.count(s.str())) {
+        opt.edges = vm[s.str()].as<unsigned int>();
+      } else {
+        std::cerr << "ERROR: no number of edges specified" << std::endl;
         std::cerr << std::endl;
-        std::cerr << main_options << std::endl;
+        std::cerr << *rg_options[i] << std::endl;
         return 1;
       }
-
-      // copy edges to main graph
+      
+      /******************************************************************/
+      // generate random graph with desired properties
+      /******************************************************************/
+      typedef boost::erdos_renyi_iterator2<boost::mt19937, dualtype_graph>
+        rg_iterator;
+      
+      //         typedef boost::erdos_renyi_iterator<boost::mt19937, dualtype_graph>
+      //           rg_iterator;
+      
+      double p = (double)opt.edges*2.0/((double)N*(double)(N-1));
+      
+      // fix for E = p * N * N
+      //         p = p * ((double)(N-1) / (double)N);
+      
+      //         std::cout << "p=" << p << std::endl;
+      //         std::cout << p*(double)N*(double)N << std::endl;
+      //         std::cout << (int)(p*N*N)/2 << std::endl;
+      
+      rg_iterator ri(gen, N, p);
+      rg_iterator ri_end;
+      
+      boost::add_edge_structure(temp_graph, ri, ri_end, Edge(i));
+      
+    } else if (topology == "small-world") {
+      
+      /******************************************************************/
+      // read small-world graph specific parameters
+      /******************************************************************/
+      
+      swOptions opt;
+      
+      s.str("");
+      s << model.getEdgeTypes()[i].getText() << "-neighbours";
+      if (vm.count(s.str())) {
+        opt.neighbours = vm[s.str()].as<unsigned int>();
+      } else {
+        std::cerr << "ERROR: no number of neighbours specified" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << *sw_options[i] << std::endl;
+        return 1;
+      }
+      s.str("");
+      s << model.getEdgeTypes()[i].getText() << "-rewiring-prob";
+      if (vm.count(s.str())) {
+        opt.rewiringProb = vm[s.str()].as<double>();
+      } else {
+        std::cerr << "ERROR: no rewiring probability" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << *sw_options[i] << std::endl;
+        return 1;
+      }
+      
+      /******************************************************************/
+      // generate small-world graph with desired properties
+      /******************************************************************/
+      typedef boost::small_world_iterator<boost::mt19937, dualtype_graph>
+        sw_iterator;
+      
+      sw_iterator swi(gen,N,opt.neighbours, opt.rewiringProb);
+      sw_iterator swi_end;
+      
+      boost::add_edge_structure(temp_graph, swi, swi_end, Edge(i));
+    } else if (topology == "scale-free") {
+      
+      /******************************************************************/
+      // read scale-free graph specific parameters
+      /******************************************************************/
+      
+      sfOptions opt;
+      
+      s.str("");
+      s << model.getEdgeTypes()[i].getText() << "-alpha";
+      if (vm.count(s.str())) {
+        opt.alpha = vm[s.str()].as<double>();
+      } else {
+        std::cerr << "ERROR: no alpha specified" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << *sf_options[i] << std::endl;
+        return 1;
+      }
+      s.str("");
+      s << model.getEdgeTypes()[i].getText() << "-beta";
+      if (vm.count(s.str())) {
+        opt.beta = vm[s.str()].as<double>();
+      } else {
+        std::cerr << "ERROR: no beta specified" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << *sf_options[i] << std::endl;
+        return 1;
+      }
+      
+      /******************************************************************/
+      // generate scale-free graph with desired properties
+      /******************************************************************/
+      typedef boost::plod_iterator<boost::mt19937, dualtype_graph>
+        sf_iterator;
+      
+      sf_iterator sfi(gen,N,opt.alpha,opt.beta);
+      sf_iterator sfi_end;
+      
+      boost::add_edge_structure(temp_graph, sfi, sfi_end, Edge(i));
+    } else if (topology == "complete") {
+      boost::graph_traits<dualtype_graph>::vertex_iterator vi, vi_end;
+      for (tie(vi, vi_end) = vertices(graph); vi != vi_end; vi++) {
+        boost::graph_traits<dualtype_graph>::vertex_iterator vi2;
+        for (vi2 = vi+1; vi2 != vi_end; vi2++) {
+          add_edge(*vi, *vi2, Edge(i), temp_graph);
+        }
+      }
+    } else if (topology == "copy") {
       boost::graph_traits<dualtype_graph>::edge_iterator ei, ei_end;
-      for (tie(ei, ei_end) = edges(temp_graph); ei != ei_end; ei++) {
-        add_edge(source(*ei, temp_graph), target(*ei, temp_graph),
-                 Edge(temp_graph[*ei].type), graph);
-      }         
-    }
+      for (tie(ei, ei_end) = edges(graph); ei != ei_end; ei++) {
+        if (graph[*ei].type == 0) {
+          add_edge(source(*ei, temp_graph), target(*ei, temp_graph),
+                   Edge(i), temp_graph);
+        }
+      }
+    } else if (topology == "read") {
 
-  } // end readGraph
-   
+      readFileOptions opt;
+
+      s.str("");
+      s << model.getEdgeTypes()[i].getText() << "-file";
+      if (vm.count(s.str())) {
+        if (readGraph.size() == 0) {
+          readGraph = vm[s.str()].as<std::string>();
+        }
+        opt.fileName = vm[s.str()].as<std::string>();
+      } else {
+        if (readGraph.size() == 0) {
+          std::cerr << "ERROR: no file name specified" << std::endl;
+          std::cerr << std::endl;
+          std::cerr << *readFile_options[i] << std::endl;
+          return 1;
+        } else {
+          opt.fileName = readGraph;
+        }
+      }
+
+      s.str("");
+      s << model.getEdgeTypes()[i].getText() << "-getstates";
+      if (vm.count(s.str())) {
+        opt.getStates = true;
+      } else {
+        opt.getStates = false;
+      }
+      
+      // reading graph structure and initial state from file
+      if (read_graph(graph,model,opt.fileName,i,opt.getStates,verbose) == 0) {
+        // update number of vertices
+        N = num_vertices(graph);
+        if (verbose) {
+          std::cout << "graph file " << readGraph << " was read ok\n";
+        }
+      } else {
+        std::cerr << "ERROR: something wrong in read graph from "
+                  << readGraph << std::endl;
+        return 1;
+      }
+    } else {
+      std::cerr << "ERROR: unknown " << s.str() << ": " << topology
+                << std::endl;
+      std::cerr << std::endl;
+      std::cerr << main_options << std::endl;
+      return 1;
+    }
+    
+    // copy edges to main graph
+    boost::graph_traits<dualtype_graph>::edge_iterator ei, ei_end;
+    for (tie(ei, ei_end) = edges(temp_graph); ei != ei_end; ei++) {
+      add_edge(source(*ei, temp_graph), target(*ei, temp_graph),
+               Edge(temp_graph[*ei].type), graph);
+    }         
+  }
+  
   // mark parallel edges
   unsigned int parallel_edges = mark_parallel_edges(graph);
   if (verbose) std::cout << "No. of parallel edges is: " << parallel_edges
