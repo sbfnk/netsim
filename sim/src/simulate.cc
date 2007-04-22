@@ -638,7 +638,7 @@ int main(int argc, char* argv[])
 
       s.str("");
       s << model.getEdgeTypes()[i].getText() << "-getstates";
-      if (vm.count(s.str()) && generateIC = true) {
+      if (vm.count(s.str()) && generateIC == true) {
         opt.getStates = true;
         generateIC = false;
       } else {
