@@ -20,6 +20,7 @@
 #include "graph_structure.hh"
 #include "erdos_renyi_generator2.hh"
 #include "visualize_graph.hh"
+#include "cluster_coeffs.hh"
 
 #include "GillespieSimulator.hh"
 #include "Vertex.hh"
@@ -33,11 +34,11 @@ typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
                               Vertex, Edge> onetype_graph;
 
 struct latticeOptions {
-
+  
   latticeOptions()
     : sideLength(0)
   {;}
-
+  
   unsigned int sideLength;
   unsigned int dimensions;
   bool periodicBoundary;
@@ -45,6 +46,10 @@ struct latticeOptions {
 
 struct rgOptions {
   unsigned int edges;
+};
+
+struct rrgOptions {
+  unsigned int d;
 };
 
 struct swOptions {
@@ -72,9 +77,9 @@ std::string generateFileName(std::string nameBase, unsigned int id)
 int main(int argc, char* argv[])
 {
   InfoSIRS model;
-
+  
   std::vector <unsigned int> init;
-
+  
   /******************************************************************/
   // read parameters
   /******************************************************************/
@@ -129,6 +134,10 @@ int main(int argc, char* argv[])
      "write degree distribution to baseName.degree file")
     ("generate-ode-ic-file", po::value<std::string>(),
      "generate init file for ode solver and stop")
+    ("cluster-coeff",
+     "write clustering coefficients to baseName.cluster file")    
+    ("write-Js",
+     "write adjacency matrices to files  baseName.Jd/i")        
     ;
   
   // declare hidden option for suppression of graph output --
@@ -145,9 +154,9 @@ int main(int argc, char* argv[])
     ("vertices,N", po::value<unsigned int>(),
      "number of vertices")
     ("d-topology", po::value<std::string>(),
-     "disease network topology\n((tri-)lattice,random,small-world,scale-free,complete,read,null)")
+     "disease network topology\n((tri-)lattice,random,random-regular,small-world,scale-free,complete,read,null)")
     ("i-topology", po::value<std::string>(),
-     "information network topology\n((tri-)lattice,random,small-world,scale-free,complete,read,null)")
+     "information network topology\n((tri-)lattice,random,random-regular,small-world,scale-free,complete,read,null)")
     ("base,b", po::value<std::string>()->default_value
      (model.getVertexStates().begin()->getText()),
      "base state of individuals")
@@ -201,6 +210,21 @@ int main(int argc, char* argv[])
     rg_options.push_back(ro);
   }
 
+  // random regular graph
+  std::vector<po::options_description*> rrg_options;
+  for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
+    std::stringstream s;
+    s << model.getEdgeTypes()[i].getText() << "-RandomRegularGraph Options";
+    po::options_description* rrgo
+      = new po::options_description(s.str().c_str());
+    s.str("");
+    s << model.getEdgeTypes()[i].getText() << "-degree";
+    rrgo->add_options()
+      (s.str().c_str(), po::value<unsigned int>(),
+       "degree of the graph G(n,d)");
+    rrg_options.push_back(rrgo);
+  }
+  
   // small-world graph
   std::vector<po::options_description*> sw_options;
   for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
@@ -273,6 +297,7 @@ int main(int argc, char* argv[])
   for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
     all_options.add(*(lattice_options[i]));
     all_options.add(*(rg_options[i]));
+    all_options.add(*(rrg_options[i]));
     all_options.add(*(sw_options[i]));
     all_options.add(*(sf_options[i]));
     all_options.add(*(readFile_options[i]));
@@ -323,19 +348,13 @@ int main(int argc, char* argv[])
   if (vm.count("vertices")) {
     N = vm["vertices"].as<unsigned int>();
   }
-//   else {
-//     std::cerr << "ERROR: Number of vertices not specified" << std::endl;
-//     std::cerr << std::endl;
-//     std::cerr << command_line_options << main_options << std::endl;
-//     return 1;
-//   }
 
   /******************************************************************/
   // initialize model
   /******************************************************************/
-
+  
   model.Init(vm);
-
+  
   
   /******************************************************************/
   // create simulator
@@ -346,6 +365,7 @@ int main(int argc, char* argv[])
   gettimeofday(&tv, 0);
   seed = tv.tv_sec + tv.tv_usec;
   boost::mt19937 gen(seed);
+  boost::uniform_01<boost::mt19937, double> uni_gen(gen); // for rrg 
   dualtype_graph graph;
   Simulator* sim;
 
@@ -519,6 +539,49 @@ int main(int argc, char* argv[])
       rg_iterator ri_end;
       
       boost::add_edge_structure(temp_graph, ri, ri_end, Edge(i));
+
+    } else if (topology == "random-regular") {
+      
+      /******************************************************************/
+      // read random regular graph specific parameters
+      /******************************************************************/
+      
+      rrgOptions opt;
+      
+      s.str("");
+      s << model.getEdgeTypes()[i].getText() << "-degree";
+      if (vm.count(s.str())) {
+        opt.d = vm[s.str()].as<unsigned int>();
+      } else {
+        std::cerr << "ERROR: Graph degree not spcified" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << rrg_options[i] << std::endl;
+        return 1;
+      }
+      
+      /******************************************************************/
+      // generate random regular graph with desired properties
+      /******************************************************************/
+      
+      bool success = 0;
+      unsigned int count = 0;
+      typedef std::vector<std::pair<unsigned int, unsigned int> > GraphEdges;
+      GraphEdges rrg_edges;
+      
+      while (!success) {
+        success = boost::random_regular_graph(rrg_edges, opt.d, N, uni_gen);
+        
+        if (success) {            
+          for (GraphEdges::iterator it = rrg_edges.begin(); it != rrg_edges.end(); ++it) 
+            boost::add_edge((*it).first, (*it).second, Edge(i), temp_graph);            
+        } 
+
+        rrg_edges.clear();         
+        ++count;
+      }
+      
+      if (verbose) std::cout << "Random regular graph of degree " << opt.d
+                             << " was generated in " << count << " trials\n";
       
     } else if (topology == "small-world") {
       
@@ -646,7 +709,8 @@ int main(int argc, char* argv[])
       }
       
       // reading graph structure and initial state from file
-      if (read_graph(graph,model,opt.fileName,i,opt.getStates,verbose) == 0) {
+      if (read_graph(graph, model, opt.fileName, i, opt.getStates, verbose) == 0) {
+        
         // update number of vertices
         N = num_vertices(graph);
         if (verbose) {
@@ -691,6 +755,24 @@ int main(int argc, char* argv[])
       }
   }
 
+  // create sparse adjacency matrices and clustering coefficients
+  if (vm.count("cluster-coeff")) {
+    std::string baseFileName = (vm["write-file"].as<std::string>());
+    
+    bool writeJs = false;
+    if (vm.count("write-Js")) writeJs = true;
+    
+    bool status = boost::cluster_coeff(graph, baseFileName, writeJs);
+    if (verbose)
+      if (!status) {
+        std::cout << "cluster coeff file was written ok\n";
+      } else {
+        std::cout << "ERROR: something wrong in writing cluster coeff file "
+                  << std::endl;
+      }
+  }
+
+  
   /******************************************************************/
   // generate new initial state
   /******************************************************************/
@@ -901,5 +983,8 @@ int main(int argc, char* argv[])
   
   if (verbose) print_graph_statistics(graph, model);
 
+  // free memory
+  delete sim;
+  
   return 0;
 }
