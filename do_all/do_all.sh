@@ -103,6 +103,7 @@ sim_command="$sim_base --write-file $output_dir/$file_id""100"
 # execute 
 echo -ne .
 $sim_command
+mv "$output_dir/$file_id""100.graph" "$output_dir/$file_id"".graph"
 
 # loop over num_sims
 if [ $num_sims -gt 1 ]; then
