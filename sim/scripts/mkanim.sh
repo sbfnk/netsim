@@ -20,7 +20,7 @@ else
 fi
 
 echo "creating animated gif..."
-$ANIM_CMD $ANIM_OPT --no-loopcount --optimize $(ls images/frame*.gif) > animation.gif
+$ANIM_CMD $ANIM_OPT --no-loopcount --optimize $(ls images/frame*.gif) > images/animation.gif
 
 echo "...saved as animation.gif"
 
