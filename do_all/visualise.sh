@@ -11,12 +11,10 @@ fi
 images_dir=$DATADIR/$1/images
 
 rm $images_dir/*.gif
-neato -Tgif $images_dir/start -o $images_dir/a_start.gif
 for I in $images_dir/frame* 
 do
   echo $I
   neato -Tgif $I -o $I.gif
 done
-neato -Tgif $images_dir/end -o $images_dir/z_end.gif
 
 gthumb $images_dir &
