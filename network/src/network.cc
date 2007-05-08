@@ -19,6 +19,7 @@
 #include "lattice_generator.hh"
 #include "graph_structure.hh"
 #include "erdos_renyi_generator2.hh"
+#include "albert_barabasi_generator.hh"
 #include "visualize_graph.hh"
 #include "cluster_coeffs.hh"
 
@@ -57,10 +58,16 @@ struct swOptions {
   double rewiringProb;
 };
 
-struct sfOptions {
+struct plodOptions {
   double alpha;
   double beta;
 };
+
+struct abOptions 
+{
+  unsigned int new_edges;
+};
+
 
 struct readFileOptions {
   std::string fileName;
@@ -154,9 +161,9 @@ int main(int argc, char* argv[])
     ("vertices,N", po::value<unsigned int>(),
      "number of vertices")
     ("d-topology", po::value<std::string>(),
-     "disease network topology\n((tri-)lattice,random,random-regular,small-world,scale-free,complete,read,null)")
+     "disease network topology\n((tri-)lattice,random,random-regular,small-world,plod,albert-barabasi,complete,read,null)")
     ("i-topology", po::value<std::string>(),
-     "information network topology\n((tri-)lattice,random,random-regular,small-world,scale-free,complete,read,null)")
+     "information network topology\n((tri-)lattice,random,random-regular,small-world,plod,albert-barabasi,complete,read,null)")
     ("base,b", po::value<std::string>()->default_value
      (model.getVertexStates().begin()->getText()),
      "base state of individuals")
@@ -245,24 +252,39 @@ int main(int argc, char* argv[])
     sw_options.push_back(swo);
   }
 
-  // scale-free graph
-  std::vector<po::options_description*> sf_options;
+  // plod graph
+  std::vector<po::options_description*> plod_options;
   for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model.getEdgeTypes()[i].getText() << "-ScaleFree Options";
-    po::options_description* sfo =
+    s << model.getEdgeTypes()[i].getText() << "-Power-Law-Out-Degree Options";
+    po::options_description* plodo =
       new po::options_description(s.str().c_str());
     s.str("");
     s << model.getEdgeTypes()[i].getText() << "-alpha";
-    sfo->add_options()
+    plodo->add_options()
       (s.str().c_str(), po::value<double>(),
        "alpha (index of power law)");
     s.str("");
     s << model.getEdgeTypes()[i].getText() << "-beta";
-    sfo->add_options()
+    plodo->add_options()
       (s.str().c_str(), po::value<double>(),
        "beta (multiplicative factor of power law)");
-    sf_options.push_back(sfo);
+    plod_options.push_back(plodo);
+  }
+
+  // Albert-Barabasi graph
+  std::vector<po::options_description*> ab_options;
+  for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
+    std::stringstream s;
+    s << model.getEdgeTypes()[i].getText() << "-Albert-Barabasi Options";
+    po::options_description* abo =
+      new po::options_description(s.str().c_str());
+    s.str("");
+    s << model.getEdgeTypes()[i].getText() << "-newedges";
+    abo->add_options()
+      (s.str().c_str(), po::value<unsigned int>()->default_value(1),
+       "number of edges to add per vertex");
+    ab_options.push_back(abo);
   }
 
   std::vector<po::options_description*> readFile_options;
@@ -299,7 +321,8 @@ int main(int argc, char* argv[])
     all_options.add(*(rg_options[i]));
     all_options.add(*(rrg_options[i]));
     all_options.add(*(sw_options[i]));
-    all_options.add(*(sf_options[i]));
+    all_options.add(*(plod_options[i]));
+    all_options.add(*(ab_options[i]));
     all_options.add(*(readFile_options[i]));
   }
   po::variables_map vm;
@@ -622,13 +645,14 @@ int main(int argc, char* argv[])
       sw_iterator swi_end;
       
       boost::add_edge_structure(temp_graph, swi, swi_end, Edge(i));
-    } else if (topology == "scale-free") {
+      
+    } else if (topology == "plod") {
       
       /******************************************************************/
-      // read scale-free graph specific parameters
+      // read plod graph specific parameters
       /******************************************************************/
       
-      sfOptions opt;
+      plodOptions opt;
       
       s.str("");
       s << model.getEdgeTypes()[i].getText() << "-alpha";
@@ -637,7 +661,7 @@ int main(int argc, char* argv[])
       } else {
         std::cerr << "ERROR: no alpha specified" << std::endl;
         std::cerr << std::endl;
-        std::cerr << *sf_options[i] << std::endl;
+        std::cerr << *plod_options[i] << std::endl;
         return 1;
       }
       s.str("");
@@ -647,21 +671,53 @@ int main(int argc, char* argv[])
       } else {
         std::cerr << "ERROR: no beta specified" << std::endl;
         std::cerr << std::endl;
-        std::cerr << *sf_options[i] << std::endl;
+        std::cerr << *plod_options[i] << std::endl;
         return 1;
       }
       
       /******************************************************************/
-      // generate scale-free graph with desired properties
+      // generate plod graph with desired properties
       /******************************************************************/
       typedef boost::plod_iterator<boost::mt19937, dualtype_graph>
-        sf_iterator;
+        plod_iterator;
       
-      sf_iterator sfi(gen,N,opt.alpha,opt.beta);
-      sf_iterator sfi_end;
+      plod_iterator plodi(gen,N,opt.alpha,opt.beta);
+      plod_iterator plodi_end;
       
-      boost::add_edge_structure(temp_graph, sfi, sfi_end, Edge(i));
+      boost::add_edge_structure(temp_graph, plodi, plodi_end, Edge(i));
+
+    } else if (topology == "albert-barabasi") {
+      
+      /******************************************************************/
+      // read Albert-Barabasi graph specific parameters
+      /******************************************************************/
+      
+      abOptions opt;
+      
+      s.str("");
+      s << model.getEdgeTypes()[i].getText() << "-newedges";
+      if (vm.count(s.str())) {
+        opt.new_edges = vm[s.str()].as<unsigned int>();
+      } else {
+        std::cerr << "ERROR: no number of edges to add per vertex specified" << std::endl;
+        std::cerr << std::endl;
+        std::cerr << *ab_options[i] << std::endl;
+        return 1;
+      }
+      
+      /******************************************************************/
+      // generate Albert-Barabasi with desired properties
+      /******************************************************************/
+      typedef boost::albert_barabasi_iterator<boost::mt19937, dualtype_graph>
+        albert_barabasi_iterator;
+      
+      albert_barabasi_iterator ab(gen,N,opt.new_edges);
+      albert_barabasi_iterator ab_end;
+      
+      boost::add_edge_structure(temp_graph, ab, ab_end, Edge(i));
+
     } else if (topology == "complete") {
+
       boost::graph_traits<dualtype_graph>::vertex_iterator vi, vi_end;
       for (tie(vi, vi_end) = vertices(graph); vi != vi_end; vi++) {
         boost::graph_traits<dualtype_graph>::vertex_iterator vi2;
@@ -669,7 +725,9 @@ int main(int argc, char* argv[])
           add_edge(*vi, *vi2, Edge(i), temp_graph);
         }
       }
+      
     } else if (topology == "copy") {
+      
       boost::graph_traits<dualtype_graph>::edge_iterator ei, ei_end;
       for (tie(ei, ei_end) = edges(graph); ei != ei_end; ei++) {
         if (graph[*ei].type == 0) {
@@ -677,6 +735,7 @@ int main(int argc, char* argv[])
                    Edge(i), temp_graph);
         }
       }
+      
     } else if (topology == "read") {
 
       readFileOptions opt;
@@ -721,7 +780,7 @@ int main(int argc, char* argv[])
                   << readGraph << std::endl;
         return 1;
       }
-    } else {
+    } else if (topology != "null") {
       std::cerr << "ERROR: unknown " << s.str() << ": " << topology
                 << std::endl;
       std::cerr << std::endl;
