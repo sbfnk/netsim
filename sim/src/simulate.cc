@@ -1010,7 +1010,7 @@ int main(int argc, char* argv[])
   unsigned int steps = 0;
   unsigned int outputNum = 1;
 
-  while (sim->updateState() && sim->getTime()<stop) {
+  while (sim->getTime()<stop && sim->updateState()) {
     
     if (verbose && steps%100 == 0) {
       std::cout << "time elapsed: " << sim->getTime() << std::endl;
