@@ -104,12 +104,13 @@ sim_command="$sim_base --write-file $output_dir/$file_id""100"
 echo -ne .
 $sim_command
 mv "$output_dir/$file_id""100.graph" "$output_dir/$file_id"".graph"
+mv "$output_dir/$file_id""100.degree" "$output_dir/$file_id"".degree"
 
 # loop over num_sims
 if [ $num_sims -gt 1 ]; then
     for ((i=101;i<(100+$num_sims);i++)); do
 	echo -ne .
-	sim_command="$sim_base --write-file $output_dir/$file_id$i --no-graph"
+	sim_command="$sim_base --write-file $output_dir/$file_id$i --no-graph --no-degree-dist"
         $sim_command
     done
 fi

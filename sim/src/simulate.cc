@@ -137,8 +137,6 @@ int main(int argc, char* argv[])
      "set ouput dir for graphs")
     ("write-file,f", po::value<std::string>(),
      "output data to file (.sim.dat will be appended)")
-    ("degree-dist",
-     "write degree distribution to baseName.degree file")
     ("generate-ode-ic-file", po::value<std::string>(),
      "generate init file for ode solver and stop")
     ("cluster-coeff",
@@ -154,6 +152,8 @@ int main(int argc, char* argv[])
   hidden_option.add_options()
     ("no-graph",
      "do not produce graphviz output no matter what the other settings")
+    ("no-degree-dist",
+     "do not write degree distribution to baseName.degree file")
     ;
   
   po::options_description graph_options;
@@ -808,19 +808,6 @@ int main(int argc, char* argv[])
   if (verbose) std::cout << "No. of parallel edges is: " << parallel_edges
                          << std::endl;
 
-  // calculate degree distribution
-  if (vm.count("degree-dist")) {      
-    std::string degreeFileName = (vm["write-file"].as<std::string>())+".degree";
-    bool status = write_degree(graph, model, degreeFileName);
-    if (verbose)
-      if (!status) {
-        std::cout << "degree file " << degreeFileName << " was written ok\n";
-      } else {
-        std::cout << "ERROR: something wrong in writing degree file "
-                  << degreeFileName << std::endl;
-      }
-  }
-
   // create sparse adjacency matrices and clustering coefficients
   if (vm.count("cluster-coeff")) {
     std::string baseFileName = (vm["write-file"].as<std::string>());
@@ -979,6 +966,19 @@ int main(int argc, char* argv[])
 
       // write graph
       write_graph(graph, model, outputGraphName, -1);
+    }
+
+    // calculate degree distribution
+    if (!vm.count("no-degree-dist")) {      
+      std::string degreeFileName = (vm["write-file"].as<std::string>())+".degree";
+      bool status = write_degree(graph, model, degreeFileName);
+      if (verbose)
+        if (!status) {
+          std::cout << "degree file " << degreeFileName << " was written ok\n";
+        } else {
+          std::cout << "ERROR: something wrong in writing degree file "
+                    << degreeFileName << std::endl;
+        }
     }
   }   
 
