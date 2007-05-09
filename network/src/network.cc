@@ -83,7 +83,7 @@ std::string generateFileName(std::string nameBase, unsigned int id)
 
 int main(int argc, char* argv[])
 {
-  InfoSIRS model;
+  Model* model = new InfoSIRS();
   
   std::vector <unsigned int> init;
   
@@ -165,32 +165,32 @@ int main(int argc, char* argv[])
     ("i-topology", po::value<std::string>(),
      "information network topology\n((tri-)lattice,random,random-regular,small-world,plod,albert-barabasi,complete,read,null)")
     ("base,b", po::value<std::string>()->default_value
-     (model.getVertexStates().begin()->getText()),
+     (model->getVertexStates().begin()->getText()),
      "base state of individuals");
 
-  for (unsigned int i = 0; i < model.getVertexStates().size(); i++) {
+  for (unsigned int i = 0; i < model->getVertexStates().size(); i++) {
     graph_options.add_options()
-      (model.getVertexStates()[i].getText().c_str(),
+      (model->getVertexStates()[i].getText().c_str(),
        po::value<unsigned int>()->default_value(0),
-       ("number of randomly chosen " + model.getVertexStates()[i].getText()).c_str());
+       ("number of randomly chosen " + model->getVertexStates()[i].getText()).c_str());
   }
   
   // generate topology-specifice options for each type of graph
   
   // lattice
   std::vector<po::options_description*> lattice_options;
-  for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
+  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model.getEdgeTypes()[i].getText() << "-Lattice Options";
+    s << model->getEdgeTypes()[i].getText() << "-Lattice Options";
     po::options_description* lo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << model.getEdgeTypes()[i].getText() << "-dim";
+    s << model->getEdgeTypes()[i].getText() << "-dim";
     lo->add_options()
       (s.str().c_str(),  po::value<unsigned int>()->default_value(2),
        "number of dimensions");
     s.str("");
-    s << model.getEdgeTypes()[i].getText() << "-pb";
+    s << model->getEdgeTypes()[i].getText() << "-pb";
     lo->add_options()
       (s.str().c_str(), "periodic boundary conditions");
     lattice_options.push_back(lo);
@@ -198,13 +198,13 @@ int main(int argc, char* argv[])
 
   // random graph
   std::vector<po::options_description*> rg_options;
-  for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
+  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model.getEdgeTypes()[i].getText() << "-RandomGraph Options";
+    s << model->getEdgeTypes()[i].getText() << "-RandomGraph Options";
     po::options_description* ro
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << model.getEdgeTypes()[i].getText() << "-edges";
+    s << model->getEdgeTypes()[i].getText() << "-edges";
     ro->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "number of edges");
@@ -213,13 +213,13 @@ int main(int argc, char* argv[])
 
   // random regular graph
   std::vector<po::options_description*> rrg_options;
-  for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
+  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model.getEdgeTypes()[i].getText() << "-RandomRegularGraph Options";
+    s << model->getEdgeTypes()[i].getText() << "-RandomRegularGraph Options";
     po::options_description* rrgo
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << model.getEdgeTypes()[i].getText() << "-degree";
+    s << model->getEdgeTypes()[i].getText() << "-degree";
     rrgo->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "degree of the graph G(n,d)");
@@ -228,18 +228,18 @@ int main(int argc, char* argv[])
   
   // small-world graph
   std::vector<po::options_description*> sw_options;
-  for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
+  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model.getEdgeTypes()[i].getText() << "-SmallWorld Options";
+    s << model->getEdgeTypes()[i].getText() << "-SmallWorld Options";
     po::options_description* swo
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << model.getEdgeTypes()[i].getText() << "-neighbours";
+    s << model->getEdgeTypes()[i].getText() << "-neighbours";
     swo->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "number of neighbours of each node");
     s.str("");
-    s << model.getEdgeTypes()[i].getText() << "-rewiring-prob";
+    s << model->getEdgeTypes()[i].getText() << "-rewiring-prob";
     swo->add_options()
       (s.str().c_str(), po::value<double>(),
        "rewiring probability");
@@ -248,18 +248,18 @@ int main(int argc, char* argv[])
 
   // plod graph
   std::vector<po::options_description*> plod_options;
-  for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
+  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model.getEdgeTypes()[i].getText() << "-Power-Law-Out-Degree Options";
+    s << model->getEdgeTypes()[i].getText() << "-Power-Law-Out-Degree Options";
     po::options_description* plodo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << model.getEdgeTypes()[i].getText() << "-alpha";
+    s << model->getEdgeTypes()[i].getText() << "-alpha";
     plodo->add_options()
       (s.str().c_str(), po::value<double>(),
        "alpha (index of power law)");
     s.str("");
-    s << model.getEdgeTypes()[i].getText() << "-beta";
+    s << model->getEdgeTypes()[i].getText() << "-beta";
     plodo->add_options()
       (s.str().c_str(), po::value<double>(),
        "beta (multiplicative factor of power law)");
@@ -268,13 +268,13 @@ int main(int argc, char* argv[])
 
   // Albert-Barabasi graph
   std::vector<po::options_description*> ab_options;
-  for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
+  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model.getEdgeTypes()[i].getText() << "-Albert-Barabasi Options";
+    s << model->getEdgeTypes()[i].getText() << "-Albert-Barabasi Options";
     po::options_description* abo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << model.getEdgeTypes()[i].getText() << "-newedges";
+    s << model->getEdgeTypes()[i].getText() << "-newedges";
     abo->add_options()
       (s.str().c_str(), po::value<unsigned int>()->default_value(1),
        "number of edges to add per vertex");
@@ -282,25 +282,25 @@ int main(int argc, char* argv[])
   }
 
   std::vector<po::options_description*> readFile_options;
-  for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
+  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model.getEdgeTypes()[i].getText() << "-Read Options";
+    s << model->getEdgeTypes()[i].getText() << "-Read Options";
     po::options_description* rfo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << model.getEdgeTypes()[i].getText() << "-file";
+    s << model->getEdgeTypes()[i].getText() << "-file";
     rfo->add_options()
       (s.str().c_str(), po::value<std::string>(),
        "name of graph file to read");
     s.str("");
-    s << model.getEdgeTypes()[i].getText() << "-getstates";
+    s << model->getEdgeTypes()[i].getText() << "-getstates";
     rfo->add_options()
       (s.str().c_str(), 
        "get vertex states as well (and do not randomize initial conditions)");
     readFile_options.push_back(rfo);
   }
 
-  po::options_description model_options = model.getOptions();
+  po::options_description model_options = model->getOptions();
 
   // read options from command line
   po::options_description visible_options;
@@ -310,7 +310,7 @@ int main(int argc, char* argv[])
   po::options_description all_options;
   all_options.add(visible_options).add(hidden_option);
   
-  for (unsigned int i = 0; i < model.getEdgeTypes().size(); i++) {
+  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
     all_options.add(*(lattice_options[i]));
     all_options.add(*(rg_options[i]));
     all_options.add(*(rrg_options[i]));
@@ -370,7 +370,7 @@ int main(int argc, char* argv[])
   // initialize model
   /******************************************************************/
   
-  model.Init(vm);
+  model->Init(vm);
   
   
   /******************************************************************/
@@ -390,10 +390,10 @@ int main(int argc, char* argv[])
     std::string simType = vm["sim"].as<std::string>();
     if (simType == "Gillespie") {
       sim = new GillespieSimulator<boost::mt19937, dualtype_graph>
-        (gen, graph, model);
+        (gen, graph, *model);
 //     } else if (simType == "Chris") {
 //       sim = new ChrisSimulator<boost::mt19937, dualtype_graph>
-//         (gen, graph, model);
+//         (gen, graph, *model);
     } else {
       std::cerr << "Error: unknown simulator: " << simType << std::endl;
       return 1;
@@ -431,13 +431,13 @@ int main(int argc, char* argv[])
   // generate edges
   /******************************************************************/
   
-  for (unsigned int i = 0; i < model.getEdgeTypes().size() ; i++) {
+  for (unsigned int i = 0; i < model->getEdgeTypes().size() ; i++) {
     
     onetype_graph temp_graph;
     boost::add_vertices(temp_graph, N);
     
     std::stringstream s;
-    s << model.getEdgeTypes()[i].getText() << "-topology";
+    s << model->getEdgeTypes()[i].getText() << "-topology";
     if (vm.count(s.str())) {
       topology = vm[s.str()].as<std::string>();
     } else {
@@ -455,7 +455,7 @@ int main(int argc, char* argv[])
       
       latticeOptions opt;
       s.str("");
-      s << model.getEdgeTypes()[i].getText() << "-dim";
+      s << model->getEdgeTypes()[i].getText() << "-dim";
       opt.dimensions = vm[s.str()].as<unsigned int>();
       
       opt.sideLength = static_cast<int>(pow(N, 1.0/opt.dimensions));
@@ -465,7 +465,7 @@ int main(int argc, char* argv[])
         return 1;
       }
       s.str("");
-      s << model.getEdgeTypes()[i].getText() << "-pb";
+      s << model->getEdgeTypes()[i].getText() << "-pb";
       if (vm.count(s.str())) {
         opt.periodicBoundary = true;
       } else {
@@ -498,7 +498,7 @@ int main(int argc, char* argv[])
         return 1;
       }
       
-      s << model.getEdgeTypes()[i].getText() << "-pb";
+      s << model->getEdgeTypes()[i].getText() << "-pb";
       if (vm.count(s.str())) {
         opt.periodicBoundary = true;
       } else {
@@ -524,7 +524,7 @@ int main(int argc, char* argv[])
       rgOptions opt;
       
       s.str("");
-      s << model.getEdgeTypes()[i].getText() << "-edges";
+      s << model->getEdgeTypes()[i].getText() << "-edges";
       if (vm.count(s.str())) {
         opt.edges = vm[s.str()].as<unsigned int>();
       } else {
@@ -566,7 +566,7 @@ int main(int argc, char* argv[])
       rrgOptions opt;
       
       s.str("");
-      s << model.getEdgeTypes()[i].getText() << "-degree";
+      s << model->getEdgeTypes()[i].getText() << "-degree";
       if (vm.count(s.str())) {
         opt.d = vm[s.str()].as<unsigned int>();
       } else {
@@ -609,7 +609,7 @@ int main(int argc, char* argv[])
       swOptions opt;
       
       s.str("");
-      s << model.getEdgeTypes()[i].getText() << "-neighbours";
+      s << model->getEdgeTypes()[i].getText() << "-neighbours";
       if (vm.count(s.str())) {
         opt.neighbours = vm[s.str()].as<unsigned int>();
       } else {
@@ -619,7 +619,7 @@ int main(int argc, char* argv[])
         return 1;
       }
       s.str("");
-      s << model.getEdgeTypes()[i].getText() << "-rewiring-prob";
+      s << model->getEdgeTypes()[i].getText() << "-rewiring-prob";
       if (vm.count(s.str())) {
         opt.rewiringProb = vm[s.str()].as<double>();
       } else {
@@ -649,7 +649,7 @@ int main(int argc, char* argv[])
       plodOptions opt;
       
       s.str("");
-      s << model.getEdgeTypes()[i].getText() << "-alpha";
+      s << model->getEdgeTypes()[i].getText() << "-alpha";
       if (vm.count(s.str())) {
         opt.alpha = vm[s.str()].as<double>();
       } else {
@@ -659,7 +659,7 @@ int main(int argc, char* argv[])
         return 1;
       }
       s.str("");
-      s << model.getEdgeTypes()[i].getText() << "-beta";
+      s << model->getEdgeTypes()[i].getText() << "-beta";
       if (vm.count(s.str())) {
         opt.beta = vm[s.str()].as<double>();
       } else {
@@ -689,7 +689,7 @@ int main(int argc, char* argv[])
       abOptions opt;
       
       s.str("");
-      s << model.getEdgeTypes()[i].getText() << "-newedges";
+      s << model->getEdgeTypes()[i].getText() << "-newedges";
       if (vm.count(s.str())) {
         opt.new_edges = vm[s.str()].as<unsigned int>();
       } else {
@@ -735,7 +735,7 @@ int main(int argc, char* argv[])
       readFileOptions opt;
 
       s.str("");
-      s << model.getEdgeTypes()[i].getText() << "-file";
+      s << model->getEdgeTypes()[i].getText() << "-file";
       if (vm.count(s.str())) {
         if (readGraph.size() == 0) {
           readGraph = vm[s.str()].as<std::string>();
@@ -753,7 +753,7 @@ int main(int argc, char* argv[])
       }
 
       s.str("");
-      s << model.getEdgeTypes()[i].getText() << "-getstates";
+      s << model->getEdgeTypes()[i].getText() << "-getstates";
       if (vm.count(s.str()) && generateIC == true) {
         opt.getStates = true;
         generateIC = false;
@@ -762,7 +762,7 @@ int main(int argc, char* argv[])
       }
       
       // reading graph structure and initial state from file
-      if (read_graph(graph, model, opt.fileName, i, opt.getStates, verbose) == 0) {
+      if (read_graph(graph, *model, opt.fileName, i, opt.getStates, verbose) == 0) {
         
         // update number of vertices
         N = num_vertices(graph);
@@ -832,9 +832,9 @@ int main(int argc, char* argv[])
       
     // how many random vertices of each state are to be initialized
     // over the background of the base state
-    for (unsigned int i = 0; i < model.getVertexStates().size(); i++) {
+    for (unsigned int i = 0; i < model->getVertexStates().size(); i++) {
       std::stringstream ss;
-      ss << model.getVertexStates()[i].getText();
+      ss << model->getVertexStates()[i].getText();
       std::string s(ss.str());
       unsigned int random = 0;
       if (vm.count(s.c_str())) {
@@ -848,13 +848,13 @@ int main(int argc, char* argv[])
     unsigned int baseState = 0;
       
     // assign baseState
-    while (baseState < model.getVertexStates().size() &&
-           (model.getVertexStates()[baseState].getText() != baseString)) {
+    while (baseState < model->getVertexStates().size() &&
+           (model->getVertexStates()[baseState].getText() != baseString)) {
       baseState++;
     }
       
     // set random vertices of baseState to zero
-    if (baseState < model.getVertexStates().size()) {
+    if (baseState < model->getVertexStates().size()) {
       init[baseState] = 0;
     } else {
       std::cerr << "ERROR: no unknown base state: " << baseString << std::endl;
@@ -885,7 +885,7 @@ int main(int argc, char* argv[])
       
     // inserting init[i] vertices of type i
     boost::graph_traits<dualtype_graph>::vertex_descriptor v;
-    for (unsigned int i=0; i<model.getVertexStates().size(); i++) {
+    for (unsigned int i=0; i<model->getVertexStates().size(); i++) {
       for (unsigned int j=0; j<init[i]; j++) {
         bool inserted = false;
         while (!inserted) {
@@ -920,7 +920,7 @@ int main(int argc, char* argv[])
     }
       
     // write ode ic file
-    bool status = write_ode_ic_file(graph, model, odeIcFile);
+    bool status = write_ode_ic_file(graph, *model, odeIcFile);
       
     // print message
     if (verbose) 
@@ -959,13 +959,13 @@ int main(int argc, char* argv[])
         (vm["write-file"].as<std::string>())+".graph";
 
       // write graph
-      write_graph(graph, model, outputGraphName, -1);
+      write_graph(graph, *model, outputGraphName, -1);
     }
 
     // calculate degree distribution
     if (!vm.count("no-degree-dist")) {      
       std::string degreeFileName = (vm["write-file"].as<std::string>())+".degree";
-      bool status = write_degree(graph, model, degreeFileName);
+      bool status = write_degree(graph, *model, degreeFileName);
       if (verbose)
         if (!status) {
           std::cout << "degree file " << degreeFileName << " was written ok\n";
@@ -987,14 +987,14 @@ int main(int argc, char* argv[])
 
   // GraphViz output
   if (outputGraphviz >= 0)
-    write_graph(graph, model, (graphDir + "/frame000"), -1);
+    write_graph(graph, *model, (graphDir + "/frame000"), -1);
 
   // prints data to outputFile
   std::string lastLine = "";
   if (outputFile) {
-    lastLine = write_graph_data(graph, model, sim->getTime(), *outputFile);
+    lastLine = write_graph_data(graph, *model, sim->getTime(), *outputFile);
   }
-  if (verbose) print_graph_statistics(graph, model);
+  if (verbose) print_graph_statistics(graph, *model);
   
   /******************************************************************/
   // run simulation
@@ -1011,14 +1011,14 @@ int main(int argc, char* argv[])
     }
 
     if ((outputGraphviz > 0) && (steps % outputGraphviz == 0)) {
-      write_graph(graph, model,
+      write_graph(graph, *model,
                   generateFileName((graphDir +"/frame"),outputNum),
                   sim->getTime());
       ++outputNum;
     }
     if (outputFile && sim->getTime() > nextDataStep) {
       lastLine = 
-        write_graph_data(graph, model, sim->getTime(), *outputFile);
+        write_graph_data(graph, *model, sim->getTime(), *outputFile);
       if (outputData > 0) {
         do {
           nextDataStep += outputData;
@@ -1030,7 +1030,7 @@ int main(int argc, char* argv[])
    
   if (verbose) std::cout << "Final status:" << std::endl;
   if (stop > 0 && outputGraphviz >= 0) {
-      write_graph(graph, model,
+      write_graph(graph, *model,
                   generateFileName((graphDir +"/frame"),outputNum),
                   sim->getTime());
   }
@@ -1041,7 +1041,7 @@ int main(int argc, char* argv[])
     delete outputFile;
   }
   
-  if (verbose) print_graph_statistics(graph, model);
+  if (verbose) print_graph_statistics(graph, *model);
 
   // free memory
   delete sim;
