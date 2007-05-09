@@ -35,6 +35,11 @@ namespace boost {
         source(m), target(0), current(source, target)
          
     {
+      if (n<1) {
+        // directly become past_the_end iterator
+        source = n;
+      }
+      
       targets.insert(target);
     }
 
@@ -91,7 +96,8 @@ namespace boost {
       if (!gen && rhs.gen) {
         return rhs == *this;
       } else if (gen && !rhs.gen) {
-        return source == n;      } else if (!gen && !rhs.gen) {
+        return source == n;
+      } else if (!gen && !rhs.gen) {
         return true;
       }
       return source == rhs.source && target == rhs.target;
