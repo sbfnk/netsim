@@ -166,20 +166,14 @@ int main(int argc, char* argv[])
      "information network topology\n((tri-)lattice,random,random-regular,small-world,plod,albert-barabasi,complete,read,null)")
     ("base,b", po::value<std::string>()->default_value
      (model.getVertexStates().begin()->getText()),
-     "base state of individuals")
-    ("S+", po::value<unsigned int>()->default_value(0),
-     "number of randomly chosen informed susceptibles")
-    ("S-", po::value<unsigned int>()->default_value(0),
-     "number of randomly chosen uninformed susceptibles")
-    ("I+", po::value<unsigned int>()->default_value(0),
-     "number of randomly chosen informed infected")
-    ("I-", po::value<unsigned int>()->default_value(0),
-     "number of randomly chosen uninformed infected")
-    ("R+", po::value<unsigned int>()->default_value(0),
-     "number of randomly chosen informed recovered")
-    ("R-", po::value<unsigned int>()->default_value(0),
-     "number of randomly chosen uninformed recovered")
-    ;
+     "base state of individuals");
+
+  for (unsigned int i = 0; i < model.getVertexStates().size(); i++) {
+    graph_options.add_options()
+      (model.getVertexStates()[i].getText().c_str(),
+       po::value<unsigned int>()->default_value(0),
+       ("number of randomly chosen " + model.getVertexStates()[i].getText()).c_str());
+  }
   
   // generate topology-specifice options for each type of graph
   
