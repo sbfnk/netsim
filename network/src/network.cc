@@ -784,7 +784,7 @@ int main(int argc, char* argv[])
       std::cerr << "ERROR: unknown " << s.str() << ": " << topology
                 << std::endl;
       std::cerr << std::endl;
-      std::cerr << main_options << std::endl;
+      std::cerr << command_line_options << graph_options << std::endl;
       return 1;
     }
     
@@ -795,7 +795,14 @@ int main(int argc, char* argv[])
                Edge(temp_graph[*ei].type), graph);
     }         
   }
-  
+
+  if (num_vertices(graph) == 0) {
+    std::cerr << "ERROR: no vertices" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << command_line_options << graph_options << std::endl;
+    return 1;
+  }
+    
   // mark parallel edges
   unsigned int parallel_edges = mark_parallel_edges(graph);
   if (verbose) std::cout << "No. of parallel edges is: " << parallel_edges

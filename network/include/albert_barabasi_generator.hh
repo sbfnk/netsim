@@ -32,9 +32,10 @@ namespace boost {
     albert_barabasi_iterator(RandomGenerator& gen, vertices_size_type n, 
                           edges_size_type m = 1)
       : gen(&gen), n(n), m(m), nodes(), targets(),
-        source(m), target(0), current(m,0)
+        source(m), target(0), current(source, target)
          
     {
+      targets.insert(target);
     }
 
     reference operator*() const { return current; }
@@ -72,7 +73,7 @@ namespace boost {
         } while (targets.insert(target).second == false);
 
       }
-      
+
       current.first = source;
       current.second = target;
       return *this;
@@ -90,8 +91,7 @@ namespace boost {
       if (!gen && rhs.gen) {
         return rhs == *this;
       } else if (gen && !rhs.gen) {
-        return source == n-1;
-      } else if (!gen && !rhs.gen) {
+        return source == n;      } else if (!gen && !rhs.gen) {
         return true;
       }
       return source == rhs.source && target == rhs.target;
@@ -106,7 +106,7 @@ namespace boost {
     unsigned int n;
     edges_size_type m;
     std::vector<vertices_size_type> nodes;
-    std::set<vertices_size_type> targets;
+    std::set<unsigned int> targets;
     vertices_size_type source;
     vertices_size_type target;
     value_type current;
