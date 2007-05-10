@@ -70,6 +70,7 @@ struct abOptions
 
 struct copyOptions {
   double rewireFraction;
+  double removeFraction;
 };
 
 struct readFileOptions {
@@ -299,6 +300,11 @@ int main(int argc, char* argv[])
     cpo->add_options()
       (s.str().c_str(), po::value<double>()->default_value(0.),
        "fraction of edges to rewire");
+    s.str("");
+    s << model->getEdgeTypes()[i].getText() << "-remove";
+    cpo->add_options()
+      (s.str().c_str(), po::value<double>()->default_value(0.),
+       "fraction of edges to remove");
     copy_options.push_back(cpo);
   }
 
@@ -712,62 +718,17 @@ int main(int argc, char* argv[])
       } else {
         opt.rewireFraction = 0.;
       }
-
-      boost::graph_traits<dualtype_graph>::edge_iterator ei, ei_end;
-      for (tie(ei, ei_end) = edges(graph); ei != ei_end; ei++) {
-        if (graph[*ei].type == 0) {
-          add_edge(source(*ei, temp_graph), target(*ei, temp_graph),
-                   Edge(i), temp_graph);
-        }
+      s.str("");
+      s << model->getEdgeTypes()[i].getText() << "-remove";
+      if (vm.count(s.str())) {
+        opt.removeFraction = vm[s.str()].as<double>();
+      } else {
+        opt.removeFraction = 0.;
       }
 
-      if (opt.rewireFraction > 0.) {
-        if (opt.rewireFraction < 1.) {
-          std::vector< std::vector<bool> >
-            seen_vertices(N, std::vector<bool>(N, false));
-          boost::uniform_01<boost::mt19937, double> uni_gen(gen);
-          unsigned int num_rewire =
-            static_cast<unsigned int>(opt.rewireFraction * num_edges(temp_graph));
-          do {
-            // select random edge for rewiring
-            unsigned int v = static_cast<unsigned int> (uni_gen() * N);
-            seen_vertices[v][v] = true;
-            // collect existing and non-existing edges
-            std::vector<unsigned int> existing;
-            std::vector<unsigned int> free;
-            
-            for (unsigned int u = 0; u < N; u++) {
-              if (!seen_vertices[u][v]) {
-                if (edge(v, u, temp_graph).second) {
-                  existing.push_back(u);
-                } else {
-                  free.push_back(u);
-                }
-              }
-            }
-            if (existing.size() > 0 && free.size() > 0) {
-              // choose random existing and free edges
-              unsigned int remove_edge =
-                static_cast<unsigned int>(uni_gen() * (existing.size() - 1));
-              unsigned int new_edge =
-                static_cast<unsigned int>(uni_gen() * (free.size() - 1));
-              seen_vertices[v][existing[remove_edge]] = true;
-              seen_vertices[existing[remove_edge]][v] = true;
-              seen_vertices[v][free[new_edge]] = true;
-              seen_vertices[free[new_edge]][v] = true;
-
-              // rewire edge
-              boost::remove_edge(v, existing[remove_edge], temp_graph);
-              boost::add_edge(v, free[new_edge], Edge(i), temp_graph);
-
-              --num_rewire;
-            }
-          } while (num_rewire > 0);
-        } else {
-          std::cerr << "ERROR: rewire fraction must be between 0 and 1" << std::endl;
-          std::cerr << "no rewiring performed" << std::endl;
-        }
-      }
+      boost::copy_graph<dualtype_graph, onetype_graph, boost::mt19937, Edge>
+        (graph, temp_graph, gen, Edge(i),
+         opt.rewireFraction, opt.removeFraction);
       
     } else if (topology == "read") {
 

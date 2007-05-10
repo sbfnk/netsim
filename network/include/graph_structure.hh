@@ -7,8 +7,11 @@
 #define GENERATE_GRAPH_HH
 
 #include <boost/graph/graph_traits.hpp>
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/random.hpp>
 #include <boost/random.hpp>
 #include <vector>
+#include <iostream>
 #include <sys/time.h>
 
 //----------------------------------------------------------
@@ -59,6 +62,107 @@ namespace boost {
     }
   }
 
+  //----------------------------------------------------------
+   
+  template <typename Graph1, typename Graph2, typename RandomGenerator,
+            typename EdgeType>
+  void copy_graph(Graph1& source_graph, Graph2& target_graph, RandomGenerator& r,
+                  const typename edge_property_type<Graph2>::type et =
+                  edge_property_type<Graph2>::type(),
+                  double rewireFraction = 0., double removeFraction = 0.)
+  {
+    typedef typename boost::graph_traits<Graph1>::edge_iterator
+      edge_iterator;
+
+    typedef typename boost::graph_traits<Graph2>::edge_descriptor
+      edge_descriptor;
+    typedef typename boost::graph_traits<Graph2>::vertex_descriptor
+      vertex_descriptor;
+
+    edge_iterator ei, ei_end;
+    for (tie(ei, ei_end) = edges(source_graph); ei != ei_end; ei++) {
+      if (source_graph[*ei].type == 0) {
+        add_edge(source(*ei, source_graph), target(*ei, source_graph),
+                 et, target_graph);
+        std::cout << "adding edge " << source(*ei, source_graph) << "--"
+                  << target(*ei, source_graph) << std::endl;
+      }
+    }
+
+    std::vector< std::vector<bool> >
+      seen_edges(num_vertices(target_graph),
+                    std::vector<bool>(num_vertices(target_graph), false));
+    
+    if (rewireFraction > 0.) {
+      if (rewireFraction < 1.) {
+        boost::uniform_01<boost::mt19937, double> uni_gen(r);
+        unsigned int num_rewire =
+          static_cast<unsigned int>(rewireFraction * num_edges(target_graph));
+        do {
+          // select random edge for rewiring
+          vertex_descriptor v = random_vertex(target_graph, r);
+          seen_edges[v][v] = true;
+          // collect existing and non-existing edges
+          std::vector<unsigned int> existing;
+          std::vector<unsigned int> free;
+            
+          for (unsigned int u = 0; u < num_vertices(target_graph); u++) {
+            if (!seen_edges[u][v]) {
+              if (edge(v, u, target_graph).second) {
+                existing.push_back(u);
+              } else {
+                free.push_back(u);
+              }
+            }
+          }
+          if (existing.size() > 0 && free.size() > 0) {
+            // choose random existing and free edges
+            unsigned int remove_edge =
+              static_cast<unsigned int>(uni_gen() * (existing.size() - 1));
+            unsigned int new_edge =
+              static_cast<unsigned int>(uni_gen() * (free.size() - 1));
+            seen_edges[v][existing[remove_edge]] = true;
+            seen_edges[existing[remove_edge]][v] = true;
+            seen_edges[v][free[new_edge]] = true;
+            seen_edges[free[new_edge]][v] = true;
+
+            // rewire edge
+
+            std::cout << "rewiring " << v << "--" << existing[remove_edge]
+                      << " to " << v << "--" << free[new_edge] << std::endl;
+            
+            boost::remove_edge(v, existing[remove_edge], target_graph);
+            boost::add_edge(v, free[new_edge], et, target_graph);
+
+            --num_rewire;
+          }
+        } while (num_rewire > 0);
+      } else {
+        std::cerr << "ERROR: rewire fraction must be between 0 and 1" << std::endl;
+        std::cerr << "no rewiring performed" << std::endl;
+      }
+    }
+    if (removeFraction > 0.) {
+      if (removeFraction < 1.) {
+        unsigned int num_remove =
+          static_cast<unsigned int>(removeFraction * num_edges(target_graph));
+        do {
+          // select random edge for removal
+          edge_descriptor e = random_edge(target_graph, r);
+
+          if (!seen_edges[source(e, target_graph)][target(e, target_graph)]) {
+            // remove edge
+            boost::remove_edge(e, target_graph);
+            --num_remove;
+          }
+        } while (num_remove > 0);
+      } else {
+        std::cerr << "ERROR: remove fraction must be between 0 and 1" << std::endl;
+        std::cerr << "no removing performed" << std::endl;
+      }
+    }
+  }
+  
   //----------------------------------------------------------
    
   template <typename Graph>
