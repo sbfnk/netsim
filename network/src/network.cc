@@ -175,29 +175,31 @@ int main(int argc, char* argv[])
      (model->getVertexStates().begin()->getText()),
      "base state of individuals");
 
-  for (unsigned int i = 0; i < model->getVertexStates().size(); i++) {
+  for (std::vector<Label>::const_iterator it =
+         model->getVertexStates().begin();
+       it != model->getVertexStates().end(); it++) {
     graph_options.add_options()
-      (model->getVertexStates()[i].getText().c_str(),
-       po::value<unsigned int>()->default_value(0),
-       ("number of randomly chosen " + model->getVertexStates()[i].getText()).c_str());
+      (it->getText().c_str(), po::value<unsigned int>()->default_value(0),
+       ("number of randomly chosen " + it->getText()).c_str());
   }
   
   // generate topology-specifice options for each type of graph
   
   // lattice
   std::vector<po::options_description*> lattice_options;
-  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
+  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
+       it != model->getEdgeTypes().end(); it++) {
     std::stringstream s;
-    s << model->getEdgeTypes()[i].getText() << "-Lattice options";
+    s << it->getText() << "-Lattice options";
     po::options_description* lo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << model->getEdgeTypes()[i].getText() << "-dim";
+    s << it->getText() << "-dim";
     lo->add_options()
       (s.str().c_str(),  po::value<unsigned int>()->default_value(2),
        "number of dimensions");
     s.str("");
-    s << model->getEdgeTypes()[i].getText() << "-pb";
+    s << it->getText() << "-pb";
     lo->add_options()
       (s.str().c_str(), "periodic boundary conditions");
     lattice_options.push_back(lo);
@@ -205,13 +207,14 @@ int main(int argc, char* argv[])
 
   // random graph
   std::vector<po::options_description*> rg_options;
-  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
+  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
+       it != model->getEdgeTypes().end(); it++) {
     std::stringstream s;
-    s << model->getEdgeTypes()[i].getText() << "-RandomGraph options";
+    s << it->getText() << "-RandomGraph options";
     po::options_description* ro
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << model->getEdgeTypes()[i].getText() << "-edges";
+    s << it->getText() << "-edges";
     ro->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "number of edges");
@@ -220,13 +223,14 @@ int main(int argc, char* argv[])
 
   // random regular graph
   std::vector<po::options_description*> rrg_options;
-  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
+  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
+       it != model->getEdgeTypes().end(); it++) {
     std::stringstream s;
-    s << model->getEdgeTypes()[i].getText() << "-RandomRegularGraph options";
+    s << it->getText() << "-RandomRegularGraph options";
     po::options_description* rrgo
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << model->getEdgeTypes()[i].getText() << "-degree";
+    s << it->getText() << "-degree";
     rrgo->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "degree of the graph G(n,d)");
@@ -235,18 +239,19 @@ int main(int argc, char* argv[])
   
   // small-world graph
   std::vector<po::options_description*> sw_options;
-  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
+  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
+       it != model->getEdgeTypes().end(); it++) {
     std::stringstream s;
-    s << model->getEdgeTypes()[i].getText() << "-SmallWorld options";
+    s << it->getText() << "-SmallWorld options";
     po::options_description* swo
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << model->getEdgeTypes()[i].getText() << "-neighbours";
+    s << it->getText() << "-neighbours";
     swo->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "number of neighbours of each node");
     s.str("");
-    s << model->getEdgeTypes()[i].getText() << "-rewiring-prob";
+    s << it->getText() << "-rewiring-prob";
     swo->add_options()
       (s.str().c_str(), po::value<double>(),
        "rewiring probability");
@@ -255,18 +260,19 @@ int main(int argc, char* argv[])
 
   // plod graph
   std::vector<po::options_description*> plod_options;
-  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
+  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
+       it != model->getEdgeTypes().end(); it++) {
     std::stringstream s;
-    s << model->getEdgeTypes()[i].getText() << "-Power-Law-Out-Degree options";
+    s << it->getText() << "-Power-Law-Out-Degree options";
     po::options_description* plodo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << model->getEdgeTypes()[i].getText() << "-alpha";
+    s << it->getText() << "-alpha";
     plodo->add_options()
       (s.str().c_str(), po::value<double>(),
        "alpha (index of power law)");
     s.str("");
-    s << model->getEdgeTypes()[i].getText() << "-beta";
+    s << it->getText() << "-beta";
     plodo->add_options()
       (s.str().c_str(), po::value<double>(),
        "beta (multiplicative factor of power law)");
@@ -275,13 +281,14 @@ int main(int argc, char* argv[])
 
   // Albert-Barabasi graph
   std::vector<po::options_description*> ab_options;
-  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
+  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
+       it != model->getEdgeTypes().end(); it++) {
     std::stringstream s;
-    s << model->getEdgeTypes()[i].getText() << "-Albert-Barabasi options";
+    s << it->getText() << "-Albert-Barabasi options";
     po::options_description* abo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << model->getEdgeTypes()[i].getText() << "-newedges";
+    s << it->getText() << "-newedges";
     abo->add_options()
       (s.str().c_str(), po::value<unsigned int>()->default_value(1),
        "number of edges to add per vertex");
@@ -290,18 +297,19 @@ int main(int argc, char* argv[])
 
   // copy graph
   std::vector<po::options_description*> copy_options;
-  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
+  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
+       it != model->getEdgeTypes().end(); it++) {
     std::stringstream s;
-    s << model->getEdgeTypes()[i].getText() << "-copy options";
+    s << it->getText() << "-copy options";
     po::options_description* cpo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << model->getEdgeTypes()[i].getText() << "-rewire";
+    s << it->getText() << "-rewire";
     cpo->add_options()
       (s.str().c_str(), po::value<double>()->default_value(0.),
        "fraction of edges to rewire");
     s.str("");
-    s << model->getEdgeTypes()[i].getText() << "-remove";
+    s << it->getText() << "-remove";
     cpo->add_options()
       (s.str().c_str(), po::value<double>()->default_value(0.),
        "fraction of edges to remove");
@@ -310,18 +318,19 @@ int main(int argc, char* argv[])
 
   // read graph
   std::vector<po::options_description*> readFile_options;
-  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
+  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
+       it != model->getEdgeTypes().end(); it++) {
     std::stringstream s;
-    s << model->getEdgeTypes()[i].getText() << "-Read options";
+    s << it->getText() << "-Read options";
     po::options_description* rfo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << model->getEdgeTypes()[i].getText() << "-file";
+    s << it->getText() << "-file";
     rfo->add_options()
       (s.str().c_str(), po::value<std::string>(),
        "name of graph file to read");
     s.str("");
-    s << model->getEdgeTypes()[i].getText() << "-getstates";
+    s << it->getText() << "-getstates";
     rfo->add_options()
       (s.str().c_str(), 
        "get vertex states as well (and do not randomize initial conditions)");
@@ -338,15 +347,16 @@ int main(int argc, char* argv[])
   po::options_description all_options;
   all_options.add(visible_options).add(hidden_options);
   
-  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
-    all_options.add(*(lattice_options[i]));
-    all_options.add(*(rg_options[i]));
-    all_options.add(*(rrg_options[i]));
-    all_options.add(*(sw_options[i]));
-    all_options.add(*(plod_options[i]));
-    all_options.add(*(ab_options[i]));
-    all_options.add(*(copy_options[i]));
-    all_options.add(*(readFile_options[i]));
+  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
+       it != model->getEdgeTypes().end(); it++) {
+    all_options.add(*(lattice_options[it->getId()]));
+    all_options.add(*(rg_options[it->getId()]));
+    all_options.add(*(rrg_options[it->getId()]));
+    all_options.add(*(sw_options[it->getId()]));
+    all_options.add(*(plod_options[it->getId()]));
+    all_options.add(*(ab_options[it->getId()]));
+    all_options.add(*(copy_options[it->getId()]));
+    all_options.add(*(readFile_options[it->getId()]));
   }
   po::variables_map vm;
   po::store(po::command_line_parser(argc, argv).options(all_options).
@@ -420,14 +430,15 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // generate edges
   /******************************************************************/
-  
-  for (unsigned int i = 0; i < model->getEdgeTypes().size() ; i++) {
+
+  std::vector<Label> edgeTypes = model->getEdgeTypes();
+  for (unsigned int i = 0; i < edgeTypes.size(); i++) {
     
     onetype_graph temp_graph;
     boost::add_vertices(temp_graph, N);
     
     std::stringstream s;
-    s << model->getEdgeTypes()[i].getText() << "-topology";
+    s << edgeTypes[i].getText() << "-topology";
     if (vm.count(s.str())) {
       topology = vm[s.str()].as<std::string>();
     } else {
@@ -435,7 +446,7 @@ int main(int argc, char* argv[])
       std::cerr << command_line_options << graph_options << std::endl;
       return 1;
     }
-    
+
     if (topology == "lattice") {
       
       /******************************************************************/
@@ -444,7 +455,7 @@ int main(int argc, char* argv[])
       
       latticeOptions opt;
       s.str("");
-      s << model->getEdgeTypes()[i].getText() << "-dim";
+      s << edgeTypes[i].getText() << "-dim";
       opt.dimensions = vm[s.str()].as<unsigned int>();
       
       opt.sideLength = static_cast<int>(pow(N, 1.0/opt.dimensions));
@@ -454,7 +465,7 @@ int main(int argc, char* argv[])
         return 1;
       }
       s.str("");
-      s << model->getEdgeTypes()[i].getText() << "-pb";
+      s << edgeTypes[i].getText() << "-pb";
       if (vm.count(s.str())) {
         opt.periodicBoundary = true;
       } else {
@@ -469,7 +480,7 @@ int main(int argc, char* argv[])
       lattice_iterator li(opt.sideLength,opt.dimensions,opt.periodicBoundary);
       lattice_iterator li_end;
       
-      boost::add_edge_structure(temp_graph, li, li_end, Edge(i));
+      boost::add_edge_structure(temp_graph, li, li_end, Edge(edgeTypes[i].getId()));
       
     } else if (topology == "tri-lattice") {
       
@@ -487,7 +498,7 @@ int main(int argc, char* argv[])
         return 1;
       }
       
-      s << model->getEdgeTypes()[i].getText() << "-pb";
+      s << edgeTypes[i].getText() << "-pb";
       if (vm.count(s.str())) {
         opt.periodicBoundary = true;
       } else {
@@ -502,7 +513,7 @@ int main(int argc, char* argv[])
       tri_lattice_iterator tli(opt.sideLength,opt.periodicBoundary);
       tri_lattice_iterator tli_end;
       
-      boost::add_edge_structure(temp_graph, tli, tli_end, Edge(i));
+      boost::add_edge_structure(temp_graph, tli, tli_end, Edge(edgeTypes[i].getId()));
       
     } else if (topology == "random") {
       
@@ -513,12 +524,12 @@ int main(int argc, char* argv[])
       rgOptions opt;
       
       s.str("");
-      s << model->getEdgeTypes()[i].getText() << "-edges";
+      s << edgeTypes[i].getText() << "-edges";
       if (vm.count(s.str())) {
         opt.edges = vm[s.str()].as<unsigned int>();
       } else {
         std::cerr << "ERROR: no number of edges specified" << std::endl;
-        std::cerr << *rg_options[i] << std::endl;
+        std::cerr << *rg_options[edgeTypes[i].getId()] << std::endl;
         return 1;
       }
       
@@ -543,7 +554,7 @@ int main(int argc, char* argv[])
       rg_iterator ri(gen, N, p);
       rg_iterator ri_end;
       
-      boost::add_edge_structure(temp_graph, ri, ri_end, Edge(i));
+      boost::add_edge_structure(temp_graph, ri, ri_end, Edge(edgeTypes[i].getId()));
 
     } else if (topology == "random-regular") {
       
@@ -554,12 +565,12 @@ int main(int argc, char* argv[])
       rrgOptions opt;
       
       s.str("");
-      s << model->getEdgeTypes()[i].getText() << "-degree";
+      s << edgeTypes[i].getText() << "-degree";
       if (vm.count(s.str())) {
         opt.d = vm[s.str()].as<unsigned int>();
       } else {
         std::cerr << "ERROR: Graph degree not spcified" << std::endl;
-        std::cerr << rrg_options[i] << std::endl;
+        std::cerr << rrg_options[edgeTypes[i].getId()] << std::endl;
         return 1;
       }
       
@@ -578,8 +589,10 @@ int main(int argc, char* argv[])
         success = boost::random_regular_graph(rrg_edges, opt.d, N, uni_gen);
         
         if (success) {            
-          for (GraphEdges::iterator it = rrg_edges.begin(); it != rrg_edges.end(); ++it) 
-            boost::add_edge((*it).first, (*it).second, Edge(i), temp_graph);            
+          for (GraphEdges::iterator it = rrg_edges.begin();
+               it != rrg_edges.end(); ++it) 
+            boost::add_edge((*it).first, (*it).second,
+                            Edge(edgeTypes[i].getId()), temp_graph);            
         } 
 
         rrg_edges.clear();         
@@ -598,21 +611,21 @@ int main(int argc, char* argv[])
       swOptions opt;
       
       s.str("");
-      s << model->getEdgeTypes()[i].getText() << "-neighbours";
+      s << edgeTypes[i].getText() << "-neighbours";
       if (vm.count(s.str())) {
         opt.neighbours = vm[s.str()].as<unsigned int>();
       } else {
         std::cerr << "ERROR: no number of neighbours specified" << std::endl;
-        std::cerr << *sw_options[i] << std::endl;
+        std::cerr << *sw_options[edgeTypes[i].getId()] << std::endl;
         return 1;
       }
       s.str("");
-      s << model->getEdgeTypes()[i].getText() << "-rewiring-prob";
+      s << edgeTypes[i].getText() << "-rewiring-prob";
       if (vm.count(s.str())) {
         opt.rewiringProb = vm[s.str()].as<double>();
       } else {
         std::cerr << "ERROR: no rewiring probability" << std::endl;
-        std::cerr << *sw_options[i] << std::endl;
+        std::cerr << *sw_options[edgeTypes[i].getId()] << std::endl;
         return 1;
       }
       
@@ -625,7 +638,7 @@ int main(int argc, char* argv[])
       sw_iterator swi(gen,N,opt.neighbours, opt.rewiringProb);
       sw_iterator swi_end;
       
-      boost::add_edge_structure(temp_graph, swi, swi_end, Edge(i));
+      boost::add_edge_structure(temp_graph, swi, swi_end, Edge(edgeTypes[i].getId()));
       
     } else if (topology == "plod") {
       
@@ -636,21 +649,21 @@ int main(int argc, char* argv[])
       plodOptions opt;
       
       s.str("");
-      s << model->getEdgeTypes()[i].getText() << "-alpha";
+      s << edgeTypes[i].getText() << "-alpha";
       if (vm.count(s.str())) {
         opt.alpha = vm[s.str()].as<double>();
       } else {
         std::cerr << "ERROR: no alpha specified" << std::endl;
-        std::cerr << *plod_options[i] << std::endl;
+        std::cerr << *plod_options[edgeTypes[i].getId()] << std::endl;
         return 1;
       }
       s.str("");
-      s << model->getEdgeTypes()[i].getText() << "-beta";
+      s << edgeTypes[i].getText() << "-beta";
       if (vm.count(s.str())) {
         opt.beta = vm[s.str()].as<double>();
       } else {
         std::cerr << "ERROR: no beta specified" << std::endl;
-        std::cerr << *plod_options[i] << std::endl;
+        std::cerr << *plod_options[edgeTypes[i].getId()] << std::endl;
         return 1;
       }
       
@@ -663,7 +676,7 @@ int main(int argc, char* argv[])
       plod_iterator plodi(gen,N,opt.alpha,opt.beta);
       plod_iterator plodi_end;
       
-      boost::add_edge_structure(temp_graph, plodi, plodi_end, Edge(i));
+      boost::add_edge_structure(temp_graph, plodi, plodi_end, Edge(edgeTypes[i].getId()));
 
     } else if (topology == "albert-barabasi") {
       
@@ -674,12 +687,12 @@ int main(int argc, char* argv[])
       abOptions opt;
       
       s.str("");
-      s << model->getEdgeTypes()[i].getText() << "-newedges";
+      s << edgeTypes[i].getText() << "-newedges";
       if (vm.count(s.str())) {
         opt.new_edges = vm[s.str()].as<unsigned int>();
       } else {
         std::cerr << "ERROR: no number of edges to add per vertex specified" << std::endl;
-        std::cerr << *ab_options[i] << std::endl;
+        std::cerr << *ab_options[edgeTypes[i].getId()] << std::endl;
         return 1;
       }
       
@@ -692,7 +705,7 @@ int main(int argc, char* argv[])
       albert_barabasi_iterator ab(gen,N,opt.new_edges);
       albert_barabasi_iterator ab_end;
       
-      boost::add_edge_structure(temp_graph, ab, ab_end, Edge(i));
+      boost::add_edge_structure(temp_graph, ab, ab_end, Edge(edgeTypes[i].getId()));
 
     } else if (topology == "complete") {
 
@@ -700,45 +713,61 @@ int main(int argc, char* argv[])
       for (tie(vi, vi_end) = vertices(graph); vi != vi_end; vi++) {
         boost::graph_traits<dualtype_graph>::vertex_iterator vi2;
         for (vi2 = vi+1; vi2 != vi_end; vi2++) {
-          add_edge(*vi, *vi2, Edge(i), temp_graph);
+          add_edge(*vi, *vi2, Edge(edgeTypes[i].getId()), temp_graph);
         }
       }
       
     } else if (topology == "copy") {
       
       /******************************************************************/
-      // read copy graph specific parameters
+      // test if we have graph to copy from
       /******************************************************************/
-      copyOptions opt;
-      
-      s.str("");
-      s << model->getEdgeTypes()[i].getText() << "-rewire";
-      if (vm.count(s.str())) {
-        opt.rewireFraction = vm[s.str()].as<double>();
-      } else {
-        opt.rewireFraction = 0.;
-      }
-      s.str("");
-      s << model->getEdgeTypes()[i].getText() << "-remove";
-      if (vm.count(s.str())) {
-        opt.removeFraction = vm[s.str()].as<double>();
-      } else {
-        opt.removeFraction = 0.;
-      }
 
-      boost::copy_graph<dualtype_graph, onetype_graph, boost::mt19937, Edge>
-        (graph, temp_graph, gen, Edge(i),
+      if (num_edges(graph) > 0) {
+
+        /******************************************************************/
+        // read copy graph specific parameters
+        /******************************************************************/
+        copyOptions opt;
+        
+        s.str("");
+        s << edgeTypes[i].getText() << "-rewire";
+        if (vm.count(s.str())) {
+          opt.rewireFraction = vm[s.str()].as<double>();
+        } else {
+          opt.rewireFraction = 0.;
+        }
+        s.str("");
+        s << edgeTypes[i].getText() << "-remove";
+        if (vm.count(s.str())) {
+          opt.removeFraction = vm[s.str()].as<double>();
+        } else {
+          opt.removeFraction = 0.;
+        }
+        
+        boost::copy_graph<dualtype_graph, onetype_graph, boost::mt19937, Edge>
+        (graph, temp_graph, gen, Edge(edgeTypes[i].getId()),
          opt.rewireFraction, opt.removeFraction);
-      
+        
+      } else {
+        // push back for later
+        edgeTypes.push_back(edgeTypes[i]);
+        if (edgeTypes.size() == 2*model->getEdgeTypes().size()) {
+          std::cerr << "ERROR: no edges to copy from, " << edgeTypes[i]
+                    << "-graph to remain empty" << std::endl;
+          std::cerr << command_line_options << graph_options << std::endl;
+          return 1;
+        }
+      }
     } else if (topology == "read") {
-
+        
       /******************************************************************/
       // read file graph specific parameters
       /******************************************************************/
       readFileOptions opt;
 
       s.str("");
-      s << model->getEdgeTypes()[i].getText() << "-file";
+      s << edgeTypes[i].getText() << "-file";
       if (vm.count(s.str())) {
         if (readGraph.size() == 0) {
           readGraph = vm[s.str()].as<std::string>();
@@ -747,7 +776,7 @@ int main(int argc, char* argv[])
       } else {
         if (readGraph.size() == 0) {
           std::cerr << "ERROR: no file name specified" << std::endl;
-          std::cerr << *readFile_options[i] << std::endl;
+          std::cerr << *readFile_options[edgeTypes[i].getId()] << std::endl;
           return 1;
         } else {
           opt.fileName = readGraph;
@@ -755,7 +784,7 @@ int main(int argc, char* argv[])
       }
 
       s.str("");
-      s << model->getEdgeTypes()[i].getText() << "-getstates";
+      s << edgeTypes[i].getText() << "-getstates";
       if (vm.count(s.str()) && generateIC == true) {
         opt.getStates = true;
         generateIC = false;
@@ -764,7 +793,8 @@ int main(int argc, char* argv[])
       }
       
       // reading graph structure and initial state from file
-      if (read_graph(graph, *model, opt.fileName, i, opt.getStates, verbose) == 0) {
+      if (read_graph(graph, *model, opt.fileName, edgeTypes[i].getId(),
+                     opt.getStates, verbose) == 0) {
         
         // update number of vertices
         N = num_vertices(graph);

@@ -36,8 +36,8 @@ class Label
 
 public:
 
-  Label(std::string t, std::string c, std::string d = "") :
-    text(t), color(c), drawOption(d) {}
+  Label(std::string t, std::string c, unsigned int i, std::string d = "") :
+    text(t), color(c), id(i), drawOption(d) {}
   
   const std::string& getText() const
   { return text; }
@@ -48,10 +48,14 @@ public:
   const std::string& getDrawOption() const
   { return drawOption; }
   
+  const unsigned int& getId() const
+  { return id; }
+
 private:
   
   std::string text;
   std::string color;
+  unsigned int id;
   std::string drawOption;
   
 };

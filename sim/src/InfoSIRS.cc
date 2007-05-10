@@ -20,20 +20,20 @@
 InfoSIRS::InfoSIRS()
 {
   // susceptible uninformed
-  vertexStates.push_back(Label("S-","00;32", "fillcolor=\"green4\""));
+  vertexStates.push_back(Label("S-","00;32", 0, "fillcolor=\"green4\""));
   // infected uninformed
-  vertexStates.push_back(Label("I-","00;31", "fillcolor=\"red4\""));
+  vertexStates.push_back(Label("I-","00;31", 1, "fillcolor=\"red4\""));
   // recovered uninformed
-  vertexStates.push_back(Label("R-","00;34", "fillcolor=\"royalblue4\""));
+  vertexStates.push_back(Label("R-","00;34", 2, "fillcolor=\"royalblue4\""));
   // susceptible informed
-  vertexStates.push_back(Label("S+","01;32", "fillcolor=\"green\""));
+  vertexStates.push_back(Label("S+","01;32", 3, "fillcolor=\"green\""));
   // infected informed
-  vertexStates.push_back(Label("I+","01;31", "fillcolor=\"red\""));
+  vertexStates.push_back(Label("I+","01;31", 4, "fillcolor=\"red\""));
   // recovered informed
-  vertexStates.push_back(Label("R+","01;34", "fillcolor=\"royalblue\""));
+  vertexStates.push_back(Label("R+","01;34", 5, "fillcolor=\"royalblue\""));
 
-  edgeTypes.push_back(Label("d", "", "style=\"solid\""));
-  edgeTypes.push_back(Label("i", "", "style=\"dashed\""));
+  edgeTypes.push_back(Label("d", "", 0, "style=\"solid\""));
+  edgeTypes.push_back(Label("i", "", 1, "style=\"dashed\""));
 
   model_options.add_options()
     ("beta--", po::value<double>(),

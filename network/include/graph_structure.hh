@@ -66,7 +66,8 @@ namespace boost {
    
   template <typename Graph1, typename Graph2, typename RandomGenerator,
             typename EdgeType>
-  void copy_graph(Graph1& source_graph, Graph2& target_graph, RandomGenerator& r,
+  void copy_graph(Graph1& source_graph, Graph2& target_graph,
+                  RandomGenerator& r,
                   const typename edge_property_type<Graph2>::type et =
                   edge_property_type<Graph2>::type(),
                   double rewireFraction = 0., double removeFraction = 0.)
@@ -81,10 +82,8 @@ namespace boost {
 
     edge_iterator ei, ei_end;
     for (tie(ei, ei_end) = edges(source_graph); ei != ei_end; ei++) {
-      if (source_graph[*ei].type == 0) {
-        add_edge(source(*ei, source_graph), target(*ei, source_graph),
-                 et, target_graph);
-      }
+      add_edge(source(*ei, source_graph), target(*ei, source_graph),
+               et, target_graph);
     }
 
     std::vector< std::vector<bool> >
@@ -96,7 +95,7 @@ namespace boost {
         boost::uniform_01<boost::mt19937, double> uni_gen(r);
         unsigned int num_rewire =
           static_cast<unsigned int>(rewireFraction * num_edges(target_graph));
-        do {
+        while (num_rewire > 0) {
           // select random edge for rewiring
           vertex_descriptor v = random_vertex(target_graph, r);
           seen_edges[v][v] = true;
@@ -131,7 +130,7 @@ namespace boost {
 
             --num_rewire;
           }
-        } while (num_rewire > 0);
+        } 
       } else {
         std::cerr << "ERROR: rewire fraction must be between 0 and 1" << std::endl;
         std::cerr << "no rewiring performed" << std::endl;
@@ -141,7 +140,8 @@ namespace boost {
       if (removeFraction < 1.) {
         unsigned int num_remove =
           static_cast<unsigned int>(removeFraction * num_edges(target_graph));
-        do {
+        
+        while (num_remove > 0) {
           // select random edge for removal
           edge_descriptor e = random_edge(target_graph, r);
 
@@ -150,7 +150,7 @@ namespace boost {
             boost::remove_edge(e, target_graph);
             --num_remove;
           }
-        } while (num_remove > 0);
+        }
       } else {
         std::cerr << "ERROR: remove fraction must be between 0 and 1" << std::endl;
         std::cerr << "no removing performed" << std::endl;
