@@ -84,8 +84,6 @@ namespace boost {
       if (source_graph[*ei].type == 0) {
         add_edge(source(*ei, source_graph), target(*ei, source_graph),
                  et, target_graph);
-        std::cout << "adding edge " << source(*ei, source_graph) << "--"
-                  << target(*ei, source_graph) << std::endl;
       }
     }
 
@@ -128,9 +126,6 @@ namespace boost {
 
             // rewire edge
 
-            std::cout << "rewiring " << v << "--" << existing[remove_edge]
-                      << " to " << v << "--" << free[new_edge] << std::endl;
-            
             boost::remove_edge(v, existing[remove_edge], target_graph);
             boost::add_edge(v, free[new_edge], et, target_graph);
 
