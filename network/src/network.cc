@@ -68,6 +68,9 @@ struct abOptions
   unsigned int new_edges;
 };
 
+struct copyOptions {
+  double rewireFraction;
+};
 
 struct readFileOptions {
   std::string fileName;
@@ -107,7 +110,7 @@ int main(int argc, char* argv[])
   bool generateIC = true; // default is to generate i.c.
             
   po::options_description command_line_options
-    ("Usage: simulate -p params_file [options]... \n\nAllowed options");
+    ("\nUsage: simulate -p params_file [options]... \n\nMain options");
 
   command_line_options.add_options()
     ("help,h",
@@ -122,9 +125,10 @@ int main(int argc, char* argv[])
      "file containing model parameters")
     ;
 
-  po::options_description main_options;
+  po::options_description sim_options
+    ("\nSimulation options");
 
-  main_options.add_options()
+  sim_options.add_options()
     ("sim", po::value<std::string>()->default_value("Gillespie"),
      "simulator to use (Gillespie, Chris)")
     ("tmax", po::value<double>()->default_value(100.),
@@ -148,15 +152,17 @@ int main(int argc, char* argv[])
   // declare hidden option for suppression of graph output --
   // needed for do_all script so that graphviz output
   // is not generated at each run
-  po::options_description hidden_option;
-  hidden_option.add_options()
+  po::options_description hidden_options;
+  hidden_options.add_options()
     ("no-graph",
      "do not produce graphviz output no matter what the other settings")
     ("no-degree-dist",
      "do not write degree distribution to baseName.degree file")
     ;
   
-  po::options_description graph_options;
+  po::options_description graph_options
+    ("\nGraph options");
+  
   graph_options.add_options()
     ("vertices,N", po::value<unsigned int>(),
      "number of vertices")
@@ -181,7 +187,7 @@ int main(int argc, char* argv[])
   std::vector<po::options_description*> lattice_options;
   for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model->getEdgeTypes()[i].getText() << "-Lattice Options";
+    s << model->getEdgeTypes()[i].getText() << "-Lattice options";
     po::options_description* lo =
       new po::options_description(s.str().c_str());
     s.str("");
@@ -200,7 +206,7 @@ int main(int argc, char* argv[])
   std::vector<po::options_description*> rg_options;
   for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model->getEdgeTypes()[i].getText() << "-RandomGraph Options";
+    s << model->getEdgeTypes()[i].getText() << "-RandomGraph options";
     po::options_description* ro
       = new po::options_description(s.str().c_str());
     s.str("");
@@ -215,7 +221,7 @@ int main(int argc, char* argv[])
   std::vector<po::options_description*> rrg_options;
   for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model->getEdgeTypes()[i].getText() << "-RandomRegularGraph Options";
+    s << model->getEdgeTypes()[i].getText() << "-RandomRegularGraph options";
     po::options_description* rrgo
       = new po::options_description(s.str().c_str());
     s.str("");
@@ -230,7 +236,7 @@ int main(int argc, char* argv[])
   std::vector<po::options_description*> sw_options;
   for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model->getEdgeTypes()[i].getText() << "-SmallWorld Options";
+    s << model->getEdgeTypes()[i].getText() << "-SmallWorld options";
     po::options_description* swo
       = new po::options_description(s.str().c_str());
     s.str("");
@@ -250,7 +256,7 @@ int main(int argc, char* argv[])
   std::vector<po::options_description*> plod_options;
   for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model->getEdgeTypes()[i].getText() << "-Power-Law-Out-Degree Options";
+    s << model->getEdgeTypes()[i].getText() << "-Power-Law-Out-Degree options";
     po::options_description* plodo =
       new po::options_description(s.str().c_str());
     s.str("");
@@ -270,7 +276,7 @@ int main(int argc, char* argv[])
   std::vector<po::options_description*> ab_options;
   for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model->getEdgeTypes()[i].getText() << "-Albert-Barabasi Options";
+    s << model->getEdgeTypes()[i].getText() << "-Albert-Barabasi options";
     po::options_description* abo =
       new po::options_description(s.str().c_str());
     s.str("");
@@ -281,10 +287,26 @@ int main(int argc, char* argv[])
     ab_options.push_back(abo);
   }
 
+  // copy graph
+  std::vector<po::options_description*> copy_options;
+  for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
+    std::stringstream s;
+    s << model->getEdgeTypes()[i].getText() << "-copy options";
+    po::options_description* cpo =
+      new po::options_description(s.str().c_str());
+    s.str("");
+    s << model->getEdgeTypes()[i].getText() << "-rewire";
+    cpo->add_options()
+      (s.str().c_str(), po::value<double>()->default_value(0.),
+       "fraction of edges to rewire");
+    copy_options.push_back(cpo);
+  }
+
+  // read graph
   std::vector<po::options_description*> readFile_options;
   for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
     std::stringstream s;
-    s << model->getEdgeTypes()[i].getText() << "-Read Options";
+    s << model->getEdgeTypes()[i].getText() << "-Read options";
     po::options_description* rfo =
       new po::options_description(s.str().c_str());
     s.str("");
@@ -304,11 +326,11 @@ int main(int argc, char* argv[])
 
   // read options from command line
   po::options_description visible_options;
-  visible_options.add(command_line_options).add(main_options).add(graph_options).
+  visible_options.add(command_line_options).add(sim_options).add(graph_options).
     add(model_options);
   
   po::options_description all_options;
-  all_options.add(visible_options).add(hidden_option);
+  all_options.add(visible_options).add(hidden_options);
   
   for (unsigned int i = 0; i < model->getEdgeTypes().size(); i++) {
     all_options.add(*(lattice_options[i]));
@@ -317,6 +339,7 @@ int main(int argc, char* argv[])
     all_options.add(*(sw_options[i]));
     all_options.add(*(plod_options[i]));
     all_options.add(*(ab_options[i]));
+    all_options.add(*(copy_options[i]));
     all_options.add(*(readFile_options[i]));
   }
   po::variables_map vm;
@@ -325,7 +348,7 @@ int main(int argc, char* argv[])
   po::notify(vm);
 
   if (vm.count("help")) {
-    std::cout << command_line_options << main_options << std::endl;
+    std::cout << command_line_options << sim_options << std::endl;
     return 0;
   }
 
@@ -367,14 +390,7 @@ int main(int argc, char* argv[])
   }
 
   /******************************************************************/
-  // initialize model
-  /******************************************************************/
-  
-  model->Init(vm);
-  
-  
-  /******************************************************************/
-  // create simulator
+  // initialize random generator
   /******************************************************************/
 
   unsigned int seed;
@@ -382,44 +398,12 @@ int main(int argc, char* argv[])
   gettimeofday(&tv, 0);
   seed = tv.tv_sec + tv.tv_usec;
   boost::mt19937 gen(seed);
-  boost::uniform_01<boost::mt19937, double> uni_gen(gen); // for rrg 
-  dualtype_graph graph;
-  Simulator* sim;
 
-  if (vm.count("sim")) {
-    std::string simType = vm["sim"].as<std::string>();
-    if (simType == "Gillespie") {
-      sim = new GillespieSimulator<boost::mt19937, dualtype_graph>
-        (gen, graph, *model);
-//     } else if (simType == "Chris") {
-//       sim = new ChrisSimulator<boost::mt19937, dualtype_graph>
-//         (gen, graph, *model);
-    } else {
-      std::cerr << "Error: unknown simulator: " << simType << std::endl;
-      return 1;
-    }
-  } else {
-    std::cerr << "Error: no simulator specified" << std::endl;
-    return 1;
-  }
-   
   /******************************************************************/
-  // read simulation paramters
+  // create graph variable
   /******************************************************************/
-  
-  stop = vm["tmax"].as<double>();
-  outputData = vm["output"].as<double>();
-  if (vm.count("graphviz")) {
-    outputGraphviz = vm["graphviz"].as<int>();
-  }
-  if (vm.count("graph-dir")) {
-    graphDir = vm["graph-dir"].as<std::string>();
-  }
-  // no-graph overrides other graph options
-  if (vm.count("no-graph")) {
-    outputGraphviz = -1;
-  }
-  
+  dualtype_graph graph;
+
   /******************************************************************/
   // read graph from file or generate it
   /******************************************************************/
@@ -442,8 +426,7 @@ int main(int argc, char* argv[])
       topology = vm[s.str()].as<std::string>();
     } else {
       std::cerr << "ERROR: no " << s.str() << " specified" << std::endl;
-      std::cerr << std::endl;
-      std::cerr << command_line_options << main_options << std::endl;
+      std::cerr << command_line_options << graph_options << std::endl;
       return 1;
     }
     
@@ -529,7 +512,6 @@ int main(int argc, char* argv[])
         opt.edges = vm[s.str()].as<unsigned int>();
       } else {
         std::cerr << "ERROR: no number of edges specified" << std::endl;
-        std::cerr << std::endl;
         std::cerr << *rg_options[i] << std::endl;
         return 1;
       }
@@ -571,7 +553,6 @@ int main(int argc, char* argv[])
         opt.d = vm[s.str()].as<unsigned int>();
       } else {
         std::cerr << "ERROR: Graph degree not spcified" << std::endl;
-        std::cerr << std::endl;
         std::cerr << rrg_options[i] << std::endl;
         return 1;
       }
@@ -584,6 +565,8 @@ int main(int argc, char* argv[])
       unsigned int count = 0;
       typedef std::vector<std::pair<unsigned int, unsigned int> > GraphEdges;
       GraphEdges rrg_edges;
+      
+      boost::uniform_01<boost::mt19937, double> uni_gen(gen);
       
       while (!success) {
         success = boost::random_regular_graph(rrg_edges, opt.d, N, uni_gen);
@@ -614,7 +597,6 @@ int main(int argc, char* argv[])
         opt.neighbours = vm[s.str()].as<unsigned int>();
       } else {
         std::cerr << "ERROR: no number of neighbours specified" << std::endl;
-        std::cerr << std::endl;
         std::cerr << *sw_options[i] << std::endl;
         return 1;
       }
@@ -624,7 +606,6 @@ int main(int argc, char* argv[])
         opt.rewiringProb = vm[s.str()].as<double>();
       } else {
         std::cerr << "ERROR: no rewiring probability" << std::endl;
-        std::cerr << std::endl;
         std::cerr << *sw_options[i] << std::endl;
         return 1;
       }
@@ -654,7 +635,6 @@ int main(int argc, char* argv[])
         opt.alpha = vm[s.str()].as<double>();
       } else {
         std::cerr << "ERROR: no alpha specified" << std::endl;
-        std::cerr << std::endl;
         std::cerr << *plod_options[i] << std::endl;
         return 1;
       }
@@ -664,7 +644,6 @@ int main(int argc, char* argv[])
         opt.beta = vm[s.str()].as<double>();
       } else {
         std::cerr << "ERROR: no beta specified" << std::endl;
-        std::cerr << std::endl;
         std::cerr << *plod_options[i] << std::endl;
         return 1;
       }
@@ -694,7 +673,6 @@ int main(int argc, char* argv[])
         opt.new_edges = vm[s.str()].as<unsigned int>();
       } else {
         std::cerr << "ERROR: no number of edges to add per vertex specified" << std::endl;
-        std::cerr << std::endl;
         std::cerr << *ab_options[i] << std::endl;
         return 1;
       }
@@ -722,6 +700,19 @@ int main(int argc, char* argv[])
       
     } else if (topology == "copy") {
       
+      /******************************************************************/
+      // read copy graph specific parameters
+      /******************************************************************/
+      copyOptions opt;
+      
+      s.str("");
+      s << model->getEdgeTypes()[i].getText() << "-rewire";
+      if (vm.count(s.str())) {
+        opt.rewireFraction = vm[s.str()].as<double>();
+      } else {
+        opt.rewireFraction = 0.;
+      }
+
       boost::graph_traits<dualtype_graph>::edge_iterator ei, ei_end;
       for (tie(ei, ei_end) = edges(graph); ei != ei_end; ei++) {
         if (graph[*ei].type == 0) {
@@ -729,9 +720,60 @@ int main(int argc, char* argv[])
                    Edge(i), temp_graph);
         }
       }
+
+      if (opt.rewireFraction > 0.) {
+        if (opt.rewireFraction < 1.) {
+          std::vector< std::vector<bool> >
+            seen_vertices(N, std::vector<bool>(N, false));
+          boost::uniform_01<boost::mt19937, double> uni_gen(gen);
+          unsigned int num_rewire =
+            static_cast<unsigned int>(opt.rewireFraction * num_edges(temp_graph));
+          do {
+            // select random edge for rewiring
+            unsigned int v = static_cast<unsigned int> (uni_gen() * N);
+            seen_vertices[v][v] = true;
+            // collect existing and non-existing edges
+            std::vector<unsigned int> existing;
+            std::vector<unsigned int> free;
+            
+            for (unsigned int u = 0; u < N; u++) {
+              if (!seen_vertices[u][v]) {
+                if (edge(v, u, temp_graph).second) {
+                  existing.push_back(u);
+                } else {
+                  free.push_back(u);
+                }
+              }
+            }
+            if (existing.size() > 0 && free.size() > 0) {
+              // choose random existing and free edges
+              unsigned int remove_edge =
+                static_cast<unsigned int>(uni_gen() * (existing.size() - 1));
+              unsigned int new_edge =
+                static_cast<unsigned int>(uni_gen() * (free.size() - 1));
+              seen_vertices[v][existing[remove_edge]] = true;
+              seen_vertices[existing[remove_edge]][v] = true;
+              seen_vertices[v][free[new_edge]] = true;
+              seen_vertices[free[new_edge]][v] = true;
+
+              // rewire edge
+              boost::remove_edge(v, existing[remove_edge], temp_graph);
+              boost::add_edge(v, free[new_edge], Edge(i), temp_graph);
+
+              --num_rewire;
+            }
+          } while (num_rewire > 0);
+        } else {
+          std::cerr << "ERROR: rewire fraction must be between 0 and 1" << std::endl;
+          std::cerr << "no rewiring performed" << std::endl;
+        }
+      }
       
     } else if (topology == "read") {
 
+      /******************************************************************/
+      // read file graph specific parameters
+      /******************************************************************/
       readFileOptions opt;
 
       s.str("");
@@ -744,7 +786,6 @@ int main(int argc, char* argv[])
       } else {
         if (readGraph.size() == 0) {
           std::cerr << "ERROR: no file name specified" << std::endl;
-          std::cerr << std::endl;
           std::cerr << *readFile_options[i] << std::endl;
           return 1;
         } else {
@@ -777,7 +818,6 @@ int main(int argc, char* argv[])
     } else if (topology != "null") {
       std::cerr << "ERROR: unknown " << s.str() << ": " << topology
                 << std::endl;
-      std::cerr << std::endl;
       std::cerr << command_line_options << graph_options << std::endl;
       return 1;
     }
@@ -792,7 +832,6 @@ int main(int argc, char* argv[])
 
   if (num_vertices(graph) == 0) {
     std::cerr << "ERROR: no vertices" << std::endl;
-    std::cerr << std::endl;
     std::cerr << command_line_options << graph_options << std::endl;
     return 1;
   }
@@ -858,8 +897,7 @@ int main(int argc, char* argv[])
       init[baseState] = 0;
     } else {
       std::cerr << "ERROR: no unknown base state: " << baseString << std::endl;
-      std::cerr << std::endl;
-      std::cerr << command_line_options << main_options << std::endl;
+      std::cerr << command_line_options << sim_options << std::endl;
       return 1;
     }              
       
@@ -976,6 +1014,52 @@ int main(int argc, char* argv[])
     }
   }   
 
+  /******************************************************************/
+  // initialize model
+  /******************************************************************/
+  
+  model->Init(vm);
+  
+  /******************************************************************/
+  // create simulator
+  /******************************************************************/
+
+  Simulator* sim;
+
+  if (vm.count("sim")) {
+    std::string simType = vm["sim"].as<std::string>();
+    if (simType == "Gillespie") {
+      sim = new GillespieSimulator<boost::mt19937, dualtype_graph>
+        (gen, graph, *model);
+//     } else if (simType == "Chris") {
+//       sim = new ChrisSimulator<boost::mt19937, dualtype_graph>
+//         (gen, graph, *model);
+    } else {
+      std::cerr << "Error: unknown simulator: " << simType << std::endl;
+      return 1;
+    }
+  } else {
+    std::cerr << "Error: no simulator specified" << std::endl;
+    return 1;
+  }
+   
+  /******************************************************************/
+  // read simulation paramters
+  /******************************************************************/
+  
+  stop = vm["tmax"].as<double>();
+  outputData = vm["output"].as<double>();
+  if (vm.count("graphviz")) {
+    outputGraphviz = vm["graphviz"].as<int>();
+  }
+  if (vm.count("graph-dir")) {
+    graphDir = vm["graph-dir"].as<std::string>();
+  }
+  // no-graph overrides other graph options
+  if (vm.count("no-graph")) {
+    outputGraphviz = -1;
+  }
+  
   /******************************************************************/
   // initialize Simulator
   /******************************************************************/
