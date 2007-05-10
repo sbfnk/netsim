@@ -43,8 +43,14 @@ namespace boost {
          source(0), target(allow_self_loops? -1 : 0),
          current(0, allow_self_loops? -1 : 0)
     {
-      // pick first pair
-      ++(*this); 
+      if (n < 1) {
+        //immediately beecome past_the_edge iterator
+        source = n -1;
+      } else {
+        // pick first pair
+        ++(*this);
+      }
+      
     }
 
     reference operator*() const { return current; }
