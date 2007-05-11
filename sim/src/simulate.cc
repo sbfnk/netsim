@@ -952,14 +952,15 @@ int main(int argc, char* argv[])
     bool status = write_ode_ic_file(graph, *model, odeIcFile);
       
     // print message
-    if (verbose) 
-      if (!status) {
+    if (!status) {
+      if (verbose) {
         std::cout << "ode ic file " << odeIcFileName << " written ok\n";
-      } else {
-        std::cout << "ERROR: something wrong in writing ode ic file "
-                  << odeIcFileName << std::endl;
-        return 1;
       }
+    } else {
+      std::cout << "ERROR: something wrong in writing ode ic file "
+                << odeIcFileName << std::endl;
+      return 1;
+    }
 
     // close file
     odeIcFile.close();
@@ -968,6 +969,55 @@ int main(int argc, char* argv[])
     return 0;   
   }
    
+  /******************************************************************/
+  // initialize model
+  /******************************************************************/
+  
+  model->Init(vm);
+  
+  /******************************************************************/
+  // create simulator
+  /******************************************************************/
+
+  Simulator* sim;
+
+  if (vm.count("sim")) {
+    std::string simType = vm["sim"].as<std::string>();
+    if (simType == "Gillespie") {
+      sim = new GillespieSimulator<boost::mt19937, dualtype_graph>
+        (gen, graph, *model);
+//     } else if (simType == "Chris") {
+//       sim = new ChrisSimulator<boost::mt19937, dualtype_graph>
+//         (gen, graph, *model);
+    } else {
+      std::cerr << "Error: unknown simulator: " << simType << std::endl;
+      return 1;
+    }
+  } else {
+    std::cerr << "Error: no simulator specified" << std::endl;
+    return 1;
+  }
+   
+  /******************************************************************/
+  // read simulation paramters
+  /******************************************************************/
+  
+  stop = vm["tmax"].as<double>();
+  outputData = vm["output"].as<double>();
+
+  // graph directory
+  if (vm.count("graph-dir")) {
+    graphDir = vm["graph-dir"].as<std::string>();
+  }
+  // timesteps after which to write graphviz output
+  if (vm.count("graphviz")) {
+    outputGraphviz = vm["graphviz"].as<int>();
+  }
+  // no-graph overrides other graph options
+  if (vm.count("no-graph")) {
+    outputGraphviz = -1;
+  }
+  
   /******************************************************************/
   // open output file
   /******************************************************************/
@@ -1005,52 +1055,6 @@ int main(int argc, char* argv[])
     }
   }   
 
-  /******************************************************************/
-  // initialize model
-  /******************************************************************/
-  
-  model->Init(vm);
-  
-  /******************************************************************/
-  // create simulator
-  /******************************************************************/
-
-  Simulator* sim;
-
-  if (vm.count("sim")) {
-    std::string simType = vm["sim"].as<std::string>();
-    if (simType == "Gillespie") {
-      sim = new GillespieSimulator<boost::mt19937, dualtype_graph>
-        (gen, graph, *model);
-//     } else if (simType == "Chris") {
-//       sim = new ChrisSimulator<boost::mt19937, dualtype_graph>
-//         (gen, graph, *model);
-    } else {
-      std::cerr << "Error: unknown simulator: " << simType << std::endl;
-      return 1;
-    }
-  } else {
-    std::cerr << "Error: no simulator specified" << std::endl;
-    return 1;
-  }
-   
-  /******************************************************************/
-  // read simulation paramters
-  /******************************************************************/
-  
-  stop = vm["tmax"].as<double>();
-  outputData = vm["output"].as<double>();
-  if (vm.count("graphviz")) {
-    outputGraphviz = vm["graphviz"].as<int>();
-  }
-  if (vm.count("graph-dir")) {
-    graphDir = vm["graph-dir"].as<std::string>();
-  }
-  // no-graph overrides other graph options
-  if (vm.count("no-graph")) {
-    outputGraphviz = -1;
-  }
-  
   /******************************************************************/
   // initialize Simulator
   /******************************************************************/
