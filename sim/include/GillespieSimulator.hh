@@ -69,7 +69,7 @@ bool GillespieSimulator<RandomGenerator, Graph>::updateState()
 {
   // exit if nothing can happen -- exit also if the rate sum is very small
   // to prevent rounding problems
-  if (tree.getTopBin()->getRateSum() < 1e-10) {
+  if (tree.getTopBin()->getRateSum() < 1e-8) {
     return false;
   }
          
