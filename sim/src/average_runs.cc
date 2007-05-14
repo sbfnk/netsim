@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
      "discretized time step")    
     ("output-file,o", po::value<std::string>(),
      "output file")    
-    ("errors,e", po::value<std::string>(),
+    ("errors,e",
      "include errors in output file")    
     ;
     
