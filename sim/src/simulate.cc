@@ -570,7 +570,7 @@ int main(int argc, char* argv[])
         opt.d = vm[s.str()].as<unsigned int>();
       } else {
         std::cerr << "ERROR: Graph degree not spcified" << std::endl;
-        std::cerr << rrg_options[edgeTypes[i].getId()] << std::endl;
+        std::cerr << *rrg_options[edgeTypes[i].getId()] << std::endl;
         return 1;
       }
       
