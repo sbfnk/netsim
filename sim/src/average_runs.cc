@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <math.h>
 
 #include <boost/program_options.hpp>
 
@@ -113,7 +114,7 @@ int main(int argc, char* argv[])
   for (std::vector<std::string>::iterator it = inputFiles.begin();
        it != inputFiles.end(); it++) {
     std::ifstream ifs((*it).c_str());
-    
+
     if (ifs.is_open()) {
       std::string line;
       std::getline(ifs, line);
@@ -217,7 +218,7 @@ int main(int argc, char* argv[])
       }
       if (do_errors) {
         for (unsigned int j = 0; j < squares[i].size() ; j++) {
-          ofs << " " << (squares[i][j] - values[i][j])/nFiles;
+          ofs << " " << sqrt(squares[i][j] - values[i][j])/nFiles;
         }
       }
       ofs << std::endl;
