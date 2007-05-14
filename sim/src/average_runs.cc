@@ -40,6 +40,8 @@ int main(int argc, char* argv[])
 
   float timeStep = 0.;
   float stopTime = 0.;
+
+  bool do_errors = false;
   
   std::vector<std::string> inputFiles;
   std::string outputBase;
@@ -52,6 +54,8 @@ int main(int argc, char* argv[])
      "discretized time step")    
     ("output-file,o", po::value<std::string>(),
      "output file")    
+    ("errors,e", po::value<std::string>(),
+     "include errors in output file")    
     ;
     
   po::options_description hidden_options;
@@ -95,7 +99,12 @@ int main(int argc, char* argv[])
     return 1;
   }
 
+  if(vm.count("errors")) {
+    do_errors = true;
+  }
+
   std::vector< std::vector<float> > values;
+  std::vector< std::vector<float> > squares;
 
   unsigned int nFiles = inputFiles.size();
   unsigned int nColumns = 0;
@@ -113,14 +122,25 @@ int main(int argc, char* argv[])
       unsigned int currentStep = 0;
       
       std::vector<float> line_contents;
+      std::vector<float> line_squares;
       std::vector<float> previous_line_contents;
+      std::vector<float> previous_line_squares;
 
       while (!ifs.eof() && (firstFile || (currentTime <= stopTime))) {
         
         lineCount++;
         line_contents.clear();
-        split_to_float(line, " \t", line_contents);          
+        split_to_float(line, " \t", line_contents);
         if (line_contents.size() > 0) {
+          if (do_errors) {
+            line_squares.clear();
+            std::vector<float>::iterator it = line_contents.begin();
+            line_squares.push_back(*it);
+            for (it++;it != line_contents.end(); it++) {
+              line_squares.push_back((*it)*(*it));
+            }
+          }
+
           if (nColumns == 0) {
             // set number of columns
             nColumns = line_contents.size();
@@ -131,17 +151,20 @@ int main(int argc, char* argv[])
           }
           
           currentTime = *(line_contents.begin());
-
+          
           if (currentTime >= currentStep*timeStep) {
             while ((currentTime-timeStep) > (currentStep*timeStep)
                    && (firstFile || (stopTime > currentStep*timeStep))) {
               if (firstFile) {
                 values.push_back(std::vector<float>(previous_line_contents.begin()+1,
                                                     previous_line_contents.end()));
+                squares.push_back(std::vector<float>(previous_line_squares.begin()+1,
+                                                     previous_line_squares.end()));
                 stopTime = (currentStep+1)*timeStep;
               } else {
                 for (unsigned int i=1; i < nColumns; i++) {
                   values[currentStep][i-1] += previous_line_contents[i];
+                  squares[currentStep][i-1] += previous_line_squares[i];
                 }
               }
               ++currentStep;
@@ -151,15 +174,19 @@ int main(int argc, char* argv[])
             if (firstFile) {
               values.push_back(std::vector<float>(line_contents.begin()+1,
                                                   line_contents.end()));
+              squares.push_back(std::vector<float>(line_squares.begin()+1,
+                                                   line_squares.end()));
               stopTime = (currentStep+1)*timeStep;
             } else if (stopTime > currentStep*timeStep) {
               for (unsigned int i=1; i < nColumns; i++) {
                 values[currentStep][i-1] += line_contents[i];
+                squares[currentStep][i-1] += line_squares[i];
               }
             }
             ++currentStep;
           }
           previous_line_contents = std::vector<float>(line_contents);
+          previous_line_squares = std::vector<float>(line_squares);
           std::getline(ifs, line);
         }
       }
@@ -171,14 +198,15 @@ int main(int argc, char* argv[])
   }
   float time = 0.;
   std::ofstream ofs((outputBase+".sim.dat").c_str(), std::ios::out);
-
+  
   if (ofs.is_open()) {
-    for (std::vector< std::vector<float> >::iterator it = values.begin();
-         it != values.end(); it++, time+=timeStep) {
+    for (unsigned int i = 0; i < values.size(); i++, time+=timeStep) {
       ofs << time;
-      for (std::vector<float>::iterator dit = (*it).begin();
-           dit != (*it).end(); dit++) {
-        ofs << " " << (*dit)/nFiles;
+      for (unsigned int j = 0; j < values[i].size() ; j++) {
+        ofs << " " << values[i][j]/nFiles;
+      }
+      for (unsigned int j = 0; j < squares[i].size() ; j++) {
+        ofs << " " << (squares[i][j] - values[i][j])/nFiles;
       }
       ofs << std::endl;
     }
