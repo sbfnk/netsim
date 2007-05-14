@@ -216,9 +216,11 @@ int main(int argc, char* argv[])
       for (unsigned int j = 0; j < values[i].size() ; j++) {
         ofs << " " << values[i][j]/nFiles;
       }
+      std::cout << values[i].size() << std::endl;
       if (do_errors) {
         for (unsigned int j = 0; j < squares[i].size() ; j++) {
-          ofs << " " << sqrt(squares[i][j] - values[i][j])/nFiles;
+	  double avg_value = values[i][j]/nFiles;
+          ofs << " " << sqrt(squares[i][j]/nFiles - avg_value*avg_value);
         }
       }
       ofs << std::endl;
