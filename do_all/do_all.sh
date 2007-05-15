@@ -36,6 +36,9 @@ if [ -z $file_id ]; then
     exit 1
 fi
 
+# saving command line 
+comm_line="$0 $@"
+
 # shift the current values stored in the positional parameters
 shift
 
@@ -94,6 +97,10 @@ if [ $sim ]; then
     sim_options="$sim_options -p $sim"
 fi
 
+# saving parameters files
+cp -f $model $output_dir/$file_id.model.prm
+cp -f $sim $output_dir/$file_id.sim.prm
+
 # set sim_command
 sim_base="$CODEDIR/graph/bin/simulate"
 sim_base="$sim_base --graph-dir $output_dir/images $sim_options"
@@ -145,6 +152,9 @@ fi
 if [ $ode ]; then
     ode_options="$ode_options -p $ode"
 fi
+
+# copy ode params file
+cp -f $ode $output_dir/$file_id.ode.prm
 
 # set ode command
 ode_command="$CODEDIR/ode_solver/$ode_solver --file-id $output_dir/$file_id"
