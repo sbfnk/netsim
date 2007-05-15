@@ -123,9 +123,9 @@ int main(int argc, char* argv[])
      "produce long help message including all options")
     ("verbose,v",
      "produce verbose output")
-    ("params-file,p",po::value<std::string>(),
+    ("read-params,p",po::value<std::string>(),
      "file containing graph parameters")
-    ("model-file,m",po::value<std::string>(),
+    ("read-model,m",po::value<std::string>(),
      "file containing model parameters")
     ;
 
@@ -155,9 +155,11 @@ int main(int argc, char* argv[])
      "write adjacency matrices to files  baseName.Jd/i")        
     ;
   
+  po::options_description temp_options;
+  temp_options.add(command_line_options).add(sim_options);
   po::variables_map vm;
-  po::store(po::command_line_parser(argc, argv).options(command_line_options).
-            options(sim_options).allow_unregistered().run(), vm);
+  po::store(po::command_line_parser(argc, argv).options(temp_options).
+            allow_unregistered().run(), vm);
   po::notify(vm);
 
   if (vm.count("model")) {
@@ -384,7 +386,7 @@ int main(int argc, char* argv[])
     all_options.add(*(copy_options[it->getId()]));
     all_options.add(*(readFile_options[it->getId()]));
   }
-//   po::variables_map vm;
+
   po::store(po::command_line_parser(argc, argv).options(all_options).
             allow_unregistered().run(), vm);
   po::notify(vm);
