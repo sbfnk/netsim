@@ -1,19 +1,20 @@
 # Simulation Parameters File %%%%%%%%%
 
 # General parameters: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+model        = InfoSIRS # model to use
 tmax         = 20 # time to elapse until stop
 output       = 0.1 # timesteps at which there is data output
 graphviz     = 10 # timesteps at which to generate graphs
-d-topology   = random # topology of disease network
-i-topology   = random        # topology of information network
+d-topology   = tri-lattice # topology of disease network
+i-topology   = copy        # topology of information network
 base         = S-   # base state of individuals (S,s,I,i,R,r)
 
 #S-           = 5   # number of random uninformed susceptibles
-#I-           = 5   # number of random uninformed infected
-#R-           = 5   # number of random uninformed recovered
-#S+           = 5   # number of random informed susceptibles
-#I+           = 5   # number of random informed infected
-#R+           = 5   # number of random informed recovered
+I-           = 1   # number of random uninformed infected
+#R-           = 1   # number of random uninformed recovered
+#S+           = 1   # number of random informed susceptibles
+#I+           = 1   # number of random informed infected
+#R+           = 1   # number of random informed recovered
 
 # lattice options: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #d-dim        = 2    # number of lattice dimensions
@@ -26,18 +27,31 @@ base         = S-   # base state of individuals (S,s,I,i,R,r)
 #i-pb         = yes  # periodic boundary conditions
 
 # random options: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#d-edges      = 4    # approximate number of edges in graph
-#i-edges      = 4    # approximate number of edges in graph
+#d-edges      = 400    # approximate number of edges in graph
+#i-edges      = 0    # approximate number of edges in graph
+
+# random-regular options: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#d-degree      = 4   # vertex degree
+#i-degree      = 4   # vertex degree
 
 # small-world options: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #d-neighbours = 4    # (even) number of neighbours
-#d-rewiring-prob = 1 # rewiring probability
+#d-rewiring-prob = .15 # rewiring probability
 #i-neighbours = 4    # (even) number of neighbours
 #i-rewiring-prob = 1 # rewiring probability
 
-# scale-free options: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# plod options: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #d-alpha      = 2    # exponent of power law
 #d-beta       = 1000 # factor of power law
 #i-alpha      = 2    # exponent of power law
 #i-beta       = 1000 # factor of power law
 
+# albert-barabasi options: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#d-newedges = 1     # number of new edges to add per timestep
+#i-newedges = 1     # number of new edges to add per timestep
+
+# copy options: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#d-rewire = 0.5    # fraction of edges to rewire
+#d-remove = 0.5    # fraction of edges to remove
+#i-rewire = 0.5    # fraction of edges to rewire
+#i-remove = 0.5    # fraction of edges to remove
