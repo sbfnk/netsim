@@ -13,7 +13,8 @@ DEPENDFLAGS = -m
 
 #--------------------------------------------------------------------
 
-SOURCES     = simulate.cc Bin.cc InfoSIRS.cc Model.cc
+#SOURCES     = simulate.cc Bin.cc InfoSIRS.cc Model.cc
+SOURCES     = simulate.cc Bin.cc InfoSIRS.cc ProtectiveSIRS.cc Model.cc
 OBJECTS     = $(patsubst %.cc,out/%.o,${SOURCES})
 
 EXEC        = simulate

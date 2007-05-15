@@ -9,40 +9,40 @@
 //   -- Model
 //        for the model parameters and the events associated with it
 /******************************************************************/
-#ifndef INFOSIRS_HH
-#define INFOSIRS_HH
+#ifndef PROTECTIVESIRS_HH
+#define PROTECTIVESIRS_HH
 
 #include "Model.hh"
 
-class InfoSIRS :
+class ProtectiveSIRS :
   public Model
 {
-
+  
   enum diseaseStatesEnum {Susceptible,Infected,Recovered};
   enum infoStatesEnum {Uninformed, Informed};
   enum edgeTypesEnum {Disease, Information};
-  
+
 public:
 
-  InfoSIRS();
-  ~InfoSIRS();
+  ProtectiveSIRS();
+  ~ProtectiveSIRS();
   
   double getNodeEvents(eventList& events, unsigned int state) const;
   double getEdgeEvents(eventList& events, unsigned int state,
                        unsigned int edge, unsigned int nbState) const;
 
   unsigned int getDisease(unsigned int state) const
-  { return (state % 3); }
+  { return (state < 2 ? 0 : state - 1); }
   unsigned int getInfo(unsigned int state) const
-  { return (state / 3); }
+  { return (state == 1); }
   unsigned int getState(unsigned int dState, unsigned int iState) const
-  { return dState+iState*3; }
+  { return (dState == 0 ? iState : dState + 1); }
     
   
 private:
 
-  double gamma[2], delta[2]; // model parameters
-  double beta[2][2], alpha, nu, lambda, omega; // model parameters
+  double gamma, delta; // model parameters
+  double beta, nu, lambda, sigma; // model parameters
   
 };
 

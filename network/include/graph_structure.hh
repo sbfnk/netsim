@@ -68,7 +68,7 @@ namespace boost {
             typename EdgeType>
   void copy_graph(Graph1& source_graph, Graph2& target_graph,
                   RandomGenerator& r,
-                  const typename edge_property_type<Graph2>::type et =
+                  typename edge_property_type<Graph2>::type et =
                   edge_property_type<Graph2>::type(),
                   double rewireFraction = 0., double removeFraction = 0.)
   {
@@ -85,6 +85,8 @@ namespace boost {
       add_edge(source(*ei, source_graph), target(*ei, source_graph),
                et, target_graph);
     }
+
+    et.m_value.rewired = true;
 
     std::vector< std::vector<bool> >
       seen_edges(num_vertices(target_graph),

@@ -11,31 +11,32 @@
 
 class Edge
 {      
-   public:
+public:
       
-      Edge(): type(0), parallel(false) {;}
-      Edge(int eType): type(eType), parallel(false) {;}
+  Edge(): type(0), parallel(false), rewired(false) {;}
+  Edge(int eType): type(eType), parallel(false), rewired(false) {;}
       
-      unsigned int type;
-      bool parallel;
+  unsigned int type;
+  bool parallel;
+  bool rewired;
       
 };
 
 class Vertex
 {      
-   public:
+public:
       
-      Vertex() : state(0) {;}
-      Vertex(int s)
-         : state(s) {;}
+  Vertex() : state(0) {;}
+  Vertex(int s)
+    : state(s) {;}
       
-      virtual ~Vertex() {;}
+  virtual ~Vertex() {;}
       
-      unsigned int state; // present (disease and information) state
-      double rateSum; // sum of the rates of all events that can
-      // affect the vertex (change its state)
+  unsigned int state; // present (disease and information) state
+  double rateSum; // sum of the rates of all events that can
+  // affect the vertex (change its state)
       
-      eventList events; // list of events associated with vertex
+  eventList events; // list of events associated with vertex
       
 };
 
