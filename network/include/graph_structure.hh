@@ -70,7 +70,8 @@ namespace boost {
                   RandomGenerator& r,
                   typename edge_property_type<Graph2>::type et =
                   edge_property_type<Graph2>::type(),
-                  double rewireFraction = 0., double removeFraction = 0.)
+                  double rewireFraction = 0., double removeFraction = 0.,
+                  double addFraction = 0.)
   {
     typedef typename boost::graph_traits<Graph1>::edge_iterator
       edge_iterator;
@@ -91,12 +92,14 @@ namespace boost {
     std::vector< std::vector<bool> >
       seen_edges(num_vertices(target_graph),
                     std::vector<bool>(num_vertices(target_graph), false));
+
+    unsigned int N = num_edges(target_graph);
     
     if (rewireFraction > 0.) {
       if (rewireFraction < 1.) {
         boost::uniform_01<boost::mt19937, double> uni_gen(r);
         unsigned int num_rewire =
-          static_cast<unsigned int>(rewireFraction * num_edges(target_graph));
+          static_cast<unsigned int>(rewireFraction * N);
         while (num_rewire > 0) {
           // select random edge for rewiring
           vertex_descriptor v = random_vertex(target_graph, r);
@@ -141,7 +144,7 @@ namespace boost {
     if (removeFraction > 0.) {
       if (removeFraction < 1.) {
         unsigned int num_remove =
-          static_cast<unsigned int>(removeFraction * num_edges(target_graph));
+          static_cast<unsigned int>(removeFraction * N);
         
         while (num_remove > 0) {
           // select random edge for removal
@@ -156,6 +159,27 @@ namespace boost {
       } else {
         std::cerr << "ERROR: remove fraction must be between 0 and 1" << std::endl;
         std::cerr << "no removing performed" << std::endl;
+      }
+    } 
+    if (addFraction > 0.) {
+      unsigned int num_add =
+        static_cast<unsigned int>(addFraction * N);
+
+      
+      while (num_add > 0) {
+        // select random edge for adding
+        bool found = false;
+        vertex_descriptor v1;
+        vertex_descriptor v2;
+        while (!found) {
+          v1 = random_vertex(target_graph, r);
+          do {
+            v2 = random_vertex(target_graph, r);
+          } while (v2 == v1);
+          found = !(edge(v1,v2,target_graph).second);
+        }
+        add_edge(v1,v2,et,target_graph);
+        --num_add;
       }
     }
   }

@@ -74,6 +74,7 @@ struct abOptions
 struct copyOptions {
   double rewireFraction;
   double removeFraction;
+  double addFraction;
 };
 
 struct readFileOptions {
@@ -341,6 +342,11 @@ int main(int argc, char* argv[])
     cpo->add_options()
       (s.str().c_str(), po::value<double>()->default_value(0.),
        "fraction of edges to remove");
+    s.str("");
+    s << it->getText() << "-add";
+    cpo->add_options()
+      (s.str().c_str(), po::value<double>()->default_value(0.),
+       "fraction of edges to add");
     copy_options.push_back(cpo);
   }
 
@@ -772,10 +778,17 @@ int main(int argc, char* argv[])
         } else {
           opt.removeFraction = 0.;
         }
-        
+        s.str("");
+        s << edgeTypes[i].getText() << "-add";
+        if (vm.count(s.str())) {
+          opt.addFraction = vm[s.str()].as<double>();
+        } else {
+          opt.addFraction = 0.;
+        }
+
         boost::copy_graph<dualtype_graph, onetype_graph, boost::mt19937, Edge>
           (graph, temp_graph, gen, Edge(edgeTypes[i].getId()),
-         opt.rewireFraction, opt.removeFraction);
+           opt.rewireFraction, opt.removeFraction, opt.addFraction);
         
       } else {
         // push back for later
