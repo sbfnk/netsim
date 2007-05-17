@@ -105,7 +105,6 @@ if [ -f "$output_dir/$file_id""100.graph" ]; then
   mv "$output_dir/$file_id""100.graph" "$output_dir/$file_id"".graph"
 fi
 mv "$output_dir/$file_id""100.degree" "$output_dir/$file_id"".degree"
-# remove line
 mv "$output_dir/$file_id""100.gp" "$output_dir/$file_id"".gp"
 
 # loop over num_sims
@@ -128,7 +127,7 @@ avg_command="$avg_command $output_dir/$file_id???.sim.dat"
 # execute average
 $avg_command
 
-rm $output_dir/$file_id???.sim.dat
+#rm $output_dir/$file_id???.sim.dat
 
 # check if ic-file was generated
 if [ -s $ic_file ]; then
