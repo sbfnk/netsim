@@ -124,9 +124,9 @@ int main(int argc, char* argv[])
      "produce long help message including all options")
     ("verbose,v",
      "produce verbose output")
-    ("read-params,p",po::value<std::string>(),
+    ("params-file,p",po::value<std::string>(),
      "file containing graph parameters")
-    ("read-model,m",po::value<std::string>(),
+    ("model-file,m",po::value<std::string>(),
      "file containing model parameters")
     ;
 
@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
   sim_options.add_options()
     ("sim", po::value<std::string>()->default_value("Gillespie"),
      "simulator to use (Gillespie, Chris)")
-    ("model", po::value<std::string>()->default_value("InfoSIRS"),
+    ("usemodel", po::value<std::string>()->default_value("InfoSIRS"),
      "model to use (InfoSIRS, ProtectiveSIRS)")
     ("tmax", po::value<double>()->default_value(100.),
      "time after which to stop\n(use tmax=0 to just generate graph and exit)")
