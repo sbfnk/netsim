@@ -110,7 +110,9 @@ sim_command="$sim_base --write-file $output_dir/$file_id""100"
 # execute 
 echo -ne .
 $sim_command
-mv "$output_dir/$file_id""100.graph" "$output_dir/$file_id"".graph"
+if [ -f "$output_dir/$file_id""100.graph" ]; then 
+  mv "$output_dir/$file_id""100.graph" "$output_dir/$file_id"".graph"
+fi
 mv "$output_dir/$file_id""100.degree" "$output_dir/$file_id"".degree"
 
 # loop over num_sims
