@@ -1,7 +1,7 @@
 # Simulation Parameters File %%%%%%%%%
 
 # General parameters: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-model        = InfoSIRS # model to use
+usemodel        = InfoSIRS # model to use
 tmax         = 20 # time to elapse until stop
 output       = 0.1 # timesteps at which there is data output
 graphviz     = 10 # timesteps at which to generate graphs
