@@ -216,7 +216,6 @@ int main(int argc, char* argv[])
       for (unsigned int j = 0; j < values[i].size() ; j++) {
         ofs << " " << values[i][j]/nFiles;
       }
-      std::cout << values[i].size() << std::endl;
       if (do_errors) {
         for (unsigned int j = 0; j < squares[i].size() ; j++) {
 	  double avg_value = values[i][j]/nFiles;
