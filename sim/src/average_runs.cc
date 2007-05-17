@@ -201,7 +201,15 @@ int main(int argc, char* argv[])
           std::getline(ifs, line);
         }
       }
-      firstFile = false;
+      if (firstFile) {
+        firstFile = false;
+        values.push_back(std::vector<float>(line_contents.begin()+1,
+                                            line_contents.end()));
+        if (do_errors) {
+          squares.push_back(std::vector<float>(line_squares.begin()+1,
+                                               line_squares.end()));
+        }
+      }
       ifs.close();
     } else {
       std::cerr << "Error reading " << *it << "." << std::endl;
