@@ -163,8 +163,8 @@ int main(int argc, char* argv[])
             allow_unregistered().run(), vm);
   po::notify(vm);
 
-  if (vm.count("model")) {
-    std::string modelString = vm["model"].as<std::string>();
+  if (vm.count("usemodel")) {
+    std::string modelString = vm["usemodel"].as<std::string>();
     if (modelString == "InfoSIRS") {
       model = new InfoSIRS();
     } else if (modelString == "ProtectiveSIRS") {
