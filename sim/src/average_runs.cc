@@ -106,6 +106,7 @@ int main(int argc, char* argv[])
 
   std::vector< std::vector<float> > values;
   std::vector< std::vector<float> > squares;
+  std::vector<unsigned int> no_files;
 
   unsigned int nFiles = inputFiles.size();
   unsigned int nColumns = 0;
@@ -127,7 +128,7 @@ int main(int argc, char* argv[])
       std::vector<float> previous_line_contents;
       std::vector<float> previous_line_squares;
 
-      while (!ifs.eof() && (firstFile || (currentTime <= stopTime))) {
+      while (!ifs.eof()) {
         
         lineCount++;
         line_contents.clear();
@@ -150,50 +151,33 @@ int main(int argc, char* argv[])
                       << lineCount << ": " << line_contents.size()
                       << " instead of " << nColumns << std::endl;
           }
-          
+
+          // get time of next line
           currentTime = *(line_contents.begin());
-          
-          if (currentTime >= currentStep*timeStep) {
-            while ((currentTime-timeStep) > (currentStep*timeStep)
-                   && (firstFile || (stopTime > currentStep*timeStep))) {
-              if (firstFile) {
-                values.push_back(std::vector<float>(previous_line_contents.begin()+1,
-                                                    previous_line_contents.end()));
-                if (do_errors) {
-                  squares.push_back(std::vector<float>(previous_line_squares.begin()+1,
-                                                       previous_line_squares.end()));
-                }
-                stopTime = (currentStep+1)*timeStep;
-              } else {
-                for (unsigned int i=1; i < nColumns; i++) {
-                  values[currentStep][i-1] += previous_line_contents[i];
-                  if (do_errors) {
-                    squares[currentStep][i-1] += previous_line_squares[i];
-                  }
-                }
-              }
-              ++currentStep;
-            }
-            
-            // create line vector
-            if (firstFile) {
-              values.push_back(std::vector<float>(line_contents.begin()+1,
-                                                  line_contents.end()));
+
+          // need to write data?
+          while ((currentTime) >= (currentStep*timeStep)) {
+            if ((firstFile) || (stopTime < currentStep*timeStep)) {
+              values.push_back(std::vector<float>(previous_line_contents.begin()+1,
+                                                  previous_line_contents.end()));
               if (do_errors) {
-                squares.push_back(std::vector<float>(line_squares.begin()+1,
-                                                     line_squares.end()));
+                squares.push_back(std::vector<float>(previous_line_squares.begin()+1,
+                                                     previous_line_squares.end()));
               }
+              no_files.push_back(1);
               stopTime = (currentStep+1)*timeStep;
-            } else if (stopTime > currentStep*timeStep) {
+            } else {
               for (unsigned int i=1; i < nColumns; i++) {
-                values[currentStep][i-1] += line_contents[i];
+                values[currentStep][i-1] += previous_line_contents[i];
                 if (do_errors) {
-                  squares[currentStep][i-1] += line_squares[i];
+                  squares[currentStep][i-1] += previous_line_squares[i];
                 }
               }
+              no_files[currentStep]++;
             }
             ++currentStep;
           }
+          
           previous_line_contents = std::vector<float>(line_contents);
           if (do_errors) {
             previous_line_squares = std::vector<float>(line_squares);
@@ -201,15 +185,16 @@ int main(int argc, char* argv[])
           std::getline(ifs, line);
         }
       }
-      if (firstFile) {
-        firstFile = false;
-        values.push_back(std::vector<float>(line_contents.begin()+1,
-                                            line_contents.end()));
-        if (do_errors) {
-          squares.push_back(std::vector<float>(line_squares.begin()+1,
-                                               line_squares.end()));
-        }
-      }
+//       if (firstFile) {
+//         firstFile = false;
+//         values.push_back(std::vector<float>(line_contents.begin()+1,
+//                                             line_contents.end()));
+//         if (do_errors) {
+//           squares.push_back(std::vector<float>(line_squares.begin()+1,
+//                                                line_squares.end()));
+//         }
+//         no_files.push_back(1);
+//       }
       ifs.close();
     } else {
       std::cerr << "Error reading " << *it << "." << std::endl;
@@ -220,17 +205,19 @@ int main(int argc, char* argv[])
   
   if (ofs.is_open()) {
     for (unsigned int i = 0; i < values.size(); i++, time+=timeStep) {
-      ofs << time;
-      for (unsigned int j = 0; j < values[i].size() ; j++) {
-        ofs << " " << values[i][j]/nFiles;
-      }
-      if (do_errors) {
-        for (unsigned int j = 0; j < squares[i].size() ; j++) {
-	  double avg_value = values[i][j]/nFiles;
-          ofs << " " << sqrt(squares[i][j]/nFiles - avg_value*avg_value);
+      if (no_files[i]>(nFiles/2)) {
+        ofs << time;
+        for (unsigned int j = 0; j < values[i].size() ; j++) {
+          ofs << " " << values[i][j]/no_files[i];
         }
+        if (do_errors) {
+          for (unsigned int j = 0; j < squares[i].size() ; j++) {
+            double avg_value = values[i][j]/no_files[i];
+            ofs << " " << sqrt(squares[i][j]/no_files[i] - avg_value*avg_value);
+          }
+        }
+        ofs << std::endl;
       }
-      ofs << std::endl;
     }
     ofs.close();
   } else {
