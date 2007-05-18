@@ -119,9 +119,10 @@ int main(int argc, char* argv[])
     if (ifs.is_open()) {
       std::string line;
       std::getline(ifs, line);
-      unsigned int lineCount = 1;
+      unsigned int lineCount = 0;
       float currentTime = 0;
       unsigned int currentStep = 0;
+      bool firstLine = true;
       
       std::vector<float> line_contents;
       std::vector<float> line_squares;
@@ -143,6 +144,14 @@ int main(int argc, char* argv[])
             }
           }
 
+          if (firstLine) {
+            previous_line_contents = std::vector<float>(line_contents);
+            if (do_errors) {
+              previous_line_squares = std::vector<float>(line_squares);
+            }
+            firstLine = false;
+          }
+
           if (nColumns == 0) {
             // set number of columns
             nColumns = line_contents.size();
@@ -154,9 +163,9 @@ int main(int argc, char* argv[])
 
           // get time of next line
           currentTime = *(line_contents.begin());
-
           // need to write data?
           while ((currentTime) >= (currentStep*timeStep)) {
+
             if ((firstFile) || (stopTime < currentStep*timeStep)) {
               values.push_back(std::vector<float>(previous_line_contents.begin()+1,
                                                   previous_line_contents.end()));
@@ -165,7 +174,7 @@ int main(int argc, char* argv[])
                                                      previous_line_squares.end()));
               }
               no_files.push_back(1);
-              stopTime = (currentStep+1)*timeStep;
+              stopTime = currentStep*timeStep;
             } else {
               for (unsigned int i=1; i < nColumns; i++) {
                 values[currentStep][i-1] += previous_line_contents[i];
@@ -177,7 +186,6 @@ int main(int argc, char* argv[])
             }
             ++currentStep;
           }
-          
           previous_line_contents = std::vector<float>(line_contents);
           if (do_errors) {
             previous_line_squares = std::vector<float>(line_squares);
@@ -185,16 +193,7 @@ int main(int argc, char* argv[])
           std::getline(ifs, line);
         }
       }
-//       if (firstFile) {
-//         firstFile = false;
-//         values.push_back(std::vector<float>(line_contents.begin()+1,
-//                                             line_contents.end()));
-//         if (do_errors) {
-//           squares.push_back(std::vector<float>(line_squares.begin()+1,
-//                                                line_squares.end()));
-//         }
-//         no_files.push_back(1);
-//       }
+      firstFile = false;
       ifs.close();
     } else {
       std::cerr << "Error reading " << *it << "." << std::endl;
@@ -205,19 +204,17 @@ int main(int argc, char* argv[])
   
   if (ofs.is_open()) {
     for (unsigned int i = 0; i < values.size(); i++, time+=timeStep) {
-      if (no_files[i]>(nFiles/2)) {
-        ofs << time;
-        for (unsigned int j = 0; j < values[i].size() ; j++) {
-          ofs << " " << values[i][j]/no_files[i];
-        }
-        if (do_errors) {
-          for (unsigned int j = 0; j < squares[i].size() ; j++) {
-            double avg_value = values[i][j]/no_files[i];
-            ofs << " " << sqrt(squares[i][j]/no_files[i] - avg_value*avg_value);
-          }
-        }
-        ofs << std::endl;
+      ofs << time;
+      for (unsigned int j = 0; j < values[i].size() ; j++) {
+        ofs << " " << values[i][j]/no_files[i];
       }
+      if (do_errors) {
+        for (unsigned int j = 0; j < squares[i].size() ; j++) {
+          double avg_value = values[i][j]/no_files[i];
+          ofs << " " << sqrt(squares[i][j]/no_files[i] - avg_value*avg_value);
+        }
+      }
+      ofs << std::endl;
     }
     ofs.close();
   } else {
@@ -236,7 +233,7 @@ int main(int argc, char* argv[])
     ofs << std::endl;
     ofs.close();
   } else {
-    std::cout << "Error writing to " << outputBase << ".init" << std::endl;
+    std::cerr << "Error writing to " << outputBase << ".init" << std::endl;
     return 1;
   }
 
