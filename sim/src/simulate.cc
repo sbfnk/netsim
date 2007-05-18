@@ -1148,7 +1148,8 @@ int main(int argc, char* argv[])
     ++steps;
   }
    
-  if (verbose) std::cout << "Final status:" << std::endl;
+  if (verbose) std::cout << "Final status (" << sim->getTime() << "): " 
+                         << std::endl;
   if (stop > 0 && outputGraphviz >= 0) {
       write_graph(graph, *model,
                   generateFileName((graphDir +"/frame"),outputNum),
@@ -1156,6 +1157,10 @@ int main(int argc, char* argv[])
   }
   
   if (outputFile) {
+    if (sim->getTime() < stop) {
+      lastLine = 
+        write_graph_data(graph, *model, sim->getTime(), *outputFile);
+    }
     *outputFile << stop << '\t' << lastLine;
     outputFile->close();
     delete outputFile;
