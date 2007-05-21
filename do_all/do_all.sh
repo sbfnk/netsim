@@ -37,7 +37,7 @@ if [ -z $file_id ]; then
 fi
 
 # saving command line 
-comm_line="$0 $@"
+echo "$0 $Q" > $output_dir/$file_id.comm_line
 
 # shift the current values stored in the positional parameters
 shift
