@@ -68,10 +68,11 @@ class Model
   
 public:
 
-  Model() {}
+  Model(unsigned int v = 0): verbose(v) {}
   virtual ~Model() {}
   
-  void Init(po::variables_map& vm);
+  virtual void Init(po::variables_map& vm);
+  void Print();
   
   virtual double getNodeEvents(eventList& events,
                                unsigned int state) const = 0;
@@ -99,6 +100,8 @@ protected:
   po::options_description model_options;
   
   std::map<std::string, double*> params;
+
+  unsigned int verbose;
   
 };
 

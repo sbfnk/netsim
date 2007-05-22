@@ -8,7 +8,7 @@ class Simulator
 
 public:
       
-  Simulator(const Model& m) : model(m), time(0.) {}
+  Simulator(const Model& m, unsigned int v = 0) : model(m), verbose(v), time(0.) {}
   virtual ~Simulator() {;}
       
   virtual void initialize() {;}
@@ -23,6 +23,7 @@ public:
 protected:
   
   const Model& model;
+  unsigned int verbose;
 
 private:
 
@@ -40,7 +41,7 @@ private:
 template <class Graph, class Model>
 double generateEventList(Graph& graph,
                          typename boost::graph_traits<Graph>::vertex_descriptor v,
-                         const Model& model)
+                         const Model& model, unsigned int verbose = 0)
 {
    // definitions of boost types for quick access
    typedef typename boost::graph_traits<Graph>::out_edge_iterator
@@ -56,6 +57,12 @@ double generateEventList(Graph& graph,
 
    // clear event list
    graph[v].events.clear();
+
+   if (verbose >= 2) {
+     std::cout << "Generating events list for vertex #" << v << " ("
+               << model.getVertexStates()[graph[v].state] << ")" << std::endl;
+   }
+
    // get node events
    tempSum += model.getNodeEvents(graph[v].events, graph[v].state);
 
@@ -75,6 +82,7 @@ double generateEventList(Graph& graph,
    double diff = tempSum - graph[v].rateSum;
    // set rateSum to new value
    graph[v].rateSum = tempSum;
+
 
    return diff;
 }

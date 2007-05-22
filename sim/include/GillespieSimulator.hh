@@ -25,8 +25,8 @@ class GillespieSimulator :
 
 public:
 
-  GillespieSimulator(RandomGenerator r, Graph& g, Model& m) :
-    Simulator(m), randGen(r), graph(g) {;}
+  GillespieSimulator(RandomGenerator r, Graph& g, Model& m, unsigned int v = 0) :
+    Simulator(m, v), randGen(r), graph(g) {;}
   ~GillespieSimulator() {;}
       
   void initialize();
@@ -51,7 +51,7 @@ void GillespieSimulator<RandomGenerator, Graph>::initialize()
 {
   vertex_iterator vi, vi_end;
   for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-    generateEventList(graph, *vi, model);
+    generateEventList(graph, *vi, model, verbose);
   }
 
   generateTree(tree,graph,
@@ -71,6 +71,11 @@ bool GillespieSimulator<RandomGenerator, Graph>::updateState()
   // to prevent rounding problems
   if (tree.getTopBin()->getRateSum() < 1e-8) {
     return false;
+  }
+  
+  if (verbose >= 2) {
+    std::cout << "choose event, total sum of rates is "
+              << tree.getTopBin()->getRateSum() << std::endl;
   }
          
   // draw a random number from [0,1) for the timestep advance
@@ -98,10 +103,15 @@ bool GillespieSimulator<RandomGenerator, Graph>::updateState()
     it--;
             
     // process the change of state
+    if (verbose >= 2) {
+      std::cout << "Vertex #" << v << " changes state: " 
+                << model.getVertexStates()[graph[v].state]
+                << "->" << model.getVertexStates()[(*it).newState] << std::endl;
+    }
     graph[v].state = (*it).newState;
             
     // update vertex event list
-    double rateDiff = generateEventList(graph, v, model);
+    double rateDiff = generateEventList(graph, v, model, verbose);
             
     // update tree
     vertex_index_type index = get(boost::vertex_index, graph);
@@ -112,7 +122,7 @@ bool GillespieSimulator<RandomGenerator, Graph>::updateState()
     for (tie(ai, ai_end) = adjacent_vertices(v, graph);
          ai != ai_end; ai++) {
       rateDiff =
-        generateEventList(graph, *ai, model);
+        generateEventList(graph, *ai, model, verbose);
                
       tree.getLeaves()[index[*ai]]->updateRateSum(rateDiff);
     }

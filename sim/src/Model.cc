@@ -14,5 +14,15 @@ void Model::Init(po::variables_map& vm)
   }
 }
 
+void Model::Print()
+{
+  std::cout << "Model parameters:" << std::endl;
+  std::cout << "=================" << std::endl;
+  for (std::map<std::string, double*>::iterator it = params.begin();
+       it != params.end(); it++) {
+    std::cout << it->first << ": " << *(it->second) << std::endl; 
+  }
+}
+
 std::ostream& operator<<(std::ostream& os, const Label& l)
 { l.print(os); return os; }

@@ -24,8 +24,10 @@ class InfoSIRS :
   
 public:
 
-  InfoSIRS();
+  InfoSIRS(unsigned int v = 0);
   ~InfoSIRS();
+
+  void Init(po::variables_map& vm);
   
   double getNodeEvents(eventList& events, unsigned int state) const;
   double getEdgeEvents(eventList& events, unsigned int state,
@@ -43,6 +45,7 @@ private:
 
   double gamma[2], delta[2]; // model parameters
   double beta[2][2], alpha, nu, lambda, omega; // model parameters
+  double sigma;
   
 };
 

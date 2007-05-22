@@ -17,7 +17,8 @@
 /******************************************************************/
 // InfoSIRS constructor
 /******************************************************************/
-InfoSIRS::InfoSIRS()
+InfoSIRS::InfoSIRS(unsigned int v)
+  : Model(v)
 {
   // susceptible uninformed
   vertexStates.push_back(Label("S-","00;32", 0, "fillcolor=\"green4\""));
@@ -60,6 +61,8 @@ InfoSIRS::InfoSIRS()
      "local information generation rate")
     ("lambda", po::value<double>(),
      "loss of information rate")
+    ("sigma", po::value<double>(),
+     "ratio between uninformed/uninformed susceptibilities")
     ;
 
   params.insert(std::make_pair("beta--", &beta[0][0]));
@@ -74,6 +77,7 @@ InfoSIRS::InfoSIRS()
   params.insert(std::make_pair("nu", &nu));
   params.insert(std::make_pair("omega", &omega));
   params.insert(std::make_pair("lambda", &lambda));
+  params.insert(std::make_pair("sigma", &sigma));
 }
 
 /******************************************************************/
@@ -81,6 +85,23 @@ InfoSIRS::InfoSIRS()
 /******************************************************************/
 InfoSIRS::~InfoSIRS()
 {}
+
+/******************************************************************/
+// InfoSIRS::Init
+// initializes the model, uses sigma appropriately
+/******************************************************************/
+void InfoSIRS::Init(po::variables_map& vm)
+{
+  Model::Init(vm);
+  if (vm.count("sigma")) {
+    beta[1][0]=sigma*beta[0][0];
+    beta[1][1]=sigma*beta[0][1];
+    if (verbose >= 1) {
+      std::cout << "sigma given, setting beta+-=" << beta[1][0]
+                << " and beta++=" << beta[1][1] << std::endl;
+    }
+  }
+}
 
 /******************************************************************/
 // InfoSIRS::getNodeEvents
@@ -99,6 +120,10 @@ double InfoSIRS::getNodeEvents(eventList& events,unsigned int state) const
       if (immunityLoss.rate > 0) {
         events.push_back(immunityLoss);
         rateSum += immunityLoss.rate;
+        if (verbose >= 2) {
+          std::cout << "Adding loss of immunity event with rate " 
+	            << immunityLoss.rate << std::endl;
+        }
       }
    } else
    if (getDisease(state) == Infected) {
@@ -109,6 +134,10 @@ double InfoSIRS::getNodeEvents(eventList& events,unsigned int state) const
       if (recovery.rate > 0) {
         events.push_back(recovery);
         rateSum += recovery.rate;
+        if (verbose >= 2) {
+          std::cout << "Adding recovery event with rate " << recovery.rate
+                    << std::endl;
+        }
       }
       if (getInfo(state) == Uninformed) {
         // local information generation
@@ -118,6 +147,10 @@ double InfoSIRS::getNodeEvents(eventList& events,unsigned int state) const
         if (localInfo.rate > 0) {
           events.push_back(localInfo);
           rateSum += localInfo.rate;
+          if (verbose >= 2) {
+            std::cout << "Adding local information event with rate " 
+	              << localInfo.rate << std::endl;
+          }
         }
       }
    }
@@ -129,6 +162,10 @@ double InfoSIRS::getNodeEvents(eventList& events,unsigned int state) const
       if (infoLoss.rate > 0) {
         events.push_back(infoLoss);
         rateSum += infoLoss.rate;
+        if (verbose >= 2) {
+          std::cout << "Adding information loss event with rate " 
+	            << infoLoss.rate << std::endl;
+        }
       }
    }
 
@@ -156,6 +193,10 @@ double InfoSIRS::getEdgeEvents(eventList& events,
          if (infection.rate > 0) {
            events.push_back(infection);
            rateSum += infection.rate;
+           if (verbose >= 2) {
+             std::cout << "Adding infection event with rate " << infection.rate
+                       << std::endl;
+           }
          }
       }
    } else if (edge == Information) {
@@ -167,6 +208,10 @@ double InfoSIRS::getEdgeEvents(eventList& events,
          if (infoTransmission.rate > 0) {
            events.push_back(infoTransmission);
            rateSum += infoTransmission.rate;
+           if (verbose >= 2) {
+             std::cout << "Adding information transmission event with rate " 
+                       << infoTransmission.rate << std::endl;
+           }
          }
       }
       // information generation
@@ -177,6 +222,10 @@ double InfoSIRS::getEdgeEvents(eventList& events,
          if (infoGeneration.rate > 0) {
            events.push_back(infoGeneration);
            rateSum += infoGeneration.rate;
+           if (verbose >= 2) {
+             std::cout << "Adding information generation event with rate " 
+                       << infoGeneration.rate << std::endl;
+           }
          }
       }
    }

@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
   std::string outputFileName = "";
   std::ofstream* outputFile = 0;
 
-  bool verbose = false;
+  unsigned int verbose = 0;
   
   std::string readGraph = ""; // default is to generate graph.
   bool generateIC = true; // default is to generate i.c.
@@ -124,6 +124,8 @@ int main(int argc, char* argv[])
      "produce long help message including all options")
     ("verbose,v",
      "produce verbose output")
+    ("very-verbose,V",
+     "produce very verbose output")
     ("params-file,p",po::value<std::string>(),
      "file containing graph parameters")
     ("model-file,m",po::value<std::string>(),
@@ -163,10 +165,22 @@ int main(int argc, char* argv[])
             allow_unregistered().run(), vm);
   po::notify(vm);
 
+  if (vm.count("help")) {
+    std::cout << command_line_options << sim_options << std::endl;
+    return 0;
+  }
+
+  if (vm.count("verbose")) {
+    verbose = 1;
+  }
+  if (vm.count("very-verbose")) {
+    verbose = 2;
+  }
+
   if (vm.count("usemodel")) {
     std::string modelString = vm["usemodel"].as<std::string>();
     if (modelString == "InfoSIRS") {
-      model = new InfoSIRS();
+      model = new InfoSIRS(verbose);
     } else if (modelString == "ProtectiveSIRS") {
       model = new ProtectiveSIRS();
     } else {
@@ -375,8 +389,7 @@ int main(int argc, char* argv[])
 
   // read options from command line
   po::options_description visible_options;
-  visible_options.add(command_line_options).add(sim_options).add(graph_options).
-    add(model_options);
+  visible_options.add(command_line_options).add(sim_options).add(graph_options).add(model_options);
   
   po::options_description all_options;
   all_options.add(visible_options).add(hidden_options);
@@ -397,18 +410,9 @@ int main(int argc, char* argv[])
             allow_unregistered().run(), vm);
   po::notify(vm);
 
-  if (vm.count("help")) {
-    std::cout << command_line_options << sim_options << std::endl;
-    return 0;
-  }
-
   if (vm.count("longhelp")) {
     std::cout << all_options << std::endl;
     return 0;
-  }
-
-  if (vm.count("verbose")) {
-    verbose = true;
   }
 
   if (vm.count("params-file")) {
@@ -434,7 +438,7 @@ int main(int argc, char* argv[])
   }
   
   po::notify(vm);
-  
+
   if (vm.count("vertices")) {
     N = vm["vertices"].as<unsigned int>();
   }
@@ -965,6 +969,10 @@ int main(int argc, char* argv[])
             inserted = true;
           }
         }
+	if (verbose >= 2) {
+          std::cout << "Vertex #" << v << " is assigned state " 
+                    << model->getVertexStates()[i] << std::endl;
+        }
       }
     }
       
@@ -1015,6 +1023,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
   
   model->Init(vm);
+  if (verbose >=1) model->Print();
   
   /******************************************************************/
   // create simulator
@@ -1026,7 +1035,7 @@ int main(int argc, char* argv[])
     std::string simType = vm["sim"].as<std::string>();
     if (simType == "Gillespie") {
       sim = new GillespieSimulator<boost::mt19937, dualtype_graph>
-        (gen, graph, *model);
+        (gen, graph, *model, verbose);
 //     } else if (simType == "Chris") {
 //       sim = new ChrisSimulator<boost::mt19937, dualtype_graph>
 //         (gen, graph, *model);
@@ -1126,6 +1135,10 @@ int main(int argc, char* argv[])
 
   while (sim->getTime()<stop && sim->updateState()) {
     
+    if (verbose >= 2) {
+      print_graph_statistics(graph, *model);
+    }
+
     if (verbose && steps%100 == 0) {
       std::cout << "time elapsed: " << sim->getTime() << std::endl;
     }
