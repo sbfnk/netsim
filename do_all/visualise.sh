@@ -10,6 +10,8 @@ fi
 
 images_dir=$DATADIR/$1/images
 
+sed -i 's/^.*rewired.*$//g' $images_dir/*
+
 rm $images_dir/*.gif
 for I in $images_dir/frame* 
 do

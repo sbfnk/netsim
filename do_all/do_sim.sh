@@ -141,8 +141,6 @@ echo "Making plots"
 plot_command="$CODEDIR/do_all/simplot.bash $file_id"
 $plot_command
 
-sed -i 's/^.*rewired.*$//g' $output_dir/images/*
-    
 # ghostview
 #    gv $output_dir/$file_id.pairs.ps &
 #    gv $output_dir/$file_id.singlets.ps &
