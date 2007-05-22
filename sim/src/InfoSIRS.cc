@@ -21,17 +21,17 @@ InfoSIRS::InfoSIRS(unsigned int v)
   : Model(v)
 {
   // susceptible uninformed
-  vertexStates.push_back(Label("S-","00;32", 0, "fillcolor=\"green4\""));
+  vertexStates.push_back(Label("S-","00;32", 0, "fillcolor=\"royalblue4\""));
   // infected uninformed
   vertexStates.push_back(Label("I-","00;31", 1, "fillcolor=\"red4\""));
   // recovered uninformed
-  vertexStates.push_back(Label("R-","00;34", 2, "fillcolor=\"royalblue4\""));
+  vertexStates.push_back(Label("R-","00;34", 2, "fillcolor=\"green4\""));
   // susceptible informed
-  vertexStates.push_back(Label("S+","01;32", 3, "fillcolor=\"green\""));
+  vertexStates.push_back(Label("S+","01;32", 3, "fillcolor=\"royalblue\""));
   // infected informed
   vertexStates.push_back(Label("I+","01;31", 4, "fillcolor=\"red\""));
   // recovered informed
-  vertexStates.push_back(Label("R+","01;34", 5, "fillcolor=\"royalblue\""));
+  vertexStates.push_back(Label("R+","01;34", 5, "fillcolor=\"green\""));
 
   edgeTypes.push_back(Label("d", "", 0, "style=\"solid\""));
   edgeTypes.push_back(Label("i", "", 1, "style=\"dashed\""));
