@@ -389,7 +389,8 @@ int main(int argc, char* argv[])
 
   // read options from command line
   po::options_description visible_options;
-  visible_options.add(command_line_options).add(sim_options).add(graph_options).add(model_options);
+  visible_options.add(command_line_options).add(sim_options).add(graph_options).
+    add(model_options);
   
   po::options_description all_options;
   all_options.add(visible_options).add(hidden_options);
@@ -406,10 +407,18 @@ int main(int argc, char* argv[])
     all_options.add(*(readFile_options[it->getId()]));
   }
 
-  po::store(po::command_line_parser(argc, argv).options(all_options).
-            allow_unregistered().run(), vm);
+  po::parsed_options parsed = po::command_line_parser(argc, argv).
+    options(all_options).allow_unregistered().run();
+  po::store(parsed, vm);
   po::notify(vm);
-
+  
+  std::vector<std::string> unregistered =
+    po::collect_unrecognized(parsed.options, po::exclude_positional);
+  for (std::vector<std::string>::iterator it = unregistered.begin();
+       it != unregistered.end(); it++) {
+    std::cerr << "WARNING: ignoring unknown option " << *it << std::endl;
+  }
+ 
   if (vm.count("longhelp")) {
     std::cout << all_options << std::endl;
     return 0;
