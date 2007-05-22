@@ -204,17 +204,19 @@ int main(int argc, char* argv[])
   
   if (ofs.is_open()) {
     for (unsigned int i = 0; i < values.size(); i++, time+=timeStep) {
-      ofs << time;
-      for (unsigned int j = 0; j < values[i].size() ; j++) {
-        ofs << " " << values[i][j]/no_files[i];
-      }
-      if (do_errors) {
-        for (unsigned int j = 0; j < squares[i].size() ; j++) {
-          double avg_value = values[i][j]/no_files[i];
-          ofs << " " << sqrt(squares[i][j]/no_files[i] - avg_value*avg_value);
+      if (no_files[i] > nFiles/2) {
+        ofs << time;
+        for (unsigned int j = 0; j < values[i].size() ; j++) {
+          ofs << " " << values[i][j]/no_files[i];
         }
+        if (do_errors) {
+          for (unsigned int j = 0; j < squares[i].size() ; j++) {
+            double avg_value = values[i][j]/no_files[i];
+            ofs << " " << sqrt(squares[i][j]/no_files[i] - avg_value*avg_value);
+          }
+         }
+        ofs << std::endl;
       }
-      ofs << std::endl;
     }
     ofs.close();
   } else {
