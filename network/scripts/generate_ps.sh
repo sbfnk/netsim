@@ -2,7 +2,7 @@
 
 for I in images/frame* 
 do
-  neato -Tps $I -o $I.ps
+  neato -Tps2 $I -o $I.ps
 done
 
 
