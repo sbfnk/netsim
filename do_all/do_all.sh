@@ -37,7 +37,7 @@ if [ -z $file_id ]; then
 fi
 
 # saving command line 
-echo "$0 $Q" > $output_dir/$file_id.comm_line
+comm_line="$0 $@"
 
 # shift the current values stored in the positional parameters
 shift
@@ -77,6 +77,9 @@ else
     mkdir $output_dir
     mkdir $output_dir/images
 fi
+
+# writing comm line
+echo $comm_line > $output_dir/$file_id.comm_line
 
 # check num_sims
 if [ $num_sims -gt 8999 ]; then
