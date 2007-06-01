@@ -63,10 +63,26 @@ namespace boost {
   }
 
   //----------------------------------------------------------
+  // checks if unseen edge among stubs
+  // needed for copy_graph and random_regular_graph
+  
+  bool suitable(std::vector<unsigned int>& stubs,
+                std::vector<std::vector<bool> >& seen_edges)
+  {
+    typedef std::vector<unsigned int>::iterator iter;
+    
+    for (iter s = stubs.begin(); s != stubs.end(); s++) 
+      for (iter t = s + 1; t != stubs.end(); t++) 
+        if (!seen_edges[*s][*t]) return 1; // success
+    
+    return 0; //failure
+  }
+  
+  //----------------------------------------------------------
    
   template <typename Graph1, typename Graph2, typename RandomGenerator,
             typename EdgeType>
-  void copy_graph(Graph1& source_graph, Graph2& target_graph,
+  int copy_graph(Graph1& source_graph, Graph2& target_graph,
                   RandomGenerator& r,
                   typename edge_property_type<Graph2>::type et =
                   edge_property_type<Graph2>::type(),
@@ -81,18 +97,21 @@ namespace boost {
     typedef typename boost::graph_traits<Graph2>::vertex_descriptor
       vertex_descriptor;
 
+    std::vector< std::vector<bool> >
+      seen_edges(num_vertices(source_graph),
+                    std::vector<bool>(num_vertices(source_graph), false));
+    std::vector<vertex_descriptor> stubs;
+
     edge_iterator ei, ei_end;
     for (tie(ei, ei_end) = edges(source_graph); ei != ei_end; ei++) {
       add_edge(source(*ei, source_graph), target(*ei, source_graph),
                et, target_graph);
+      seen_edges[source(*ei, source_graph)][target(*ei, source_graph)] = true;
+      seen_edges[target(*ei, source_graph)][source(*ei, source_graph)] = true;
     }
 
     et.m_value.rewired = true;
 
-    std::vector< std::vector<bool> >
-      seen_edges(num_vertices(target_graph),
-                 std::vector<bool>(num_vertices(target_graph), false));
-    
     unsigned int N = num_edges(target_graph);
     
     if (rewireFraction > 0.) {
@@ -100,42 +119,37 @@ namespace boost {
         boost::uniform_01<boost::mt19937, double> uni_gen(r);
         unsigned int num_rewire =
           static_cast<unsigned int>(rewireFraction * N);
+        // remove num_rewire random edges
+        
+        for (unsigned int i = 0; i < num_rewire; i++) {
+          edge_descriptor e = random_edge(target_graph, r);
+          stubs.push_back(source(e, target_graph));
+          stubs.push_back(target(e, target_graph));
+          boost::remove_edge(e, target_graph);
+        }
+        // rewire removed edges
         while (num_rewire > 0) {
-          // select random edge for rewiring
-          vertex_descriptor v = random_vertex(target_graph, r);
-          seen_edges[v][v] = true;
-          // collect existing and non-existing edges
-          std::vector<unsigned int> existing;
-          std::vector<unsigned int> free;
-            
-          for (unsigned int u = 0; u < num_vertices(target_graph); u++) {
-            if (!seen_edges[u][v]) {
-              if (edge(v, u, target_graph).second) {
-                existing.push_back(u);
-              } else {
-                free.push_back(u);
-              }
+          // rewire two of the stubs
+          unsigned int src =
+            static_cast<unsigned int>(uni_gen() * stubs.size());
+          unsigned int trg = 
+            static_cast<unsigned int>(uni_gen() * stubs.size());
+          // check if suitable pair
+          if ((src != trg) && (!seen_edges[stubs[src]][stubs[trg]])) {
+            boost::add_edge(stubs[src], stubs[trg], et, target_graph);
+            // remove stubs
+            stubs.erase(stubs.begin() + src);
+            if (src > trg) {
+              stubs.erase(stubs.begin() + trg);
+            } else {
+              stubs.erase(stubs.begin() + trg - 1);
             }
-          }
-          if (existing.size() > 0 && free.size() > 0) {
-            // choose random existing and free edges
-            unsigned int remove_edge =
-              static_cast<unsigned int>(uni_gen() * (existing.size() - 1));
-            unsigned int new_edge =
-              static_cast<unsigned int>(uni_gen() * (free.size() - 1));
-            seen_edges[v][existing[remove_edge]] = true;
-            seen_edges[existing[remove_edge]][v] = true;
-            seen_edges[v][free[new_edge]] = true;
-            seen_edges[free[new_edge]][v] = true;
-
-            // rewire edge
-
-            boost::remove_edge(v, existing[remove_edge], target_graph);
-            boost::add_edge(v, free[new_edge], et, target_graph);
-
             --num_rewire;
+          } else {
+            if (!suitable(stubs, seen_edges))
+              return -1; // failure - no more suitable pairs
           }
-        } 
+        }
       } else {
         std::cerr << "ERROR: rewire fraction must be between 0 and 1" << std::endl;
         std::cerr << "no rewiring performed" << std::endl;
@@ -182,6 +196,7 @@ namespace boost {
         --num_add;
       }
     }
+    return 0;
   }
   
   //----------------------------------------------------------
@@ -229,38 +244,17 @@ namespace boost {
   }
 
   //----------------------------------------------------------
-  // Random Regular Graph
-  
-  bool suitable(std::vector<unsigned int>& stubs,
-                std::vector<std::vector<int> >& seen_edges)
-  {
-    typedef std::vector<unsigned int>::iterator iter;
-    
-    for (iter s = stubs.begin(); s != stubs.end(); s++) 
-      for (iter t = s + 1; t != stubs.end(); t++) 
-        if (seen_edges[*s][*t] == 0) return 1; // success
-    
-    return 0; //failure
-  }
-  
-  //----------------------------------------------------------
   
   template <typename DistributionType>
   int random_regular_graph(std::vector<std::pair<unsigned int, unsigned int> >& rrg_edges,
                            const unsigned int d,
                            const unsigned int N,
-                           DistributionType& uni_gen,
-                           bool clear_adjacency_matrix)
+                           DistributionType& uni_gen)
   {
     
     // define seen_edges NxN zero matrix
-    static std::vector<std::vector<int> > seen_edges(N, std::vector<int>(N, 0));
-    
-    // clear seen_edjes
-    if (clear_adjacency_matrix)
-      for (unsigned int i = 0; i < N; ++i)
-        for (unsigned int j = 0; j < N; ++j)
-          seen_edges[i][j] = 0;
+    std::vector<std::vector<bool> >
+      seen_edges(N, std::vector<bool>(N, false));
     
     // define stubs
     std::vector<unsigned int> stubs;
@@ -291,8 +285,8 @@ namespace boost {
         }
         
         // update seen_edges
-        seen_edges[source][target] = 1;
-        seen_edges[target][source] = 1;         
+        seen_edges[source][target] = true;
+        seen_edges[target][source] = true;         
         
         // add edge to rrg_edges
         rrg_edges.push_back(std::make_pair(source, target));
