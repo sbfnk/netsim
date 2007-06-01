@@ -282,7 +282,7 @@ int main(int argc, char* argv[])
     s << "joint-degree";
     rrgo->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
-       "degree of the joint core of two random regular graphs");
+       "degree of the joint core of two random regular graphs. If not given, the overlapping is random.");
     rrg_options.push_back(rrgo);
   }
   
