@@ -117,7 +117,7 @@ namespace boost {
     unsigned int N = num_edges(target_graph);
     
     if (rewireFraction > 0.) {
-      if (rewireFraction < 1.) {
+      if (rewireFraction <= 1.) {
         boost::uniform_01<boost::mt19937, double> uni_gen(r);
         unsigned int num_rewire =
           static_cast<unsigned int>(rewireFraction * N);
