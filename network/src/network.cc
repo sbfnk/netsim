@@ -643,7 +643,7 @@ int main(int argc, char* argv[])
       boost::uniform_01<boost::mt19937, double> uni_gen(gen);
       
       while (!success) {
-        success = boost::random_regular_graph(rrg_edges, opt.d, N, uni_gen);
+        success = boost::random_regular_graph(temp_graph, rrg_edges, opt.d, N, uni_gen);
         
         if (success) {            
           for (GraphEdges::iterator it = rrg_edges.begin();

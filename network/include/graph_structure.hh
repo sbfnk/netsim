@@ -65,11 +65,13 @@ namespace boost {
   //----------------------------------------------------------
   // checks if unseen edge among stubs
   // needed for copy_graph and random_regular_graph
-  
-  bool suitable(std::vector<unsigned int>& stubs,
+
+  template <typename Graph>
+  bool suitable(Graph& g,
+                std::vector<typename boost::graph_traits<Graph>::vertex_descriptor>& stubs,
                 std::vector<std::vector<bool> >& seen_edges)
   {
-    typedef std::vector<unsigned int>::iterator iter;
+    typedef typename std::vector<typename boost::graph_traits<Graph>::vertex_descriptor>::iterator iter;
     
     for (iter s = stubs.begin(); s != stubs.end(); s++) 
       for (iter t = s + 1; t != stubs.end(); t++) 
@@ -146,7 +148,7 @@ namespace boost {
             }
             --num_rewire;
           } else {
-            if (!suitable(stubs, seen_edges))
+            if (!suitable(target_graph,stubs, seen_edges))
               return -1; // failure - no more suitable pairs
           }
         }
@@ -245,19 +247,23 @@ namespace boost {
 
   //----------------------------------------------------------
   
-  template <typename DistributionType>
-  int random_regular_graph(std::vector<std::pair<unsigned int, unsigned int> >& rrg_edges,
+  template <typename Graph, typename DistributionType>
+  int random_regular_graph(Graph& g,
+                           std::vector<std::pair<unsigned int, unsigned int> >& rrg_edges,
                            const unsigned int d,
                            const unsigned int N,
                            DistributionType& uni_gen)
   {
-    
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor
+      vertex_descriptor;
+
+     
     // define seen_edges NxN zero matrix
     std::vector<std::vector<bool> >
       seen_edges(N, std::vector<bool>(N, false));
     
     // define stubs
-    std::vector<unsigned int> stubs;
+    std::vector<vertex_descriptor> stubs;
     
     // init stubs
     for (unsigned int i = 0; i < N; ++i)
@@ -268,8 +274,8 @@ namespace boost {
     while (stubs.size()) {
       
       // select source and target from stubs
-      unsigned int src = static_cast<unsigned int>(uni_gen() * stubs.size());
-      unsigned int trg = static_cast<unsigned int>(uni_gen() * stubs.size());
+      unsigned int src = static_cast<vertex_descriptor>(uni_gen() * stubs.size());
+      unsigned int trg = static_cast<vertex_descriptor>(uni_gen() * stubs.size());
       unsigned int source = stubs[src];
       unsigned int target = stubs[trg];
       
@@ -293,7 +299,7 @@ namespace boost {
         
       } else { // check if suitable stubs left
         
-        if (!suitable(stubs, seen_edges)) return 0; // failure - no more suitable pairs
+        if (!suitable(g, stubs, seen_edges)) return 0; // failure - no more suitable pairs
       }
     }   
     
