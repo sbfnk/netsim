@@ -17,7 +17,7 @@
 //----------------------------------------------------------
 
 namespace boost {
-
+  
   template <typename Graph>
   void add_vertices(Graph& g, 
                     typename graph_traits<Graph>::vertices_size_type n)
@@ -26,9 +26,9 @@ namespace boost {
       add_vertex(g);
     }
   }
-   
+  
   //----------------------------------------------------------
-   
+  
   template <typename Graph>
   void add_vertices(Graph& g, 
                     typename graph_traits<Graph>::vertices_size_type n,
@@ -75,7 +75,7 @@ namespace boost {
   {
     typedef typename boost::graph_traits<Graph1>::edge_iterator
       edge_iterator;
-
+    
     typedef typename boost::graph_traits<Graph2>::edge_descriptor
       edge_descriptor;
     typedef typename boost::graph_traits<Graph2>::vertex_descriptor
@@ -91,8 +91,8 @@ namespace boost {
 
     std::vector< std::vector<bool> >
       seen_edges(num_vertices(target_graph),
-                    std::vector<bool>(num_vertices(target_graph), false));
-
+                 std::vector<bool>(num_vertices(target_graph), false));
+    
     unsigned int N = num_edges(target_graph);
     
     if (rewireFraction > 0.) {
@@ -242,22 +242,25 @@ namespace boost {
     
     return 0; //failure
   }
-
+  
   //----------------------------------------------------------
   
   template <typename DistributionType>
   int random_regular_graph(std::vector<std::pair<unsigned int, unsigned int> >& rrg_edges,
                            const unsigned int d,
                            const unsigned int N,
-                           DistributionType& uni_gen)
+                           DistributionType& uni_gen,
+                           bool clear_adjacency_matrix)
   {
     
     // define seen_edges NxN zero matrix
-    std::vector<std::vector<int> > seen_edges(N, std::vector<int>(N, 0));
+    static std::vector<std::vector<int> > seen_edges(N, std::vector<int>(N, 0));
     
-    // init seen_edges
-    for (unsigned int i = 0; i < N; ++i)
-      seen_edges[i][i] = 1;
+    // clear seen_edjes
+    if (clear_adjacency_matrix)
+      for (unsigned int i = 0; i < N; ++i)
+        for (unsigned int j = 0; j < N; ++j)
+          seen_edges[i][j] = 0;
     
     // define stubs
     std::vector<unsigned int> stubs;
@@ -266,7 +269,6 @@ namespace boost {
     for (unsigned int i = 0; i < N; ++i)
       for (unsigned int j = 0; j < d; ++j)
         stubs.push_back(i);
-    
     
     // construct random regular graph
     while (stubs.size()) {
@@ -303,7 +305,7 @@ namespace boost {
     
     return 1; // success
   }
-
+  
 } // namespace boost
 
 //----------------------------------------------------------

@@ -54,6 +54,7 @@ struct rgOptions {
 
 struct rrgOptions {
   unsigned int d;
+  unsigned int jd;
 };
 
 struct swOptions {
@@ -277,6 +278,11 @@ int main(int argc, char* argv[])
     rrgo->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "degree of the graph G(n,d)");
+    s.str("");
+    s << "joint-degree";
+    rrgo->add_options()
+      (s.str().c_str(), po::value<unsigned int>(),
+       "degree of the joint core of two random regular graphs");
     rrg_options.push_back(rrgo);
   }
   
@@ -479,8 +485,12 @@ int main(int argc, char* argv[])
   /******************************************************************/
 
   std::vector<Label> edgeTypes = model->getEdgeTypes();
+  
   for (unsigned int i = 0; i < edgeTypes.size(); i++) {
-    
+
+    // skip loop if random-regular-overlap
+    if (vm.count("joint-degree")) break;   
+
     onetype_graph temp_graph;
     boost::add_vertices(temp_graph, N);
     
@@ -493,7 +503,7 @@ int main(int argc, char* argv[])
       std::cerr << command_line_options << graph_options << std::endl;
       return 1;
     }
-
+    
     if (topology == "lattice") {
       
       /******************************************************************/
@@ -633,7 +643,7 @@ int main(int argc, char* argv[])
       boost::uniform_01<boost::mt19937, double> uni_gen(gen);
       
       while (!success) {
-        success = boost::random_regular_graph(rrg_edges, opt.d, N, uni_gen);
+        success = boost::random_regular_graph(rrg_edges, opt.d, N, uni_gen, true);
         
         if (success) {            
           for (GraphEdges::iterator it = rrg_edges.begin();
@@ -864,7 +874,7 @@ int main(int argc, char* argv[])
       std::cerr << "ERROR: unknown " << s.str() << ": " << topology
                 << std::endl;
       std::cerr << command_line_options << graph_options << std::endl;
-      return 1;
+      //return 1;
     }
     
     // copy edges to main graph
@@ -875,6 +885,122 @@ int main(int argc, char* argv[])
     }         
   }
 
+
+  
+  /******************************************************************/
+  // generate random regular graph with a given overlap
+  /******************************************************************/
+
+  std::string dtopo, itopo;
+  std::stringstream sd, si;
+  sd << edgeTypes[0].getText() << "-topology";
+  si << edgeTypes[1].getText() << "-topology";
+  if (vm.count(sd.str())) {
+    dtopo = vm[sd.str()].as<std::string>();
+  } else {
+    std::cerr << "ERROR: no " << sd.str() << " specified" << std::endl;
+    std::cerr << command_line_options << graph_options << std::endl;
+    return 1;
+  }
+  if (vm.count(si.str())) {
+    itopo = vm[si.str()].as<std::string>();
+  } else {
+    std::cerr << "ERROR: no " << si.str() << " specified" << std::endl;
+    std::cerr << command_line_options << graph_options << std::endl;
+    return 1;
+  }
+  
+  if ((itopo == "random-regular") && (dtopo == "random-regular") && vm.count("joint-degree")) {
+    
+    rrgOptions opt;
+    
+    // read joint degree
+    opt.jd = vm["joint-degree"].as<unsigned int>();
+    
+    /******************************************************************/
+    // generate joint core graph of joint-degree
+    /******************************************************************/
+    if (opt.jd != 0) {      
+      
+      bool success = 0;
+      unsigned int count = 0;
+      typedef std::vector<std::pair<unsigned int, unsigned int> > GraphEdges;
+      GraphEdges rrg_edges;
+      
+      boost::uniform_01<boost::mt19937, double> uni_gen(gen);
+      
+      while (!success) {
+        success = boost::random_regular_graph(rrg_edges, opt.jd, N, uni_gen, false);
+        
+        if (success) 
+          for (GraphEdges::iterator it = rrg_edges.begin(); it != rrg_edges.end(); ++it)
+            for (unsigned int i = 0; i < edgeTypes.size(); i++) 
+              boost::add_edge((*it).first, (*it).second,
+                              Edge(edgeTypes[i].getId()), graph);            
+      }
+      
+      rrg_edges.clear();         
+      ++count;    
+      
+      if (verbose) std::cout << "Random regular core graph of degree " << opt.jd
+                             << " was generated in " << count << " trials\n";
+    } // core graph
+    
+    /******************************************************************/
+    // generate non-overlapping edges 
+    /******************************************************************/
+    
+    for (unsigned int i = 0; i < edgeTypes.size(); i++) {
+      
+      std::stringstream s; s.str("");
+      s << edgeTypes[i].getText() << "-degree";
+      if (vm.count(s.str())) {
+        opt.d = vm[s.str()].as<unsigned int>();
+      } else {
+        std::cerr << "ERROR: Graph degree not spcified" << std::endl;
+        std::cerr << *rrg_options[edgeTypes[i].getId()] << std::endl;
+        return 1;
+      }
+
+      if (opt.d < opt.jd ) {
+        std::cerr << "ERROR: " << s.str() << " is less than joint-degree\n";
+        return 1;
+      }
+      
+      /******************************************************************/
+      // generate random regular graph with desired properties
+      /******************************************************************/      
+      bool success = 0;
+      unsigned int count = 0;
+      typedef std::vector<std::pair<unsigned int, unsigned int> > GraphEdges;
+      GraphEdges rrg_edges;
+      
+      boost::uniform_01<boost::mt19937, double> uni_gen(gen);
+      
+      while (!success) {
+        success = boost::random_regular_graph(rrg_edges, opt.d-opt.jd, N, uni_gen, false);
+        
+        if (success) {            
+          for (GraphEdges::iterator it = rrg_edges.begin();
+               it != rrg_edges.end(); ++it) 
+            boost::add_edge((*it).first, (*it).second,
+                            Edge(edgeTypes[i].getId()), graph);            
+        } 
+        
+        rrg_edges.clear();         
+        ++count;
+      }
+      
+      if (verbose) std::cout << "Random regular graph of type "
+                             << edgeTypes[i].getText()
+                             << "with degree " << opt.d
+                             << " was generated in " << count << " trials\n";
+    }
+    
+  } // random-regular-overlap
+  
+
+  // checking graph  
   if (num_vertices(graph) == 0) {
     std::cerr << "ERROR: no vertices" << std::endl;
     std::cerr << command_line_options << graph_options << std::endl;
@@ -1024,7 +1150,7 @@ int main(int argc, char* argv[])
     odeIcFile.close();
       
     // exit
-    return 0;   
+    //return 0;   
   }
    
   /******************************************************************/
