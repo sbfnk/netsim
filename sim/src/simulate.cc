@@ -820,7 +820,9 @@ int main(int argc, char* argv[])
           ++count;
         }
         
-        if (verbose) std::cout << "graph rewired after " << count << " trials\n";
+        if (verbose && opt.rewireFraction > 0.) {
+          std::cout << "graph rewired after " << count << " trials\n";
+        }
       } else {
         // push back for later
         edgeTypes.push_back(edgeTypes[i]);
@@ -900,9 +902,9 @@ int main(int argc, char* argv[])
   }
     
   // mark parallel edges
-  unsigned int parallel_edges = mark_parallel_edges(graph);
-  if (verbose) std::cout << "No. of parallel edges is: " << parallel_edges
-                         << std::endl;
+   unsigned int parallel_edges = mark_parallel_edges(graph);
+   if (verbose) std::cout << "No. of parallel edges is: " << parallel_edges
+                          << std::endl;
 
   // create sparse adjacency matrices and clustering coefficients
   if (vm.count("cluster-coeff")) {
