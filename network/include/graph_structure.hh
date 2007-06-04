@@ -136,7 +136,7 @@ namespace boost {
           unsigned int trg = 
             static_cast<unsigned int>(uni_gen() * stubs.size());
           // check if suitable pair
-          if ((src != trg) && (!seen_edges[stubs[src]][stubs[trg]])) {
+          if ((stubs[src] != stubs[trg]) && (!seen_edges[stubs[src]][stubs[trg]])) {
             boost::add_edge(stubs[src], stubs[trg], et, target_graph);
             // remove stubs
             stubs.erase(stubs.begin() + src);
@@ -251,7 +251,7 @@ namespace boost {
                             std::vector<std::pair<unsigned int, unsigned int> >& rrg_edges,
                             const unsigned int d,
                             const unsigned int N,
-                            DistributionType& uni_gen,
+                            DistributionType& uni_gen
                             )
   {
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
