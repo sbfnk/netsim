@@ -680,13 +680,13 @@ int main(int argc, char* argv[])
       }
 
       if (opt.degree > 0) {
-        // generate additional graph, excluding existing vertices
+        // generate additional graph, excluding existing edges
         success = 0;
         count = 0;
         rrg_edges.clear();
         while (!success) {
           success = boost::random_regular_graph(graph, rrg_edges,
-                                                opt.degree, N, uni_gen, i);
+                                                opt.degree, N, uni_gen);
           if (success) {            
             for (GraphEdges::iterator it = rrg_edges.begin();
                  it != rrg_edges.end(); ++it){

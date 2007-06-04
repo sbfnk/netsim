@@ -252,7 +252,6 @@ namespace boost {
                             const unsigned int d,
                             const unsigned int N,
                             DistributionType& uni_gen,
-                            unsigned int et = 0
                             )
   {
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
@@ -267,10 +266,8 @@ namespace boost {
     // loop over graph and fill seen_edges
     edge_iterator ei, ei_end;
     for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
-      if (g[*ei].type == et) {
-        seen_edges[source(*ei, g)][target(*ei, g)] = true;
-        seen_edges[target(*ei, g)][source(*ei, g)] = true;
-      }
+      seen_edges[source(*ei, g)][target(*ei, g)] = true;
+      seen_edges[target(*ei, g)][source(*ei, g)] = true;
     }
     
     // define stubs
