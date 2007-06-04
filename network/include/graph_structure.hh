@@ -75,7 +75,7 @@ namespace boost {
     
     for (iter s = stubs.begin(); s != stubs.end(); s++) 
       for (iter t = s + 1; t != stubs.end(); t++) 
-        if (!seen_edges[*s][*t]) return 1; // success
+        if (!seen_edges[*s][*t] && *s != *t) return 1; // success
     
     return 0; //failure
   }
