@@ -82,8 +82,7 @@ namespace boost {
   
   //----------------------------------------------------------
    
-  template <typename Graph1, typename Graph2, typename RandomGenerator,
-            typename EdgeType>
+  template <typename Graph1, typename Graph2, typename RandomGenerator>
   int copy_graph(Graph1& source_graph, Graph2& target_graph,
                   RandomGenerator& r,
                   typename edge_property_type<Graph2>::type et =
@@ -248,19 +247,31 @@ namespace boost {
   //----------------------------------------------------------
   
   template <typename Graph, typename DistributionType>
-  int random_regular_graph(Graph& g,
-                           std::vector<std::pair<unsigned int, unsigned int> >& rrg_edges,
-                           const unsigned int d,
-                           const unsigned int N,
-                           DistributionType& uni_gen)
+  bool random_regular_graph(Graph& g,
+                            std::vector<std::pair<unsigned int, unsigned int> >& rrg_edges,
+                            const unsigned int d,
+                            const unsigned int N,
+                            DistributionType& uni_gen,
+                            unsigned int et = 0
+                            )
   {
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
       vertex_descriptor;
+    typedef typename boost::graph_traits<Graph>::edge_iterator
+      edge_iterator;
 
-     
     // define seen_edges NxN zero matrix
     std::vector<std::vector<bool> >
       seen_edges(N, std::vector<bool>(N, false));
+
+    // loop over graph and fill seen_edges
+    edge_iterator ei, ei_end;
+    for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
+      if (g[*ei].type == et) {
+        seen_edges[source(*ei, g)][target(*ei, g)] = true;
+        seen_edges[target(*ei, g)][source(*ei, g)] = true;
+      }
+    }
     
     // define stubs
     std::vector<vertex_descriptor> stubs;
@@ -299,11 +310,11 @@ namespace boost {
         
       } else { // check if suitable stubs left
         
-        if (!suitable(g, stubs, seen_edges)) return 0; // failure - no more suitable pairs
+        if (!suitable(g, stubs, seen_edges)) return false; // failure - no more suitable pairs
       }
     }   
     
-    return 1; // success
+    return true; // success
   }
   
 } // namespace boost

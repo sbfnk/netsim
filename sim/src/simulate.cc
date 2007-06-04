@@ -53,8 +53,13 @@ struct rgOptions {
 };
 
 struct rrgOptions {
-  unsigned int d;
-  unsigned int jd;
+
+  rrgOptions()
+    : degree(0), jointDegree(0)
+  {;}
+  
+  unsigned int degree;
+  unsigned int jointDegree;
 };
 
 struct swOptions {
@@ -279,7 +284,7 @@ int main(int argc, char* argv[])
       (s.str().c_str(), po::value<unsigned int>(),
        "degree of the graph G(n,d)");
     s.str("");
-    s << "joint-degree";
+    s << it->getText() << "-joint-degree";
     rrgo->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "degree of the joint core of two random regular graphs. If not given, the overlapping is random.");
@@ -488,9 +493,6 @@ int main(int argc, char* argv[])
   
   for (unsigned int i = 0; i < edgeTypes.size(); i++) {
 
-    // skip loop if random-regular-overlap
-    if (vm.count("joint-degree")) break;   
-
     onetype_graph temp_graph;
     boost::add_vertices(temp_graph, N);
     
@@ -624,39 +626,76 @@ int main(int argc, char* argv[])
       s.str("");
       s << edgeTypes[i].getText() << "-degree";
       if (vm.count(s.str())) {
-        opt.d = vm[s.str()].as<unsigned int>();
+        opt.degree = vm[s.str()].as<unsigned int>();
       } else {
         std::cerr << "ERROR: Graph degree not spcified" << std::endl;
         std::cerr << *rrg_options[edgeTypes[i].getId()] << std::endl;
         return 1;
       }
+      s.str("");
+      s << edgeTypes[i].getText() << "-joint-degree";
+      if (vm.count(s.str())) {
+        opt.jointDegree = vm[s.str()].as<unsigned int>();
+      } 
       
       /******************************************************************/
       // generate random regular graph with desired properties
       /******************************************************************/
       
-      bool success = 0;
+      bool success = false;
       unsigned int count = 0;
+
       typedef std::vector<std::pair<unsigned int, unsigned int> > GraphEdges;
       GraphEdges rrg_edges;
-      
       boost::uniform_01<boost::mt19937, double> uni_gen(gen);
-      
-      while (!success) {
-        success = boost::random_regular_graph(temp_graph, rrg_edges, opt.d, N, uni_gen);
-        
-        if (success) {            
-          for (GraphEdges::iterator it = rrg_edges.begin();
-               it != rrg_edges.end(); ++it) 
-            boost::add_edge((*it).first, (*it).second,
-                            Edge(edgeTypes[i].getId()), temp_graph);            
-        } 
 
+      if (opt.jointDegree > 0) {
+        // generate joint graph
         rrg_edges.clear();         
         ++count;
+        
+        while (!success) {
+          success = boost::random_regular_graph(graph, rrg_edges,
+                                                opt.jointDegree, N, uni_gen);
+          if (success) {            
+            for (GraphEdges::iterator it = rrg_edges.begin();
+                 it != rrg_edges.end(); ++it){
+              boost::add_edge((*it).first, (*it).second,
+                              Edge(edgeTypes[i].getId()), temp_graph);
+            }
+          }
+        }
+        
+        if (verbose) {
+          std::cout << "Random regular graph of degree " << opt.jointDegree
+                    << " was generated in " << count << " trials\n";
+        }
+
+        // copy graph to all edgetypes
+        for (unsigned int j = 0; j < edgeTypes.size(); j++) {
+          boost::copy_graph(temp_graph, graph, gen,
+                            Edge(edgeTypes[j].getId()));
+        }
+        temp_graph.clear();
       }
-      
-      if (verbose) std::cout << "Random regular graph of degree " << opt.d
+
+      // generate additional graph, excluding existing vertices
+      success = 0;
+      count = 0;
+      rrg_edges.clear();
+      while (!success) {
+        success = boost::random_regular_graph(graph, rrg_edges,
+                                              opt.degree, N, uni_gen, i);
+        if (success) {            
+          for (GraphEdges::iterator it = rrg_edges.begin();
+               it != rrg_edges.end(); ++it){
+            boost::add_edge((*it).first, (*it).second,
+                            Edge(edgeTypes[i].getId()), temp_graph);
+          }
+        }
+      }
+        
+      if (verbose) std::cout << "Random regular graph of degree " << opt.degree
                              << " was generated in " << count << " trials\n";
       
     } else if (topology == "small-world") {
@@ -814,9 +853,9 @@ int main(int argc, char* argv[])
         while (copy_result < 0) {
           temp_graph.clear();
           copy_result =
-            boost::copy_graph<dualtype_graph, onetype_graph, boost::mt19937, Edge>
-            (graph, temp_graph, gen, Edge(edgeTypes[i].getId()),
-             opt.rewireFraction, opt.removeFraction, opt.addFraction);
+            boost::copy_graph(graph, temp_graph, gen, Edge(edgeTypes[i].getId()),
+                              opt.rewireFraction, opt.removeFraction,
+                              opt.addFraction);
           ++count;
         }
         
