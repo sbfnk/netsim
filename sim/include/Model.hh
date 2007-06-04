@@ -80,6 +80,9 @@ public:
                                unsigned int state, unsigned int edge,
                                unsigned int nbState) const = 0;
 
+  virtual bool isInfection(unsigned int before_state, unsigned int after_state) const
+  { std::cout << "isInfection" << std::endl;return false; }
+
   const std::vector<Label>& getVertexStates() const
   { return vertexStates; }
 
@@ -88,6 +91,9 @@ public:
   
   const std::vector<Label>& getEdgeTypes() const
   { return edgeTypes; }
+
+  const Label& getEdgeType(unsigned int id) const
+  { return edgeTypes[id]; }
 
   const po::options_description& getOptions() const
   { return model_options; }

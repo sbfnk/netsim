@@ -80,7 +80,7 @@ bool GillespieSimulator<RandomGenerator, Graph>::updateState()
          
   // draw a random number from [0,1) for the timestep advance
   double randNo = (randGen)();
-  Simulator::updateTime(-log(randNo)/tree.getTopBin()->getRateSum());
+  updateTime(-log(randNo)/tree.getTopBin()->getRateSum());
          
   // draw another random number from [0,1) for picking the event
   randNo = (randGen)();
@@ -108,6 +108,9 @@ bool GillespieSimulator<RandomGenerator, Graph>::updateState()
                 << model.getVertexStates()[graph[v].state]
                 << "->" << model.getVertexStates()[(*it).newState] << std::endl;
     }
+
+    if (model.isInfection(graph[v].state, it->newState)) addInfection();
+    
     graph[v].state = (*it).newState;
             
     // update vertex event list

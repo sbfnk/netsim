@@ -8,7 +8,8 @@ class Simulator
 
 public:
       
-  Simulator(const Model& m, unsigned int v = 0) : model(m), verbose(v), time(0.) {}
+  Simulator(const Model& m, unsigned int v = 0) :
+    model(m), verbose(v), time(0.), numInfections(0) {}
   virtual ~Simulator() {;}
       
   virtual void initialize() {;}
@@ -20,6 +21,10 @@ public:
   double getTime() const { return time; };
   void updateTime(double t) { time += t; };
 
+  unsigned int getNumInfections() const { return numInfections; }
+
+  void addInfection() { ++numInfections; }
+
 protected:
   
   const Model& model;
@@ -28,6 +33,7 @@ protected:
 private:
 
   double time;
+  unsigned int numInfections;
       
 };
 

@@ -31,6 +31,10 @@ public:
   double getEdgeEvents(eventList& events, unsigned int state,
                        unsigned int edge, unsigned int nbState) const;
 
+  bool isInfection(unsigned int before_state, unsigned int after_state) const
+  { return ((getDisease(before_state) == Susceptible) &&
+            (getDisease(after_state) == Infected)); }
+  
   unsigned int getDisease(unsigned int state) const
   { return (state < 2 ? 0 : state - 1); }
   unsigned int getInfo(unsigned int state) const

@@ -1244,6 +1244,12 @@ int main(int argc, char* argv[])
     *outputFile << stop << '\t' << lastLine;
     outputFile->close();
     delete outputFile;
+    std::ofstream statsFile;
+    std::string statsFileName = (vm["write-file"].as<std::string>())+".stats";
+    statsFile.open(statsFileName.c_str(), std::ios::out);
+    statsFile << "Cumulative number of infections: "
+                  << sim->getNumInfections() << std::endl;
+    statsFile.close();
   }
   
   if (verbose) print_graph_statistics(graph, *model);
