@@ -679,24 +679,26 @@ int main(int argc, char* argv[])
         temp_graph.clear();
       }
 
-      // generate additional graph, excluding existing vertices
-      success = 0;
-      count = 0;
-      rrg_edges.clear();
-      while (!success) {
-        success = boost::random_regular_graph(graph, rrg_edges,
-                                              opt.degree, N, uni_gen, i);
-        if (success) {            
-          for (GraphEdges::iterator it = rrg_edges.begin();
-               it != rrg_edges.end(); ++it){
-            boost::add_edge((*it).first, (*it).second,
-                            Edge(edgeTypes[i].getId()), temp_graph);
+      if (opt.degree > 0) {
+        // generate additional graph, excluding existing vertices
+        success = 0;
+        count = 0;
+        rrg_edges.clear();
+        while (!success) {
+          success = boost::random_regular_graph(graph, rrg_edges,
+                                                opt.degree, N, uni_gen, i);
+          if (success) {            
+            for (GraphEdges::iterator it = rrg_edges.begin();
+                 it != rrg_edges.end(); ++it){
+              boost::add_edge((*it).first, (*it).second,
+                              Edge(edgeTypes[i].getId()), temp_graph);
+            }
           }
         }
-      }
         
-      if (verbose) std::cout << "Random regular graph of degree " << opt.degree
-                             << " was generated in " << count << " trials\n";
+        if (verbose) std::cout << "Random regular graph of degree " << opt.degree
+                               << " was generated in " << count << " trials\n";
+      }
       
     } else if (topology == "small-world") {
       
