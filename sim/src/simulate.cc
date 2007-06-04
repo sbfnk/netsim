@@ -119,6 +119,8 @@ int main(int argc, char* argv[])
   
   std::string readGraph = ""; // default is to generate graph.
   bool generateIC = true; // default is to generate i.c.
+
+  bool pairs = true;
             
   po::options_description command_line_options
     ("\nUsage: simulate -p params_file [options]... \n\nMain options");
@@ -208,6 +210,8 @@ int main(int argc, char* argv[])
      "do not produce graphviz output no matter what the other settings")
     ("no-degree-dist",
      "do not write degree distribution to baseName.degree file")
+    ("no-pairs",
+     "do not consider pairs")
     ;
   
   po::options_description graph_options
@@ -942,10 +946,12 @@ int main(int argc, char* argv[])
     return 1;
   }
     
-  // mark parallel edges
-   unsigned int parallel_edges = mark_parallel_edges(graph);
-   if (verbose) std::cout << "No. of parallel edges is: " << parallel_edges
-                          << std::endl;
+  if (pairs) {
+    // mark parallel edges
+    unsigned int parallel_edges = mark_parallel_edges(graph);
+    if (verbose) std::cout << "No. of parallel edges is: " << parallel_edges
+                           << std::endl;
+  }
 
   // create sparse adjacency matrices and clustering coefficients
   if (vm.count("cluster-coeff")) {
@@ -1134,6 +1140,10 @@ int main(int argc, char* argv[])
   if (vm.count("no-graph")) {
     outputGraphviz = -1;
   }
+  // do not consider pairs
+  if (vm.count("no-pairs")) {
+    pairs = false;
+  }
   
   /******************************************************************/
   // open output file
@@ -1188,9 +1198,10 @@ int main(int argc, char* argv[])
   // prints data to outputFile
   std::string lastLine = "";
   if (outputFile) {
-    lastLine = write_graph_data(graph, *model, sim->getTime(), *outputFile);
+    lastLine = write_graph_data(graph, *model, sim->getTime(), *outputFile,
+                                pairs);
   }
-  if (verbose) print_graph_statistics(graph, *model);
+  if (verbose) print_graph_statistics(graph, *model, pairs);
   
   /******************************************************************/
   // run simulation
@@ -1203,7 +1214,7 @@ int main(int argc, char* argv[])
   while (sim->getTime()<stop && sim->updateState()) {
     
     if (verbose >= 2) {
-      print_graph_statistics(graph, *model);
+      print_graph_statistics(graph, *model, pairs);
     }
 
     if (verbose && steps%100 == 0) {
@@ -1218,7 +1229,7 @@ int main(int argc, char* argv[])
     }
     if (outputFile && sim->getTime() > nextDataStep) {
       lastLine = 
-        write_graph_data(graph, *model, sim->getTime(), *outputFile);
+        write_graph_data(graph, *model, sim->getTime(), *outputFile, pairs);
       if (outputData > 0) {
         do {
           nextDataStep += outputData;
@@ -1239,7 +1250,7 @@ int main(int argc, char* argv[])
   if (outputFile) {
     if (sim->getTime() < stop) {
       lastLine = 
-        write_graph_data(graph, *model, sim->getTime(), *outputFile);
+        write_graph_data(graph, *model, sim->getTime(), *outputFile, pairs);
     }
     *outputFile << stop << '\t' << lastLine;
     outputFile->close();
@@ -1252,7 +1263,7 @@ int main(int argc, char* argv[])
     statsFile.close();
   }
   
-  if (verbose) print_graph_statistics(graph, *model);
+  if (verbose) print_graph_statistics(graph, *model, pairs);
 
   // remove
   if (!vm.count("no-degree-dist") && vm.count("write-file")) {
