@@ -76,6 +76,7 @@ bool GillespieSimulator<RandomGenerator, Graph>::updateState()
   if (verbose >= 2) {
     std::cout << "choose event, total sum of rates is "
               << tree.getTopBin()->getRateSum() << std::endl;
+    print();
   }
          
   // draw a random number from [0,1) for the timestep advance
@@ -142,11 +143,12 @@ void GillespieSimulator<RandomGenerator, Graph>::print()
   for (it = tree.getLeaves().begin(); it != tree.getLeaves().end(); it++) {
     if ((*it)->getRateSum() > 0) {
       std::cout << "Vertex #" << *((*it)->getItem()) << " ["
-                << graph[*((*it)->getItem())].state << "]:";
+                << model.getVertexState(graph[*((*it)->getItem())].state)
+                << "]:";
       eventList::iterator eit;
       for (eit = graph[*((*it)->getItem())].events.begin();
            eit != graph[*((*it)->getItem())].events.end(); eit++) {
-        std::cout << " " << (*eit).newState << " ("
+        std::cout << " " << model.getVertexState((*eit).newState) << " ("
                   << (*eit).rate << ")";
       }
       std::cout << std::endl;
