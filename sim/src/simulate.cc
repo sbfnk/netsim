@@ -22,6 +22,7 @@
 #include "albert_barabasi_generator.hh"
 #include "visualize_graph.hh"
 #include "cluster_coeffs.hh"
+#include "assortativity.hh"
 
 #include "GillespieSimulator.hh"
 #include "Vertex.hh"
@@ -173,16 +174,16 @@ int main(int argc, char* argv[])
             allow_unregistered().run(), vm);
   po::notify(vm);
 
-  if (vm.count("help")) {
-    std::cout << command_line_options << sim_options << std::endl;
-    return 0;
-  }
-
   if (vm.count("verbose")) {
     verbose = 1;
   }
   if (vm.count("very-verbose")) {
     verbose = 2;
+  }
+
+  if (vm.count("help")) {
+    std::cout << command_line_options << sim_options << std::endl;
+    return 0;
   }
 
   if (vm.count("usemodel")) {
@@ -204,7 +205,9 @@ int main(int argc, char* argv[])
   // declare hidden option for suppression of graph output --
   // needed for do_all script so that graphviz output
   // is not generated at each run
-  po::options_description hidden_options;
+  po::options_description hidden_options
+    ("\nAdditional options");
+  
   hidden_options.add_options()
     ("no-graph",
      "do not produce graphviz output no matter what the other settings")
@@ -219,15 +222,34 @@ int main(int argc, char* argv[])
   
   graph_options.add_options()
     ("vertices,N", po::value<unsigned int>(),
-     "number of vertices")
-    ("d-topology", po::value<std::string>(),
-     "disease network topology\n((tri-)lattice,random,random-regular,small-world,plod,albert-barabasi,complete,read,null)")
-    ("i-topology", po::value<std::string>(),
-     "information network topology\n((tri-)lattice,random,random-regular,small-world,plod,albert-barabasi,complete,read,null)")
+     "number of vertices");
+  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
+       it != model->getEdgeTypes().end(); it++) {
+    graph_options.add_options()
+      ((it->getText() + "-topology").c_str(), po::value<std::string>(),
+       (it->getText() + "-network topology\n((tri-)lattice,random,random-regular,"+
+        "small-world,plod,albert-barabasi,complete,read,null)").c_str());
+  }
+  graph_options.add_options()
     ("base,b", po::value<std::string>()->default_value
      (model->getVertexStates().begin()->getText()),
      "base state of individuals");
-
+  
+  po::options_description assortativity_options
+    ("\nAssortativity options");
+  
+  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
+       it != model->getEdgeTypes().end(); it++) {
+    for (std::vector<Label>::const_iterator it2 = model->getEdgeTypes().begin();
+         it2 != model->getEdgeTypes().end(); it2++) {
+      assortativity_options.add_options()
+        ((it->getText() + it2->getText() + "-assortativity").c_str(),
+         po::value<double>(),
+         ("desired assortativity between "+it->getText()+
+          "- and "+it2->getText()+"-edges").c_str());
+    }
+  }
+  
   for (std::vector<Label>::const_iterator it =
          model->getVertexStates().begin();
        it != model->getVertexStates().end(); it++) {
@@ -405,7 +427,7 @@ int main(int argc, char* argv[])
   // read options from command line
   po::options_description visible_options;
   visible_options.add(command_line_options).add(sim_options).add(graph_options).
-    add(model_options);
+    add(assortativity_options).add(model_options);
   
   po::options_description all_options;
   all_options.add(visible_options).add(hidden_options);
@@ -946,13 +968,6 @@ int main(int argc, char* argv[])
     return 1;
   }
     
-  if (pairs) {
-    // mark parallel edges
-    unsigned int parallel_edges = mark_parallel_edges(graph);
-    if (verbose) std::cout << "No. of parallel edges is: " << parallel_edges
-                           << std::endl;
-  }
-
   // create sparse adjacency matrices and clustering coefficients
   if (vm.count("cluster-coeff")) {
     std::string baseFileName = (vm["write-file"].as<std::string>());
@@ -970,7 +985,33 @@ int main(int argc, char* argv[])
       }
   }
 
+  /******************************************************************/
+  // create given assortativity if desired
+  /******************************************************************/
+  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
+       it != model->getEdgeTypes().end(); it++) {
+    for (std::vector<Label>::const_iterator it2 = model->getEdgeTypes().begin();
+         it2 != model->getEdgeTypes().end(); it2++) {
+      std::string s = it->getText()+it2->getText()+"-assortativity";
+      if (vm.count(s.c_str())) {
+        double ass = (vm[s.c_str()].as<double>());
+        rewire_assortatively(graph, gen, ass,
+                             Edge(it->getId()), Edge(it2->getId()), verbose);
+      }
+    }
+  }
   
+  /******************************************************************/
+  // mark parallel edges
+  /******************************************************************/
+
+  if (pairs) {
+    // mark parallel edges
+    unsigned int parallel_edges = mark_parallel_edges(graph);
+    if (verbose) std::cout << "No. of parallel edges is: " << parallel_edges
+                           << std::endl;
+  }
+
   /******************************************************************/
   // generate new initial state
   /******************************************************************/
@@ -1021,7 +1062,7 @@ int main(int argc, char* argv[])
     boost::graph_traits<dualtype_graph>::vertex_iterator vi, vi_end;      
     for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi)
       graph[*vi].state = baseState;
-
+ 
     // sum over vector init to make sure the sum is less than N
     unsigned int initSum = 0;
     for (std::vector<unsigned int>::iterator it = init.begin();

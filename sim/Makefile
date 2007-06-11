@@ -60,4 +60,4 @@ out/simulate.o: include/Vertex.hh include/Simulator.hh \
 	include/InfoSIRS.hh include/Model.hh include/lattice_generator.hh \
 	include/graph_structure.hh include/erdos_renyi_generator2.hh \
 	include/visualize_graph.hh include/albert_barabasi_generator.hh \
-	include/cluster_coeffs.hh
+	include/cluster_coeffs.hh include/assortativity.hh
