@@ -68,7 +68,8 @@ class Model
   
 public:
 
-  Model(unsigned int v = 0): verbose(v) {}
+  Model(unsigned int v = 0):
+    model_options(po::options_description("\nModel options:")), verbose(v) {}
   virtual ~Model() {}
   
   virtual void Init(po::variables_map& vm);
