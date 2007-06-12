@@ -43,16 +43,21 @@ namespace boost {
     // calculate correlations between degrees
     edge_iterator ei, ei_end;
     for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
-      ham += out_degree_type(g, source(*ei, g), deg_type1)*
-        out_degree_type(g, target(*ei, g), deg_type2);
+      // we want the correlation of deg_type1 and deg_type2 degrees, but at
+      // the two ends of a deg_type1 link, so we check here if type is deg_type1
+      if (g[*ei].type == deg_type1.type) {
+        ham += out_degree_type(g, source(*ei, g), deg_type1)*
+          out_degree_type(g, target(*ei, g), deg_type2);
+      }
     }
     // multiply with desired assortivity factor
     ham *= -J/2;
     return ham;
   }
 
-  // rewire Edges of deg_type2 to create assortativity between deg_type1 and
-  // deg_type 2; rewiring is controlled by parameter J: positive J leads to
+  // rewire Edges of deg_type2 to create assortativity between the deg_type1
+  // and deg_type2 degrees at the two ends of a deg_type1 edge --
+  // rewiring is controlled by parameter J: positive J leads to
   // correlation, negative J to anticorrelation, J=0 to no correlation
   template <typename RandomGenerator, typename Graph, typename EdgeType>
   void rewire_assortatively(Graph& g, RandomGenerator& r, double J,
@@ -72,7 +77,7 @@ namespace boost {
     boost::uniform_01<boost::mt19937, double> uni_gen(r);
 
     double current_assortativity =
-      assortativity(g, deg_type2, deg_type1, deg_type2);
+      assortativity(g, deg_type1, deg_type1, deg_type2);
     if (verbose >= 1) {
       std::cout << "Rewiring graph with assortativity "
                 << current_assortativity << std::endl;
@@ -125,34 +130,15 @@ namespace boost {
         }
       } while (!valid_swap);
 
-      // calculate correlations that are removed by the rewiring
-      unsigned int rem_corr = (out_degree_type(g, source1, deg_type1) *
-                               out_degree_type(g, target1, deg_type2) +
-                               out_degree_type(g, source1, deg_type2) *
-                               out_degree_type(g, target1, deg_type1) +
-                               out_degree_type(g, source2, deg_type1) *
-                               out_degree_type(g, target2, deg_type2) +
-                               out_degree_type(g, source2, deg_type2) *
-                               out_degree_type(g, target2, deg_type1));
       // rewire edges
       remove_edge(edge1, g);
       remove_edge(edge2, g);
       rewired1 = (add_edge(source1, target2, deg_type2, g)).first;
       rewired2 = (add_edge(source2, target1, deg_type2, g)).first;
-      // calculate correlations that are added by the rewiring
-      unsigned int add_corr = (out_degree_type(g, source1, deg_type1) *
-                               out_degree_type(g, target2, deg_type2) +
-                               out_degree_type(g, source1, deg_type2) *
-                               out_degree_type(g, target2, deg_type1) +
-                               out_degree_type(g, source2, deg_type1) *
-                               out_degree_type(g, target1, deg_type2) +
-                               out_degree_type(g, source2, deg_type2) *
-                               out_degree_type(g, target1, deg_type1));
+
       // calculate rewired hamiltonian 
-      double temp_H = H - 0.5*J*(static_cast<double>(add_corr) -
-                                 static_cast<double>(rem_corr));
+      double temp_H = hamiltonian(g, J, deg_type1, deg_type2);
       
-      // calculate temporary hamiltonian
       // accept change with probability min(1, exp(-(H(G')-H(G))))
       bool accept = false;
       double prob = exp(H - temp_H);
@@ -180,9 +166,9 @@ namespace boost {
 
       // check if assortativity is converging
       ++steps;
-      if (steps%1000 == 0) {
+      if (steps%2000 == 0) {
         double new_assortativity =
-          assortativity(g, deg_type2, deg_type1, deg_type2);
+          assortativity(g, deg_type1, deg_type1, deg_type2);
         // less than 5% change in 1000 events
         if (new_assortativity < (current_assortativity * 1.05)) {
           converged = true;
