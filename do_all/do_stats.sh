@@ -15,7 +15,7 @@ fi
 
 # usage message
 usage="Usage: do_stats.sh [-m model_file] "
-usage="$usage [-s sim_file] [-n num_sims] [-d timestep] [-q] [model_options]"
+usage="$usage [-s sim_file] [-d timestep] [-q] [model_options]"
 
 # defaults
 force=n
@@ -29,7 +29,6 @@ while [ $# -ge 1 ];
       in
       -m) shift; model=$1;;
       -s) shift; sim=$1;;
-      -n) shift; num_sims=$1;;
       -d) shift; dt=$1;;
       -f) force="y";;
       -q) quiet="y";;
@@ -39,15 +38,6 @@ while [ $# -ge 1 ];
   shift
 
 done
-
-# check num_sims
-if [ $num_sims -gt 8999 ]; then
-    echo "WARNING: num_sims > 8999, setting to 8999"
-    set num_sims=8999
-fi
-
-# print message
-echo "Running $num_sims simulations..."
 
 # setting sim_options
 sim_options=""
@@ -66,16 +56,6 @@ sim_base="$sim_base --no-pairs --no-graph --no-degree-dist $options"
 echo $sim_base
 
 # execute 
-echo -----
 $sim_base
-echo -----
-
-# loop over num_sims
-if [ $num_sims -gt 1 ]; then
-    for ((i=101;i<(100+$num_sims);i++)); do
-        $sim_base
-        echo -----
-    done
-fi
 
 echo 
