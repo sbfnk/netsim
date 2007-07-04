@@ -122,6 +122,8 @@ int main(int argc, char* argv[])
 
   unsigned int verbose = 0;
   bool printStats = false;
+
+  unsigned int numSims = 1;
   
   std::string readGraph = ""; // default is to generate graph.
   bool generateIC = true; // default is to generate i.c.
@@ -169,6 +171,8 @@ int main(int argc, char* argv[])
      "write output data at arg timesteps")
     ("graphviz,g", po::value<int>()->default_value(0),
      "create graphviz output in the images directory at arg timesteps")
+    ("num-sims", po::value<unsigned int>()->default_value(1),
+     "number of simulation runs to produce (on a given graph)")
     ("graph-dir", po::value<std::string>()->default_value(graphDir),
      "set ouput dir for graphs")
     ("write-file,f", po::value<std::string>(),
@@ -521,7 +525,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // create graph variable
   /******************************************************************/
-  dualtype_graph graph;
+  dualtype_graph graph, copy_graph;
 
   /******************************************************************/
   // read graph from file or generate it
@@ -990,11 +994,15 @@ int main(int argc, char* argv[])
     std::cerr << command_line_options << graph_options << std::endl;
     return 1;
   }
-    
+
+  // set base file name
+  std::string baseFileName;
+  if (vm.count("write-file")) {
+    baseFileName = vm["write-file"].as<std::string>();
+  }
+
   // create sparse adjacency matrices and clustering coefficients
   if (vm.count("cluster-coeff")) {
-    std::string baseFileName = (vm["write-file"].as<std::string>());
-    
     bool writeJs = false;
     if (vm.count("write-Js")) writeJs = true;
     
@@ -1035,372 +1043,414 @@ int main(int argc, char* argv[])
                            << std::endl;
   }
 
-  /******************************************************************/
-  // generate new initial state
-  /******************************************************************/
+  unsigned int extLength = 0;
+  
+  if (numSims > 1) {
+    std::stringstream ext;
+    ext << numSims;
+    extLength = ext.str().length();
+  }
+
+  for (unsigned int nSim = 0; nSim < numSims; nSim++) {
+
+    if (printStats) {
+      std::cout << "-----" << std::endl;
+    } else if (numSims > 0) {
+      std::cout << ".";
+      std::cout.flush();
+    }
+    
+    std::stringstream fileName;
+    fileName << baseFileName << std::setfill('0') << std::setw(extLength)
+             << nSim;
+
+    /******************************************************************/
+    // generate new initial state
+    /******************************************************************/
    
-  if (generateIC) { // generate new initial state
+    if (generateIC) { // generate new initial state
       
-    /******************************************************************/
-    // set initial vertex states
-    /******************************************************************/
+      /******************************************************************/
+      // set initial vertex states
+      /******************************************************************/
       
-    // how many random vertices of each state are to be initialized
-    // over the background of the base state
-    for (unsigned int i = 0; i < model->getVertexStates().size(); i++) {
-      std::stringstream ss;
-      ss << model->getVertexStates()[i].getText();
-      std::string s(ss.str());
-      unsigned int random = 0;
-      if (vm.count(s.c_str())) {
-        random = vm[s.c_str()].as<unsigned int>();
+      // how many random vertices of each state are to be initialized
+      // over the background of the base state
+      for (unsigned int i = 0; i < model->getVertexStates().size(); i++) {
+        std::stringstream ss;
+        ss << model->getVertexStates()[i].getText();
+        std::string s(ss.str());
+        unsigned int random = 0;
+        if (vm.count(s.c_str())) {
+          random = vm[s.c_str()].as<unsigned int>();
+        }
+        init.push_back(random);
       }
-      init.push_back(random);
-    }
       
       
-    std::string baseString = vm["base"].as<std::string>();
-    unsigned int baseState = 0;
+      std::string baseString = vm["base"].as<std::string>();
+      unsigned int baseState = 0;
       
-    // assign baseState
-    while (baseState < model->getVertexStates().size() &&
-           (model->getVertexStates()[baseState].getText() != baseString)) {
-      baseState++;
-    }
+      // assign baseState
+      while (baseState < model->getVertexStates().size() &&
+             (model->getVertexStates()[baseState].getText() != baseString)) {
+        baseState++;
+      }
       
-    // set random vertices of baseState to zero
-    if (baseState < model->getVertexStates().size()) {
-      init[baseState] = 0;
-    } else {
-      std::cerr << "ERROR: no unknown base state: " << baseString << std::endl;
-      std::cerr << command_line_options << sim_options << std::endl;
-      return 1;
-    }              
+      // set random vertices of baseState to zero
+      if (baseState < model->getVertexStates().size()) {
+        init[baseState] = 0;
+      } else {
+        std::cerr << "ERROR: no unknown base state: " << baseString << std::endl;
+        std::cerr << command_line_options << sim_options << std::endl;
+        return 1;
+      }              
       
-    /******************************************************************/
-    // generate vertices' state
-    /******************************************************************/
+      /******************************************************************/
+      // generate vertices' state
+      /******************************************************************/
       
-    // add N vertices in state baseState to graph
-    boost::graph_traits<dualtype_graph>::vertex_iterator vi, vi_end;      
-    for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi)
-      graph[*vi].state = baseState;
- 
-    // sum over vector init to make sure the sum is less than N
-    unsigned int initSum = 0;
-    for (std::vector<unsigned int>::iterator it = init.begin();
-         it != init.end(); it++) {
-      initSum += (*it);
-    }   
-    if (initSum > N) {
-      std::cerr << "Error: number of vertices to select randomly"
-                << " higher than number of total vertices" << std::endl;
-    }
+      // add N vertices in state baseState to graph
+      boost::graph_traits<dualtype_graph>::vertex_iterator vi, vi_end;      
+      for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi)
+        graph[*vi].state = baseState;
       
-    // inserting init[i] vertices of type i
-    boost::graph_traits<dualtype_graph>::vertex_descriptor v;
-    for (unsigned int i=0; i<model->getVertexStates().size(); i++) {
-      for (unsigned int j=0; j<init[i]; j++) {
-        bool inserted = false;
-        while (!inserted) {
-          v = boost::random_vertex(graph, gen);
-          if (graph[v].state == baseState) {
-            graph[v].state = i;
-            inserted = true;
+      // sum over vector init to make sure the sum is less than N
+      unsigned int initSum = 0;
+      for (std::vector<unsigned int>::iterator it = init.begin();
+           it != init.end(); it++) {
+        initSum += (*it);
+      }   
+      if (initSum > N) {
+        std::cerr << "Error: number of vertices to select randomly"
+                  << " higher than number of total vertices" << std::endl;
+      }
+      
+      // inserting init[i] vertices of type i
+      boost::graph_traits<dualtype_graph>::vertex_descriptor v;
+      for (unsigned int i=0; i<model->getVertexStates().size(); i++) {
+        for (unsigned int j=0; j<init[i]; j++) {
+          bool inserted = false;
+          while (!inserted) {
+            v = boost::random_vertex(graph, gen);
+            if (graph[v].state == baseState) {
+              graph[v].state = i;
+              inserted = true;
+            }
+          }
+          if (verbose >= 2) {
+            std::cout << "Vertex #" << v << " is assigned state " 
+                      << model->getVertexStates()[i] << std::endl;
           }
         }
-	if (verbose >= 2) {
-          std::cout << "Vertex #" << v << " is assigned state " 
-                    << model->getVertexStates()[i] << std::endl;
-        }
       }
-    }
       
-  } // end generateIC
-
-  /******************************************************************/
-  // check for generate-ode-ic-file
-  /******************************************************************/
-
-  if (vm.count("generate-ode-ic-file")) {
-    std::ofstream odeIcFile;
-    std::string odeIcFileName =
-      (vm["generate-ode-ic-file"].as<std::string>());
-
-    // open ode ic file for writing
-    try {
-      odeIcFile.open(odeIcFileName.c_str(), std::ios::out);
-    }
-    catch (std::exception& e) {
-      std::cerr << "ERROR:  unable to open file for ode ic file: "
-                << e.what() << std::endl;
-      return 1;
-    }
-      
-    // write ode ic file
-    bool status = write_ode_ic_file(graph, *model, odeIcFile);
-      
-    // print message
-    if (!status) {
-      if (verbose) {
-        std::cout << "ode ic file " << odeIcFileName << " written ok\n";
-      }
-    } else {
-      std::cout << "ERROR: something wrong in writing ode ic file "
-                << odeIcFileName << std::endl;
-      return 1;
-    }
-
-    // close file
-    odeIcFile.close();
-  }
-   
-  /******************************************************************/
-  // initialize model
-  /******************************************************************/
-  
-  model->Init(vm);
-  if (verbose >=1) model->Print();
-  
-  /******************************************************************/
-  // create simulator
-  /******************************************************************/
-
-  Simulator* sim;
-
-  if (vm.count("sim")) {
-    std::string simType = vm["sim"].as<std::string>();
-    if (simType == "Gillespie") {
-      sim = new GillespieSimulator<boost::mt19937, dualtype_graph>
-        (gen, graph, *model, verbose);
-//     } else if (simType == "Chris") {
-//       sim = new ChrisSimulator<boost::mt19937, dualtype_graph>
-//         (gen, graph, *model);
-    } else {
-      std::cerr << "Error: unknown simulator: " << simType << std::endl;
-      return 1;
-    }
-  } else {
-    std::cerr << "Error: no simulator specified" << std::endl;
-    return 1;
-  }
-   
-  /******************************************************************/
-  // read simulation paramters
-  /******************************************************************/
-  
-  stopTime = vm["tmax"].as<double>();
-  stopRecoveries = vm["rmax"].as<unsigned int>();
-  stopInfections = vm["imax"].as<unsigned int>();
-  stopInformations = vm["pmax"].as<unsigned int>();
-  outputData = vm["output"].as<double>();
-
-  // graph directory
-  if (vm.count("graph-dir")) {
-    graphDir = vm["graph-dir"].as<std::string>();
-  }
-  // timesteps after which to write graphviz output
-  if (vm.count("graphviz")) {
-    outputGraphviz = vm["graphviz"].as<int>();
-  }
-  // no-graph overrides other graph options
-  if (vm.count("no-graph")) {
-    outputGraphviz = -1;
-  }
-  // do not consider pairs
-  if (vm.count("no-pairs")) {
-    pairs = false;
-  }
-  
-  /******************************************************************/
-  // open output file
-  /******************************************************************/
-  if (vm.count("write-file")) {
-    outputFileName = (vm["write-file"].as<std::string>())+".sim.dat";
-
-    try {
-      outputFile = new std::ofstream();
-      outputFile->open(outputFileName.c_str(), std::ios::out);
-    }
-    catch (std::exception &e) {
-      std::cerr << "Unable to open output file: " << e.what() << std::endl;
-    }
-
-    if (outputGraphviz >=0) {
-
-      std::string outputGraphName =
-        (vm["write-file"].as<std::string>())+".graph";
-
-      // write graph
-      if (drawLattice) {
-        draw_lattice(graph, *model, (outputGraphName+".png").c_str());
+    } else { // if generateIC is not set
+      if (nSim == 0) {
+        // save graph states
+        copy_graph = graph;
       } else {
+        // recover graph states
+        graph = copy_graph;
+      }
+    }
+    
+    /******************************************************************/
+    // check for generate-ode-ic-file
+    /******************************************************************/
+    
+    if (vm.count("generate-ode-ic-file")) {
+      std::ofstream odeIcFile;
+      std::string odeIcFileName =
+        (vm["generate-ode-ic-file"].as<std::string>());
+      
+      // open ode ic file for writing
+      try {
+        odeIcFile.open(odeIcFileName.c_str(), std::ios::out);
+      }
+      catch (std::exception& e) {
+        std::cerr << "ERROR:  unable to open file for ode ic file: "
+                  << e.what() << std::endl;
+        return 1;
+      }
+      
+      // write ode ic file
+      bool status = write_ode_ic_file(graph, *model, odeIcFile);
+      
+      // print message
+      if (!status) {
+        if (verbose) {
+          std::cout << "ode ic file " << odeIcFileName << " written ok\n";
+        }
+      } else {
+        std::cout << "ERROR: something wrong in writing ode ic file "
+                  << odeIcFileName << std::endl;
+        return 1;
+      }
+      
+      // close file
+      odeIcFile.close();
+    }
+    
+    /******************************************************************/
+    // initialize model
+    /******************************************************************/
+    
+    model->Init(vm);
+    if (verbose >=1) model->Print();
+    
+    /******************************************************************/
+    // create simulator
+    /******************************************************************/
+    
+    Simulator* sim;
+    
+    if (vm.count("sim")) {
+      std::string simType = vm["sim"].as<std::string>();
+      if (simType == "Gillespie") {
+        sim = new GillespieSimulator<boost::mt19937, dualtype_graph>
+          (gen, graph, *model, verbose);
+        //     } else if (simType == "Chris") {
+        //       sim = new ChrisSimulator<boost::mt19937, dualtype_graph>
+        //         (gen, graph, *model);
+      } else {
+        std::cerr << "Error: unknown simulator: " << simType << std::endl;
+        return 1;
+      }
+    } else {
+      std::cerr << "Error: no simulator specified" << std::endl;
+      return 1;
+    }
+    
+    /******************************************************************/
+    // read simulation paramters
+    /******************************************************************/
+    
+    stopTime = vm["tmax"].as<double>();
+    stopRecoveries = vm["rmax"].as<unsigned int>();
+    stopInfections = vm["imax"].as<unsigned int>();
+    stopInformations = vm["pmax"].as<unsigned int>();
+    outputData = vm["output"].as<double>();
+    numSims = vm["num-sims"].as<unsigned int>();
+    
+    // graph directory
+    if (vm.count("graph-dir")) {
+      graphDir = vm["graph-dir"].as<std::string>();
+    }
+    std::stringstream graphDirName(graphDir);
+    if (numSims > 1) {
+      graphDirName << "/run" << std::setfill('0') << std::setw(extLength)
+                   << nSim;
+    }
+    
+    // timesteps after which to write graphviz output
+    if (vm.count("graphviz")) {
+      outputGraphviz = vm["graphviz"].as<int>();
+    }
+    // no-graph overrides other graph options
+    if (vm.count("no-graph")) {
+      outputGraphviz = -1;
+    }
+    // do not consider pairs
+    if (vm.count("no-pairs")) {
+      pairs = false;
+    }
+    
+    /******************************************************************/
+    // open output file
+    /******************************************************************/
+    if (vm.count("write-file")) {
+      outputFileName = fileName.str()+".sim.dat";
+      
+      try {
+        outputFile = new std::ofstream();
+        outputFile->open(outputFileName.c_str(), std::ios::out);
+      }
+      catch (std::exception &e) {
+        std::cerr << "Unable to open output file: " << e.what() << std::endl;
+      }
+      
+      if (outputGraphviz >=0) {
+        
+        std::string outputGraphName =
+          fileName.str()+".graph";
+        
+        // write graph
         write_graph(graph, *model, outputGraphName, -1);
       }
-    }
-
-    // calculate degree distribution
-    if (!vm.count("no-degree-dist")) {      
-      std::string degreeFileName = (vm["write-file"].as<std::string>())+".degree";
-      bool status = write_degree(graph, *model, degreeFileName);
-      if (verbose)
-        if (!status) {
-          std::cout << "degree file " << degreeFileName << " was written ok\n";
-        } else {
-          std::cout << "ERROR: something wrong in writing degree file "
-                    << degreeFileName << std::endl;
-        }
-    }
-  }   
-
-  /******************************************************************/
-  // initialize Simulator
-  /******************************************************************/
-  sim->initialize();
-
-  // print time
-  if (verbose)
-    std::cout << "time elapsed: " << sim->getTime() << std::endl;
-
-  // GraphViz output
-  if (outputGraphviz >= 0) {
-    if (drawLattice) {
-      draw_lattice(graph, *model, (graphDir + "/frame000.png").c_str());
-    } else {
-      write_graph(graph, *model, (graphDir + "/frame000"), -1);
-    }
-  }
-  
-  // prints data to outputFile
-  std::string lastLine = "";
-  if (outputFile) {
-    lastLine = write_graph_data(graph, *model, sim->getTime(), *outputFile,
-                                pairs);
-  }
-  if (verbose) print_graph_statistics(graph, *model, pairs);
-  
-  /******************************************************************/
-  // run simulation
-  /******************************************************************/
-  double nextDataStep = outputData;
-  
-  unsigned int steps = 0;
-  unsigned int outputNum = 1;
-
-  bool doSim = !(stopTime == 0 && stopInfections == 0 &&
-                 stopRecoveries == 0 && stopInformations == 0);
+      
+      // calculate degree distribution
+      if (!vm.count("no-degree-dist")) {      
+        std::string degreeFileName = fileName.str()+".degree";
+        bool status = write_degree(graph, *model, degreeFileName);
+        if (verbose)
+          if (!status) {
+            std::cout << "degree file " << degreeFileName << " was written ok\n";
+          } else {
+            std::cout << "ERROR: something wrong in writing degree file "
+                      << degreeFileName << std::endl;
+          }
+      }
+    }   
     
-  while ((stopTime == 0 || sim->getTime()<stopTime) &&
-         (stopInfections == 0 || (sim->getNumInfections() < stopInfections &&
-         sim->getNumInfections()+1 > sim->getNumRecoveries())) &&
-         (stopInformations == 0 || (sim->getNumInformations() < stopInformations && 
-         sim->getNumInformations()+1 > sim->getNumForgettings())) &&
-         doSim && sim->updateState()) {
+    /******************************************************************/
+    // initialize Simulator
+    /******************************************************************/
+    sim->initialize();
     
-    if (verbose >= 2) {
-      print_graph_statistics(graph, *model, pairs);
-    }
-
-    if (verbose && steps%100 == 0) {
+    // print time
+    if (verbose)
       std::cout << "time elapsed: " << sim->getTime() << std::endl;
-    }
-
-    if ((outputGraphviz > 0) && (steps % outputGraphviz == 0)) {
+    
+    // GraphViz output
+    if (outputGraphviz >= 0) {
       if (drawLattice) {
         draw_lattice(graph, *model,
-                     (generateFileName((graphDir +"/frame"), outputNum)+".png").c_str());
+                     (graphDirName.str() + "/frame000.png").c_str());
+      } else {
+        write_graph(graph, *model, (graphDirName.str() + "/frame000"), -1);
+      }
+    }
+    
+    // prints data to outputFile
+    std::string lastLine = "";
+    if (outputFile) {
+      lastLine = write_graph_data(graph, *model, sim->getTime(), *outputFile,
+                                  pairs);
+    }
+    if (verbose) print_graph_statistics(graph, *model, pairs);
+    
+    /******************************************************************/
+    // run simulation
+    /******************************************************************/
+    double nextDataStep = outputData;
+    
+    unsigned int steps = 0;
+    unsigned int outputNum = 1;
+    
+    bool doSim = !(stopTime == 0 && stopInfections == 0 &&
+                   stopRecoveries == 0 && stopInformations == 0);
+    
+    while ((stopTime == 0 || sim->getTime()<stopTime) &&
+           (stopInfections == 0 || (sim->getNumInfections() < stopInfections &&
+                                    sim->getNumInfections()+1 > sim->getNumRecoveries())) &&
+           (stopInformations == 0 || (sim->getNumInformations() < stopInformations && 
+                                      sim->getNumInformations()+1 > sim->getNumForgettings())) &&
+           doSim && sim->updateState()) {
+      
+      if (verbose >= 2) {
+        print_graph_statistics(graph, *model, pairs);
+      }
+      
+      if (verbose && steps%100 == 0) {
+        std::cout << "time elapsed: " << sim->getTime() << std::endl;
+      }
+      
+      if ((outputGraphviz > 0) && (steps % outputGraphviz == 0)) {
+        if (drawLattice) {
+          draw_lattice(graph, *model,
+                       (generateFileName((graphDirName.str()+"/frame"),
+                                         outputNum)+".png").c_str());
+        } else {
+          write_graph(graph, *model,
+                      generateFileName((graphDirName.str() +"/frame"),
+                                       outputNum),sim->getTime());
+        }
+        ++outputNum;
+      }
+      if (outputFile && sim->getTime() > nextDataStep) {
+        lastLine = 
+          write_graph_data(graph, *model, sim->getTime(), *outputFile, pairs);
+        if (outputData > 0) {
+          do {
+            nextDataStep += outputData;
+          } while (sim->getTime() > nextDataStep);
+        }
+      }
+      ++steps;
+    }
+    
+    if (stopTime == 0) stopTime = sim->getTime();
+    
+    if (verbose) std::cout << "Final status (" << sim->getTime() << "): " 
+                           << std::endl;
+    if (doSim && outputGraphviz >= 0) {
+      if (drawLattice) {
+        draw_lattice(graph, *model,
+                     (generateFileName((graphDirName.str()+"/frame"),
+                                       outputNum)+".png").c_str());
       } else {
         write_graph(graph, *model,
-                    generateFileName((graphDir +"/frame"),outputNum),
-                    sim->getTime());
-      }
-      ++outputNum;
-    }
-    if (outputFile && sim->getTime() > nextDataStep) {
-      lastLine = 
-        write_graph_data(graph, *model, sim->getTime(), *outputFile, pairs);
-      if (outputData > 0) {
-        do {
-          nextDataStep += outputData;
-        } while (sim->getTime() > nextDataStep);
+                    generateFileName((graphDirName.str()+"/frame"),
+                                     outputNum),sim->getTime());
       }
     }
-    ++steps;
+    
+    if (outputFile) {
+      if (sim->getTime() < stopTime) {
+        lastLine = 
+          write_graph_data(graph, *model, sim->getTime(), *outputFile, pairs);
+      }
+      *outputFile << stopTime << '\t' << lastLine;
+      outputFile->close();
+      delete outputFile;
+      std::ofstream statsFile;
+      std::string statsFileName = fileName.str()+".stats";
+      statsFile.open(statsFileName.c_str(), std::ios::out);
+      statsFile << "Cumulative number of infections: "
+                << sim->getNumInfections() << std::endl;
+      statsFile.close();
+    }
+    
+    if (verbose || printStats) {
+      std::cout << "Cumulative number of infections: " << sim->getNumInfections() 
+                << std::endl;
+      std::cout << "Cumulative number of informations: " << sim->getNumInformations() 
+                << std::endl;
+    }
+    
+    if (verbose) print_graph_statistics(graph, *model, pairs);
+    
+    // remove
+    if (!vm.count("no-degree-dist") && vm.count("write-file")) {
+      std::ofstream gpFile;
+      std::string gpFileName = fileName.str()+".gp";
+      
+      try {
+        gpFile.open(gpFileName.c_str(), std::ios::out);
+      }
+      catch (std::exception &e) {
+        std::cerr << "... unable to open gnuplot output file " 
+                  << gpFileName << std::endl;
+        std::cerr << "... Standard exception: " << e.what() << std::endl;      
+        return 1; 
+      }
+      
+      gpFile << "### model parameters generated by simulate" << std::endl;
+      gpFile << "N=" << num_vertices(graph) << std::endl;
+      gpFile << "Tmax=" << stopTime << std::endl;
+      gpFile << "### end of model parameters" << std::endl;
+      
+      try {
+        gpFile.close();
+      }
+      catch (std::exception &e) {
+        std::cerr << "... unable to close gnuplot output file " 
+                  << gpFileName << std::endl;
+        std::cerr << "... Standard exception: " << e.what() << std::endl;      
+        return 1; 
+      }
+    }
+    
+    // free memory
+    delete sim;
+    
   }
-
-  if (stopTime == 0) stopTime = sim->getTime();
   
-  if (verbose) std::cout << "Final status (" << sim->getTime() << "): " 
-                         << std::endl;
-  if (doSim && outputGraphviz >= 0) {
-    if (drawLattice) {
-      draw_lattice(graph, *model,
-                   (generateFileName((graphDir +"/frame"),outputNum)+".png").c_str());
-    } else {
-      write_graph(graph, *model,
-                  generateFileName((graphDir +"/frame"),outputNum),
-                  sim->getTime());
-    }
+  if (printStats) {
+    std::cout << "-----" << std::endl;
   }
-  
-  if (outputFile) {
-    if (sim->getTime() < stopTime) {
-      lastLine = 
-        write_graph_data(graph, *model, sim->getTime(), *outputFile, pairs);
-    }
-    *outputFile << stopTime << '\t' << lastLine;
-    outputFile->close();
-    delete outputFile;
-    std::ofstream statsFile;
-    std::string statsFileName = (vm["write-file"].as<std::string>())+".stats";
-    statsFile.open(statsFileName.c_str(), std::ios::out);
-    statsFile << "Cumulative number of infections: "
-              << sim->getNumInfections() << std::endl;
-    statsFile.close();
-  }
-
-  if (verbose || printStats) {
-    std::cout << "Cumulative number of infections: " << sim->getNumInfections() 
-              << std::endl;
-    std::cout << "Cumulative number of informations: " << sim->getNumInformations() 
-              << std::endl;
-  }
-
-  if (verbose) print_graph_statistics(graph, *model, pairs);
-
-  // remove
-  if (!vm.count("no-degree-dist") && vm.count("write-file")) {
-    std::ofstream gpFile;
-    std::string gpFileName = (vm["write-file"].as<std::string>())+".gp";
-    
-    try {
-      gpFile.open(gpFileName.c_str(), std::ios::out);
-    }
-    catch (std::exception &e) {
-      std::cerr << "... unable to open gnuplot output file " 
-                << gpFileName << std::endl;
-      std::cerr << "... Standard exception: " << e.what() << std::endl;      
-      return 1; 
-    }
-    
-    gpFile << "### model parameters generated by simulate" << std::endl;
-    gpFile << "N=" << num_vertices(graph) << std::endl;
-    gpFile << "Tmax=" << stopTime << std::endl;
-    gpFile << "### end of model parameters" << std::endl;
-    
-    try {
-      gpFile.close();
-    }
-    catch (std::exception &e) {
-      std::cerr << "... unable to close gnuplot output file " 
-                << gpFileName << std::endl;
-      std::cerr << "... Standard exception: " << e.what() << std::endl;      
-      return 1; 
-    }
-  }
-   
-  // free memory
-  delete sim;
   
   return 0;
+  
 }
