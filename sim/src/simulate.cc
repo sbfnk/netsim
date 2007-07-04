@@ -171,7 +171,7 @@ int main(int argc, char* argv[])
      "write output data at arg timesteps")
     ("graphviz,g", po::value<int>()->default_value(0),
      "create graphviz output in the images directory at arg timesteps")
-    ("num-sims", po::value<unsigned int>()->default_value(1),
+    ("nsims", po::value<unsigned int>()->default_value(1),
      "number of simulation runs to produce (on a given graph)")
     ("graph-dir", po::value<std::string>()->default_value(graphDir),
      "set ouput dir for graphs")
@@ -1232,7 +1232,7 @@ int main(int argc, char* argv[])
     stopInfections = vm["imax"].as<unsigned int>();
     stopInformations = vm["pmax"].as<unsigned int>();
     outputData = vm["output"].as<double>();
-    numSims = vm["num-sims"].as<unsigned int>();
+    numSims = vm["nsims"].as<unsigned int>();
     
     // graph directory
     if (vm.count("graph-dir")) {
