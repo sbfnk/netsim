@@ -1049,6 +1049,7 @@ int main(int argc, char* argv[])
     std::stringstream ext;
     ext << numSims;
     extLength = ext.str().length();
+    std::cout << "Running " << numSims << " simulations" << std::endl;
   }
 
   for (unsigned int nSim = 0; nSim < numSims; nSim++) {
@@ -1449,6 +1450,8 @@ int main(int argc, char* argv[])
   
   if (printStats) {
     std::cout << "-----" << std::endl;
+  } else {
+    std::cout << std::endl;
   }
   
   return 0;
