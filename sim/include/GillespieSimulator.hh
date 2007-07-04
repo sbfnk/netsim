@@ -39,7 +39,7 @@ private:
   uniform_gen randGen; // random generator
   Graph& graph;
   Tree<unsigned int> tree; // contains the tree structure
-
+  
 };
 
 /******************************************************************/
@@ -67,6 +67,9 @@ void GillespieSimulator<RandomGenerator, Graph>::initialize()
 template <typename RandomGenerator, typename Graph>
 bool GillespieSimulator<RandomGenerator, Graph>::updateState()
 {
+  typedef typename boost::graph_traits<Graph>::out_edge_iterator
+    out_edge_iterator;
+
   // exit if nothing can happen -- exit also if the rate sum is very small
   // to prevent rounding problems
   if (tree.getTopBin()->getRateSum() < 1e-8) {
@@ -91,7 +94,7 @@ bool GillespieSimulator<RandomGenerator, Graph>::updateState()
     double tempSum = .0;
     vertex_descriptor v = vertex(*eventVertex, graph);
             
-    std::list<event>::iterator it = graph[v].events.begin();
+    std::vector<event>::iterator it = graph[v].events.begin();
     while (it != graph[v].events.end() && tempSum < randNo) {
       tempSum += (*it).rate;
       it++;
@@ -111,6 +114,9 @@ bool GillespieSimulator<RandomGenerator, Graph>::updateState()
     }
 
     if (model.isInfection(graph[v].state, it->newState)) addInfection();
+    else if (model.isInformation(graph[v].state, it->newState)) addInformation();
+    else if (model.isRecovery(graph[v].state, it->newState)) addRecovery();
+    else if (model.isForgetting(graph[v].state, it->newState)) addForgetting();
     
     graph[v].state = (*it).newState;
             
@@ -122,13 +128,12 @@ bool GillespieSimulator<RandomGenerator, Graph>::updateState()
     tree.getLeaves()[index[v]]->updateRateSum(rateDiff);
             
     //update neighbours
-    adjacency_iterator ai, ai_end;
-    for (tie(ai, ai_end) = adjacent_vertices(v, graph);
-         ai != ai_end; ai++) {
-      rateDiff =
-        generateEventList(graph, *ai, model, verbose);
-               
-      tree.getLeaves()[index[*ai]]->updateRateSum(rateDiff);
+    out_edge_iterator oi, oi_end;;
+   
+    for (tie(oi, oi_end) = boost::out_edges(v, graph);
+         oi != oi_end; ++oi) {
+      rateDiff = updateEventList(graph, *oi, model, verbose);
+      tree.getLeaves()[index[target(*oi, graph)]]->updateRateSum(rateDiff);
     }
     return true;
   } else {

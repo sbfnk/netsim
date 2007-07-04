@@ -20,6 +20,9 @@
 InfoSIRS::InfoSIRS(unsigned int v)
   : Model(v)
 {
+  /*************************************/
+  // define vertex classes
+  /************************************/
   // susceptible uninformed
   vertexStates.push_back(Label("S-","00;32", 0, "fillcolor=\"royalblue4\""));
   // infected uninformed
@@ -33,9 +36,15 @@ InfoSIRS::InfoSIRS(unsigned int v)
   // recovered informed
   vertexStates.push_back(Label("R+","01;34", 5, "fillcolor=\"green\""));
 
+  /*************************************/
+  // define edge types
+  /************************************/
   edgeTypes.push_back(Label("d", "", 0, "style=\"solid\""));
   edgeTypes.push_back(Label("i", "", 1, "style=\"dashed\""));
 
+  /*************************************/
+  // define model parameters
+  /************************************/
   model_options.add_options()
     ("beta--", po::value<double>(),
      "disease transmission rate uninformed->uninformed")
@@ -78,6 +87,7 @@ InfoSIRS::InfoSIRS(unsigned int v)
   params.insert(std::make_pair("omega", &omega));
   params.insert(std::make_pair("lambda", &lambda));
   params.insert(std::make_pair("sigma", &sigma));
+
 }
 
 /******************************************************************/
@@ -108,7 +118,8 @@ void InfoSIRS::Init(po::variables_map& vm)
 // get the events that can happen for a given state of a node. Stores the
 // events in the events list and returns the sum of their rates
 /******************************************************************/
-double InfoSIRS::getNodeEvents(eventList& events,unsigned int state) const
+double InfoSIRS::getNodeEvents(eventList& events,unsigned int state,
+                               unsigned int nb) const
 {
    double rateSum(.0);
 
@@ -117,6 +128,7 @@ double InfoSIRS::getNodeEvents(eventList& events,unsigned int state) const
       event immunityLoss;
       immunityLoss.rate = delta[getInfo(state)];
       immunityLoss.newState = getState(Susceptible, getInfo(state));
+      immunityLoss.nb = nb;
       if (immunityLoss.rate > 0) {
         events.push_back(immunityLoss);
         rateSum += immunityLoss.rate;
@@ -131,6 +143,7 @@ double InfoSIRS::getNodeEvents(eventList& events,unsigned int state) const
       event recovery;
       recovery.rate = gamma[getInfo(state)];
       recovery.newState = getState(Recovered, getInfo(state));
+      recovery.nb = nb;
       if (recovery.rate > 0) {
         events.push_back(recovery);
         rateSum += recovery.rate;
@@ -144,6 +157,7 @@ double InfoSIRS::getNodeEvents(eventList& events,unsigned int state) const
         event localInfo;
         localInfo.rate = omega;
         localInfo.newState = getState(getDisease(state), Informed);
+        localInfo.nb = nb;
         if (localInfo.rate > 0) {
           events.push_back(localInfo);
           rateSum += localInfo.rate;
@@ -159,6 +173,7 @@ double InfoSIRS::getNodeEvents(eventList& events,unsigned int state) const
       event infoLoss;
       infoLoss.rate = lambda;
       infoLoss.newState = getState(getDisease(state), Uninformed);
+      infoLoss.nb = nb;
       if (infoLoss.rate > 0) {
         events.push_back(infoLoss);
         rateSum += infoLoss.rate;
@@ -179,8 +194,8 @@ double InfoSIRS::getNodeEvents(eventList& events,unsigned int state) const
 // of their rates 
 /******************************************************************/
 double InfoSIRS::getEdgeEvents(eventList& events,
-                            unsigned int state, unsigned int edge,
-                            unsigned int nbState) const
+                               unsigned int state, unsigned int edge,
+                               unsigned int nbState, unsigned int nb) const
 {
    double rateSum(.0);
    if (edge == Disease) {
@@ -190,6 +205,8 @@ double InfoSIRS::getEdgeEvents(eventList& events,
          event infection;
          infection.rate = beta[getInfo(state)][getInfo(nbState)];
          infection.newState = getState(Infected, getInfo(state));
+         infection.nb = nb;
+         infection.et = edge;
          if (infection.rate > 0) {
            events.push_back(infection);
            rateSum += infection.rate;
@@ -205,6 +222,8 @@ double InfoSIRS::getEdgeEvents(eventList& events,
          event infoTransmission;
          infoTransmission.rate = alpha;
          infoTransmission.newState = getState(getDisease(state), Informed);
+         infoTransmission.nb = nb;
+         infoTransmission.et = edge;
          if (infoTransmission.rate > 0) {
            events.push_back(infoTransmission);
            rateSum += infoTransmission.rate;
@@ -219,6 +238,7 @@ double InfoSIRS::getEdgeEvents(eventList& events,
          event infoGeneration;
          infoGeneration.rate = nu;
          infoGeneration.newState = getState(getDisease(state), Informed);
+         infoGeneration.et = edge;
          if (infoGeneration.rate > 0) {
            events.push_back(infoGeneration);
            rateSum += infoGeneration.rate;

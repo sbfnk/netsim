@@ -24,12 +24,17 @@ namespace po = boost::program_options;
 
 struct event
 {
-      double rate; // rate at which an event occurs (depends on
-                   // model parameters) 
-      int newState; // state an event will change a vertex to
+  event(double r=0, int s=0, unsigned int n=0, unsigned int e=0) :
+    rate(r), newState(s), nb(n), et(e){}
+  
+  double rate; // rate at which an event occurs (depends on
+               // model parameters) 
+  int newState; // state an event will change a vertex to
+  unsigned int nb; // neighbour "responsible" for the event
+  unsigned int et; // edge type over which event is transmitted
 };
 
-typedef std::list<event> eventList;
+typedef std::vector<event> eventList;
 
 class Label
 {
@@ -37,16 +42,19 @@ class Label
 public:
 
   Label(std::string t, std::string c, unsigned int i, std::string d = "") :
-    text(t), color(c), id(i), drawOption(d) {}
+    text(t), colour(c), id(i), drawOption(d) {}
   
   const std::string& getText() const
   { return text; }
 
   void print(std::ostream &os) const
-  { os << "\033[" << color << "m" << text << "\033[0m"; }
+  { os << "\033[" << colour << "m" << text << "\033[0m"; }
 
   const std::string& getDrawOption() const
   { return drawOption; }
+  
+  const std::string& getColour() const
+  { return colour; }
   
   const unsigned int& getId() const
   { return id; }
@@ -54,7 +62,7 @@ public:
 private:
   
   std::string text;
-  std::string color;
+  std::string colour;
   unsigned int id;
   std::string drawOption;
   
@@ -76,13 +84,20 @@ public:
   void Print();
   
   virtual double getNodeEvents(eventList& events,
-                               unsigned int state) const = 0;
+                               unsigned int state,
+                               unsigned int nb) const = 0;
   virtual double getEdgeEvents(eventList& events,
                                unsigned int state, unsigned int edge,
-                               unsigned int nbState) const = 0;
+                               unsigned int nbState, unsigned int nb) const = 0;
 
   virtual bool isInfection(unsigned int before_state, unsigned int after_state) const
-  { std::cout << "isInfection" << std::endl;return false; }
+  { return false; }
+  virtual bool isRecovery(unsigned int before_state, unsigned int after_state) const
+  { return false; }
+  virtual bool isInformation(unsigned int before_state, unsigned int after_state) const
+  { return false; }
+  virtual bool isForgetting(unsigned int before_state, unsigned int after_state) const
+  { return false; }
 
   const std::vector<Label>& getVertexStates() const
   { return vertexStates; }

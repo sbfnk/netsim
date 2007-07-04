@@ -29,13 +29,27 @@ public:
 
   void Init(po::variables_map& vm);
   
-  double getNodeEvents(eventList& events, unsigned int state) const;
+  double getNodeEvents(eventList& events, unsigned int state,
+                       unsigned int nb) const;
   double getEdgeEvents(eventList& events, unsigned int state,
-                       unsigned int edge, unsigned int nbState) const;
+                       unsigned int edge, unsigned int nbState,
+                       unsigned int nb) const;
 
   bool isInfection(unsigned int before_state, unsigned int after_state) const
   { return ((getDisease(before_state) == Susceptible) &&
             (getDisease(after_state) == Infected)); }
+
+  bool isRecovery(unsigned int before_state, unsigned int after_state) const
+  { return ((getDisease(before_state) == Infected) &&
+            (getDisease(after_state) != Infected)); }
+
+  bool isInformation(unsigned int before_state, unsigned int after_state) const
+  { return ((getInfo(before_state) == Uninformed) &&
+            (getInfo(after_state) == Informed)); }
+
+  bool isForgetting(unsigned int before_state, unsigned int after_state) const
+  { return ((getInfo(before_state) == Informed) &&
+            (getInfo(after_state) == Uninformed)); }
 
   unsigned int getDisease(unsigned int state) const
   { return (state % 3); }

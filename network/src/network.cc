@@ -30,6 +30,7 @@
 // models
 #include "InfoSIRS.hh"
 #include "ProtectiveSIRS.hh"
+#include "Vaccination.hh"
 
 namespace po = boost::program_options;
 
@@ -108,7 +109,10 @@ int main(int argc, char* argv[])
   std::string topology;
   
   unsigned int N = 0;
-  double stop;
+  double stopTime;
+  unsigned int stopRecoveries;
+  unsigned int stopInfections;
+  unsigned int stopInformations;
 
   double outputData = 0.;
   int outputGraphviz = 0;
@@ -120,6 +124,7 @@ int main(int argc, char* argv[])
   
   std::string readGraph = ""; // default is to generate graph.
   bool generateIC = true; // default is to generate i.c.
+  bool drawLattice = false;
 
   bool pairs = true;
             
@@ -151,6 +156,12 @@ int main(int argc, char* argv[])
      "model to use (InfoSIRS, ProtectiveSIRS)")
     ("tmax", po::value<double>()->default_value(100.),
      "time after which to stop\n(use tmax=0 to just generate graph and exit)")
+    ("rmax", po::value<unsigned int>()->default_value(0),
+     "number of recoveries after which to stop (if >0)")
+    ("imax", po::value<unsigned int>()->default_value(0),
+     "number of infections after which to stop (if >0)")
+    ("pmax", po::value<unsigned int>()->default_value(0),
+     "number of informations after which to stop (if >0)")
     ("output", po::value<double>()->default_value(0.),
      "write output data at arg timesteps")
     ("graphviz,g", po::value<int>()->default_value(0),
@@ -192,6 +203,8 @@ int main(int argc, char* argv[])
       model = new InfoSIRS(verbose);
     } else if (modelString == "ProtectiveSIRS") {
       model = new ProtectiveSIRS();
+    } else if (modelString == "Vaccination") {
+      model = new Vaccination(verbose);
     } else {
       std::cerr << "Error: unknown model: " << modelString << std::endl;
       return 1;
@@ -533,6 +546,8 @@ int main(int argc, char* argv[])
     }
     
     if (topology == "lattice") {
+
+      drawLattice = true;
       
       /******************************************************************/
       // read lattice specific parameters
@@ -569,6 +584,8 @@ int main(int argc, char* argv[])
       
     } else if (topology == "tri-lattice") {
       
+      drawLattice = true;
+
       /******************************************************************/
       // read tri-lattice specific parameters
       /******************************************************************/
@@ -1166,7 +1183,10 @@ int main(int argc, char* argv[])
   // read simulation paramters
   /******************************************************************/
   
-  stop = vm["tmax"].as<double>();
+  stopTime = vm["tmax"].as<double>();
+  stopRecoveries = vm["rmax"].as<unsigned int>();
+  stopInfections = vm["imax"].as<unsigned int>();
+  stopInformations = vm["pmax"].as<unsigned int>();
   outputData = vm["output"].as<double>();
 
   // graph directory
@@ -1206,7 +1226,11 @@ int main(int argc, char* argv[])
         (vm["write-file"].as<std::string>())+".graph";
 
       // write graph
-      write_graph(graph, *model, outputGraphName, -1);
+      if (drawLattice) {
+        draw_lattice(graph, *model, (outputGraphName+".png").c_str());
+      } else {
+        write_graph(graph, *model, outputGraphName, -1);
+      }
     }
 
     // calculate degree distribution
@@ -1233,9 +1257,14 @@ int main(int argc, char* argv[])
     std::cout << "time elapsed: " << sim->getTime() << std::endl;
 
   // GraphViz output
-  if (outputGraphviz >= 0)
-    write_graph(graph, *model, (graphDir + "/frame000"), -1);
-
+  if (outputGraphviz >= 0) {
+    if (drawLattice) {
+      draw_lattice(graph, *model, (graphDir + "/frame000.png").c_str());
+    } else {
+      write_graph(graph, *model, (graphDir + "/frame000"), -1);
+    }
+  }
+  
   // prints data to outputFile
   std::string lastLine = "";
   if (outputFile) {
@@ -1252,7 +1281,15 @@ int main(int argc, char* argv[])
   unsigned int steps = 0;
   unsigned int outputNum = 1;
 
-  while (sim->getTime()<stop && sim->updateState()) {
+  bool doSim = !(stopTime == 0 && stopInfections == 0 &&
+                 stopRecoveries == 0 && stopInformations == 0);
+    
+  while ((stopTime == 0 || sim->getTime()<stopTime) &&
+         (stopInfections == 0 || (sim->getNumInfections() < stopInfections &&
+         sim->getNumInfections()+1 > sim->getNumRecoveries())) &&
+         (stopInformations == 0 || (sim->getNumInformations() < stopInformations && 
+         sim->getNumInformations()+1 > sim->getNumForgettings())) &&
+         doSim && sim->updateState()) {
     
     if (verbose >= 2) {
       print_graph_statistics(graph, *model, pairs);
@@ -1263,9 +1300,14 @@ int main(int argc, char* argv[])
     }
 
     if ((outputGraphviz > 0) && (steps % outputGraphviz == 0)) {
-      write_graph(graph, *model,
-                  generateFileName((graphDir +"/frame"),outputNum),
-                  sim->getTime());
+      if (drawLattice) {
+        draw_lattice(graph, *model,
+                     (generateFileName((graphDir +"/frame"), outputNum)+".png").c_str());
+      } else {
+        write_graph(graph, *model,
+                    generateFileName((graphDir +"/frame"),outputNum),
+                    sim->getTime());
+      }
       ++outputNum;
     }
     if (outputFile && sim->getTime() > nextDataStep) {
@@ -1279,31 +1321,45 @@ int main(int argc, char* argv[])
     }
     ++steps;
   }
-   
+
+  if (stopTime == 0) stopTime = sim->getTime();
+  
   if (verbose) std::cout << "Final status (" << sim->getTime() << "): " 
                          << std::endl;
-  if (stop > 0 && outputGraphviz >= 0) {
+  if (doSim && outputGraphviz >= 0) {
+    if (drawLattice) {
+      draw_lattice(graph, *model,
+                   (generateFileName((graphDir +"/frame"),outputNum)+".png").c_str());
+    } else {
       write_graph(graph, *model,
                   generateFileName((graphDir +"/frame"),outputNum),
                   sim->getTime());
+    }
   }
   
   if (outputFile) {
-    if (sim->getTime() < stop) {
+    if (sim->getTime() < stopTime) {
       lastLine = 
         write_graph_data(graph, *model, sim->getTime(), *outputFile, pairs);
     }
-    *outputFile << stop << '\t' << lastLine;
+    *outputFile << stopTime << '\t' << lastLine;
     outputFile->close();
     delete outputFile;
     std::ofstream statsFile;
     std::string statsFileName = (vm["write-file"].as<std::string>())+".stats";
     statsFile.open(statsFileName.c_str(), std::ios::out);
     statsFile << "Cumulative number of infections: "
-                  << sim->getNumInfections() << std::endl;
+              << sim->getNumInfections() << std::endl;
     statsFile.close();
   }
-  
+
+  if (verbose) {
+    std::cout << "Cumulative number of infections: " << sim->getNumInfections() 
+              << std::endl;
+    std::cout << "Cumulative number of informations: " << sim->getNumInformations() 
+              << std::endl;
+  }
+
   if (verbose) print_graph_statistics(graph, *model, pairs);
 
   // remove
@@ -1323,7 +1379,7 @@ int main(int argc, char* argv[])
     
     gpFile << "### model parameters generated by simulate" << std::endl;
     gpFile << "N=" << num_vertices(graph) << std::endl;
-    gpFile << "Tmax=" << stop << std::endl;
+    gpFile << "Tmax=" << stopTime << std::endl;
     gpFile << "### end of model parameters" << std::endl;
     
     try {

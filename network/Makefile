@@ -4,7 +4,7 @@ CC         = g++
 CPPFLAGS     = -Wall -O3 -g -I${CODEDIR} -Iinclude
 
 LINKER      = g++
-LDFLAGS     = -lboost_program_options -lgsl -lgslcblas
+LDFLAGS     = -lpng -lpngwriter -lfreetype -lboost_program_options -lgsl -lgslcblas
 
 #--------------------------------------------------------------------
 
@@ -14,7 +14,8 @@ DEPENDFLAGS = -m
 #--------------------------------------------------------------------
 
 #SOURCES     = simulate.cc Bin.cc InfoSIRS.cc Model.cc
-SOURCES     = simulate.cc Bin.cc InfoSIRS.cc ProtectiveSIRS.cc Model.cc
+SOURCES     = simulate.cc Bin.cc InfoSIRS.cc ProtectiveSIRS.cc Vaccination.cc \
+	Model.cc
 OBJECTS     = $(patsubst %.cc,out/%.o,${SOURCES})
 
 EXEC        = simulate
@@ -54,10 +55,15 @@ cleaner:
 
 out/InfoSIRS.o: include/InfoSIRS.hh include/Model.hh
 
+out/ProtectiveSIRS.o: include/ProtectiveSIRS.hh include/Model.hh
+
+out/Vaccination.o: include/Vaccination.hh include/Model.hh
+
 out/simulate.o: include/Vertex.hh include/Simulator.hh \
 	include/GillespieSimulator.hh \
 	include/ChrisSimulator.hh include/Tree.hh include/Bin.hh \
 	include/InfoSIRS.hh include/Model.hh include/lattice_generator.hh \
 	include/graph_structure.hh include/erdos_renyi_generator2.hh \
 	include/visualize_graph.hh include/albert_barabasi_generator.hh \
-	include/cluster_coeffs.hh include/assortativity.hh
+	include/cluster_coeffs.hh include/assortativity.hh \
+	include/ProtectiveSIRS.hh include/Vaccination.hh

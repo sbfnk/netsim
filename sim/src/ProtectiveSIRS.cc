@@ -65,7 +65,8 @@ ProtectiveSIRS::~ProtectiveSIRS()
 // get the events that can happen for a given state of a node. Stores the
 // events in the events list and returns the sum of their rates
 /******************************************************************/
-double ProtectiveSIRS::getNodeEvents(eventList& events,unsigned int state) const
+double ProtectiveSIRS::getNodeEvents(eventList& events,unsigned int state,
+                                     unsigned int nb) const
 {
    double rateSum(.0);
 
@@ -110,8 +111,8 @@ double ProtectiveSIRS::getNodeEvents(eventList& events,unsigned int state) const
 // of their rates 
 /******************************************************************/
 double ProtectiveSIRS::getEdgeEvents(eventList& events,
-                            unsigned int state, unsigned int edge,
-                            unsigned int nbState) const
+                                     unsigned int state, unsigned int edge,
+                                     unsigned int nbState, unsigned int nb) const
 {
    double rateSum(.0);
    if (edge == Disease) {
