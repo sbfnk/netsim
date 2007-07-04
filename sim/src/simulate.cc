@@ -121,6 +121,7 @@ int main(int argc, char* argv[])
   std::ofstream* outputFile = 0;
 
   unsigned int verbose = 0;
+  bool printStats = false;
   
   std::string readGraph = ""; // default is to generate graph.
   bool generateIC = true; // default is to generate i.c.
@@ -140,6 +141,8 @@ int main(int argc, char* argv[])
      "produce verbose output")
     ("very-verbose,V",
      "produce very verbose output")
+    ("print-stats",
+     "print stats at the end of run")
     ("params-file,p",po::value<std::string>(),
      "file containing graph parameters")
     ("model-file,m",po::value<std::string>(),
@@ -190,6 +193,9 @@ int main(int argc, char* argv[])
   }
   if (vm.count("very-verbose")) {
     verbose = 2;
+  }
+  if (vm.count("print-stats")) {
+    printStats = true;
   }
 
   if (vm.count("help")) {
@@ -1353,7 +1359,7 @@ int main(int argc, char* argv[])
     statsFile.close();
   }
 
-  if (verbose) {
+  if (verbose || printStats) {
     std::cout << "Cumulative number of infections: " << sim->getNumInfections() 
               << std::endl;
     std::cout << "Cumulative number of informations: " << sim->getNumInformations() 
