@@ -14,9 +14,7 @@ class Bin
 public:
   Bin(): parent(0), rateSum(0.) {;}
   virtual ~Bin()
-  { for (unsigned int i = 0; i < children.size(); i++)
-      if (children[i]) delete children[i];
-  }
+  { for (unsigned int i = 0; i < children.size(); i++) delete children[i]; }
   
   void setParent(Bin* const newParent) { parent = newParent; }
   
