@@ -98,7 +98,7 @@ cp -f $sim $output_dir/$file_id.sim.prm
 sim_base="$CODEDIR/graph/bin/simulate"
 sim_base="$sim_base --graph-dir $output_dir/images $sim_options"
 sim_base="$sim_base $options"
-sim_command="$sim_base --write-file $output_dir/$file_id
+sim_command="$sim_base --write-file $output_dir/$file_id"
 
 # execute 
 $sim_command
