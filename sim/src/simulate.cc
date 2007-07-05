@@ -1043,6 +1043,8 @@ int main(int argc, char* argv[])
                            << std::endl;
   }
 
+  numSims = vm["nsims"].as<unsigned int>();
+
   unsigned int extLength = 0;
   
   if (numSims > 1) {
@@ -1232,8 +1234,7 @@ int main(int argc, char* argv[])
     stopInfections = vm["imax"].as<unsigned int>();
     stopInformations = vm["pmax"].as<unsigned int>();
     outputData = vm["output"].as<double>();
-    numSims = vm["nsims"].as<unsigned int>();
-    
+        
     // graph directory
     if (vm.count("graph-dir")) {
       graphDir = vm["graph-dir"].as<std::string>();
