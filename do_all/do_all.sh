@@ -15,7 +15,7 @@ fi
 
 # usage message
 usage="Usage: do_all.sh file_id [-m model_file] [-o ode_file]"
-usage="$usage [-s sim_file] [-n num_sims] [-d timestep] [-q] [model_options]"
+usage="$usage [-s sim_file] [-d timestep] [-q] [model_options]"
 
 # set file_id
 file_id=$1
@@ -51,7 +51,6 @@ while [ $# -ge 1 ];
       -m) shift; model=$1;;
       -o) shift; ode=$1;;
       -s) shift; sim=$1;;
-      -n) shift; num_sims=$1;;
       -d) shift; dt=$1;;
       -f) force="y";;
       -q) quiet="y";;
@@ -78,17 +77,8 @@ else
     mkdir $output_dir/images
 fi
 
-# writing comm line
+# writing command line
 echo $comm_line > $output_dir/$file_id.comm_line
-
-# check num_sims
-if [ $num_sims -gt 8999 ]; then
-    echo "WARNING: num_sims > 8999, setting to 8999"
-    set num_sims=8999
-fi
-
-# print message
-echo "Running $num_sims simulations..."
 
 # setting sim_options
 sim_options=""
@@ -108,37 +98,22 @@ cp -f $sim $output_dir/$file_id.sim.prm
 sim_base="$CODEDIR/graph/bin/simulate"
 sim_base="$sim_base --graph-dir $output_dir/images $sim_options"
 sim_base="$sim_base $options"
-sim_command="$sim_base --write-file $output_dir/$file_id""100"
+sim_command="$sim_base --write-file $output_dir/$file_id
 
 # execute 
-echo -ne .
 $sim_command
-if [ -f "$output_dir/$file_id""100.graph" ]; then 
-  mv "$output_dir/$file_id""100.graph" "$output_dir/$file_id"".graph"
-fi
-mv "$output_dir/$file_id""100.degree" "$output_dir/$file_id"".degree"
-
-# loop over num_sims
-if [ $num_sims -gt 1 ]; then
-    for ((i=101;i<(100+$num_sims);i++)); do
-	echo -ne .
-	sim_command="$sim_base --write-file $output_dir/$file_id$i --no-graph --no-degree-dist"
-        $sim_command
-    done
-fi
-
-echo 
 
 # averaging runs
+echo
 echo "Averaging runs..."
 
 avg_command="$CODEDIR/graph/bin/average_runs -d $dt -o $output_dir/$file_id"
-avg_command="$avg_command $output_dir/$file_id???.sim.dat"
+avg_command="$avg_command $output_dir/$file_id*.sim.dat"
 
 # execute average
 $avg_command
 
-#rm $output_dir/$file_id???.sim.dat
+rm $output_dir/$file_id.sim.tmp.gp
 
 # check if ic-file was generated
 if [ -s $ic_file ]; then
