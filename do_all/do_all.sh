@@ -107,8 +107,10 @@ $sim_command
 echo
 echo "Averaging runs..."
 
+data_files=`find $output_dir | grep -E "$file_id[0-9]+.sim.dat"`
+
 avg_command="$CODEDIR/graph/bin/average_runs -d $dt -o $output_dir/$file_id"
-avg_command="$avg_command $output_dir/$file_id*.sim.dat"
+avg_command="$avg_command $data_files"
 
 # execute average
 $avg_command
