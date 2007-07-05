@@ -15,7 +15,7 @@ fi
 
 # usage message
 usage="Usage: do_sim.sh file_id [-m model_file] "
-usage="$usage [-s sim_file] [-n num_sims] [-d timestep] [-q] [model_options]"
+usage="$usage [-s sim_file] [-d timestep] [-q] [model_options]"
 
 # set file_id
 file_id=$1
@@ -46,7 +46,6 @@ while [ $# -ge 1 ];
       in
       -m) shift; model=$1;;
       -s) shift; sim=$1;;
-      -n) shift; num_sims=$1;;
       -d) shift; dt=$1;;
       -f) force="y";;
       -q) quiet="y";;
@@ -73,15 +72,6 @@ else
     mkdir $output_dir/images
 fi
 
-# check num_sims
-if [ $num_sims -gt 8999 ]; then
-    echo "WARNING: num_sims > 8999, setting to 8999"
-    set num_sims=8999
-fi
-
-# print message
-echo "Running $num_sims simulations..."
-
 # setting sim_options
 sim_options=""
 
@@ -96,25 +86,10 @@ fi
 sim_base="$CODEDIR/graph/bin/simulate"
 sim_base="$sim_base --graph-dir $output_dir/images $sim_options"
 sim_base="$sim_base $options"
-sim_command="$sim_base --write-file $output_dir/$file_id""100"
+sim_command="$sim_base --write-file $output_dir/$file_id"
 
 # execute 
-echo -ne .
 $sim_command
-if [ -f "$output_dir/$file_id""100.graph" ]; then
-  mv "$output_dir/$file_id""100.graph" "$output_dir/$file_id"".graph"
-fi
-mv "$output_dir/$file_id""100.degree" "$output_dir/$file_id"".degree"
-mv "$output_dir/$file_id""100.gp" "$output_dir/$file_id"".gp"
-
-# loop over num_sims
-if [ $num_sims -gt 1 ]; then
-    for ((i=101;i<(100+$num_sims);i++)); do
-	echo -ne .
-	sim_command="$sim_base --write-file $output_dir/$file_id$i --no-graph --no-degree-dist"
-        $sim_command
-    done
-fi
 
 echo 
 
@@ -122,12 +97,10 @@ echo
 echo "Averaging runs..."
 
 avg_command="$CODEDIR/graph/bin/average_runs -d $dt -o $output_dir/$file_id"
-avg_command="$avg_command $output_dir/$file_id???.sim.dat"
+avg_command="$avg_command $output_dir/$file_id*.sim.dat"
 
 # execute average
 $avg_command
-
-#rm $output_dir/$file_id???.sim.dat
 
 # check if ic-file was generated
 if [ -s $ic_file ]; then
@@ -140,6 +113,8 @@ fi
 echo "Making plots"
 plot_command="$CODEDIR/do_all/simplot.bash $file_id"
 $plot_command
+
+rm "$file_id"".sim.tmp.gp"
 
 # ghostview
 #    gv $output_dir/$file_id.pairs.ps &
