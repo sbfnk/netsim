@@ -97,7 +97,6 @@ cp -f $sim $output_dir/$file_id.sim.prm
 # set sim_command
 sim_command="$CODEDIR/graph/bin/simulate"
 sim_command="$sim_command --graph-dir $output_dir/images $sim_options"
-sim_command="$sim_command --generate-ode-ic-file $ic_file"
 sim_command="$sim_command $options"
 sim_command="$sim_command --write-file $output_dir/$file_id"
 
