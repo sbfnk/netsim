@@ -2,4 +2,4 @@ model=$CODEDIR/do_all/model.prm # file containing the model paramters
 ode=$CODEDIR/do_all/ode.prm     # file containing the ode parameters
 sim=$CODEDIR/do_all/sim.prm     # file containing the simulation parameters
 
-dt=0.001                          # discrete timestep for averaging
+dt=0.01                          # discrete timestep for averaging
