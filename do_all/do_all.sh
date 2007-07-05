@@ -113,8 +113,6 @@ avg_command="$avg_command $output_dir/$file_id*.sim.dat"
 # execute average
 $avg_command
 
-rm $output_dir/$file_id.sim.tmp.gp
-
 # check if ic-file was generated
 if [ -s $ic_file ]; then
     echo -ne # ic_file exists
