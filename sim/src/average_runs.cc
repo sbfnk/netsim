@@ -43,6 +43,7 @@ int main(int argc, char* argv[])
   float stopTime = 0.;
 
   bool do_errors = false;
+  bool verbose = false;
   
   std::vector<std::string> inputFiles;
   std::string outputBase;
@@ -57,6 +58,8 @@ int main(int argc, char* argv[])
      "output file")    
     ("errors,e",
      "include errors in output file")    
+    ("verbose,v",
+     "produce verbose output")    
     ;
     
   po::options_description hidden_options;
@@ -104,6 +107,10 @@ int main(int argc, char* argv[])
     do_errors = true;
   }
 
+  if(vm.count("verbose")) {
+    verbose = true;
+  }
+
   std::vector< std::vector<float> > values;
   std::vector< std::vector<float> > squares;
   std::vector<unsigned int> no_files;
@@ -114,6 +121,9 @@ int main(int argc, char* argv[])
 
   for (std::vector<std::string>::iterator it = inputFiles.begin();
        it != inputFiles.end(); it++) {
+    if (verbose) {
+      std::cout << "Opening " << (*it) << " for reading" << std::endl;
+    }
     std::ifstream ifs((*it).c_str());
 
     if (ifs.is_open()) {
@@ -200,6 +210,10 @@ int main(int argc, char* argv[])
     }
   }
   float time = 0.;
+  if (verbose) {
+    std::cout << "Opening output file " << outputBase << ".sim.dat" 
+              << std::endl;
+  }
   std::ofstream ofs((outputBase+".sim.dat").c_str(), std::ios::out);
   
   if (ofs.is_open()) {
@@ -225,6 +239,10 @@ int main(int argc, char* argv[])
   }
 
   // write file with averaged initial conditions
+  if (verbose) {
+    std::cout << "Opening " << outputBase << ".init to write initial conditions"
+              << std::endl;
+  }
   ofs.open((outputBase+".init").c_str(), std::ios::out);
   if (ofs.is_open()) {
     std::vector<float> firstLine = (*values.begin());
