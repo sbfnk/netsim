@@ -1054,7 +1054,7 @@ int main(int argc, char* argv[])
     std::cout << "Running " << numSims << " simulations" << std::endl;
   }
 
-  for (unsigned int nSim = 0; nSim < numSims; nSim++) {
+  for (unsigned int nSim = 1; nSim <= numSims; nSim++) {
 
     if (printStats) {
       std::cout << "-----" << std::endl;
