@@ -21,7 +21,7 @@ sed -e s:FILE_ID:$output_dir/$1:g $gp_sim_script >> $output_dir/$1.sim.tmp.gp
 
 # make figs
 gnuplot $output_dir/$1.sim.tmp.gp > /dev/null
-#rm -f $output_dir/$1.sim.tmp.gp
+rm -f $output_dir/$1.sim.tmp.gp
 
 # ps -> eps
 ps2epsi sim.ps sim.eps

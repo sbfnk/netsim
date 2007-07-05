@@ -114,8 +114,6 @@ echo "Making plots"
 plot_command="$CODEDIR/do_all/simplot.bash $file_id"
 $plot_command
 
-rm "$file_id.sim.tmp.gp"
-
 # ghostview
 #    gv $output_dir/$file_id.pairs.ps &
 #    gv $output_dir/$file_id.singlets.ps &
