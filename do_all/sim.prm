@@ -1,16 +1,17 @@
 # Simulation Parameters File %%%%%%%%%
 
 # General parameters: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-usemodel        = InfoSIRS # model to use
-tmax         = 20 # time to elapse until stop
+usemodel     = InfoSIRS # model to use
+tmax         = 100 # time to elapse until stop
 output       = 0.1 # timesteps at which there is data output
-graphviz     = 10 # timesteps at which to generate graphs
-d-topology   = tri-lattice # topology of disease network
-i-topology   = copy        # topology of information network
+graphviz     = -1 # timesteps at which to generate graphs
+#d-topology   = random-regular # topology of disease network
+#i-topology   = random-regular        # topology of information network
+nsims        = 1000
 base         = S-   # base state of individuals (S,s,I,i,R,r)
 
 #S-           = 5   # number of random uninformed susceptibles
-I-           = 1   # number of random uninformed infected
+#I-           = 1   # number of random uninformed infected
 #R-           = 1   # number of random uninformed recovered
 #S+           = 1   # number of random informed susceptibles
 #I+           = 1   # number of random informed infected
@@ -31,8 +32,8 @@ I-           = 1   # number of random uninformed infected
 #i-edges      = 0    # approximate number of edges in graph
 
 # random-regular options: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#d-degree      = 4   # vertex degree
-#i-degree      = 4   # vertex degree
+#d-degree      = 0   # vertex degree
+#i-degree      = 0   # vertex degree
 
 # small-world options: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #d-neighbours = 4    # (even) number of neighbours
