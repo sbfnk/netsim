@@ -1179,7 +1179,7 @@ int main(int argc, char* argv[])
       }
       
     } else { // if generateIC is not set
-      if (nSim == 0) {
+      if (nSim == 1) {
         // save graph states
         copy_graph = graph;
       } else {
@@ -1238,8 +1238,6 @@ int main(int argc, char* argv[])
                    << nSim;
     }
     
-    // create graph directory
-    mkdir(graphDirName.str().c_str(), 0755);
     
     // timesteps after which to write graphviz output
     if (vm.count("graphviz")) {
@@ -1280,6 +1278,9 @@ int main(int argc, char* argv[])
     
     // GraphViz output
     if (outputGraphviz >= 0) {
+      // create graph directories
+      if (nSim == 1) mkdir(graphDir.c_str(), 0755);
+      mkdir(graphDirName.str().c_str(), 0755);
       if (drawLattice) {
         draw_lattice(graph, *model,
                      (graphDirName.str() + "/frame000.png").c_str());
