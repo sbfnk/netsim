@@ -17,6 +17,11 @@ class Tree
 
 public:
   Tree(): lastLeaf(0), topBin(0) {;}
+  ~Tree()
+  {
+    for (unsigned int i = 0; i < leaves.size(); i++) delete leaves[i];
+    delete topBin;
+  }
   
   T* pickRandomElement(double& randNo);
 

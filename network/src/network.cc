@@ -1447,6 +1447,22 @@ int main(int argc, char* argv[])
     delete sim;
     
   }
+
+  // free memory
+
+  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
+       it != model->getEdgeTypes().end(); it++) {
+    delete lattice_options[it->getId()];
+    delete rg_options[it->getId()];
+    delete rrg_options[it->getId()];
+    delete sw_options[it->getId()];
+    delete plod_options[it->getId()];
+    delete ab_options[it->getId()];
+    delete copy_options[it->getId()];
+    delete readFile_options[it->getId()];
+  }
+  
+  delete model;
   
   if (printStats) {
     std::cout << "-----" << std::endl;
