@@ -1298,11 +1298,13 @@ int main(int argc, char* argv[])
     if (vm.count("graph-dir")) {
       graphDir = vm["graph-dir"].as<std::string>();
     }
-    std::stringstream graphDirName(graphDir, std::ios::in | std::ios::ate);
+    std::stringstream graphDirName(graphDir, std::ios::in | std::ios::out |
+                                   std::ios::ate);
     if (numSims > 1) {
       graphDirName << "/run" << std::setfill('0') << std::setw(extLength)
                    << nSim;
     }
+    
     // create graph directory
     mkdir(graphDirName.str().c_str(), 0755);
     
