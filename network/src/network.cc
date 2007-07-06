@@ -1085,7 +1085,7 @@ int main(int argc, char* argv[])
   for (unsigned int nSim = 1; nSim <= numSims; nSim++) {
 
     if (printStats) {
-      std::cout << "-----" << std::endl;
+      std::cout << "----- " << "run #" << nSim << std::endl;
     } else if (numSims > 0) {
       std::cout << ".";
       std::cout.flush();
@@ -1439,11 +1439,7 @@ int main(int argc, char* argv[])
   
   delete model;
   
-  if (printStats) {
-    std::cout << "-----" << std::endl;
-  } else {
-    std::cout << std::endl;
-  }
+  std::cout << std::endl;
   
   return 0;
   
