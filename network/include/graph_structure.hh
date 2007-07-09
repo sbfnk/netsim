@@ -111,8 +111,6 @@ namespace boost {
       seen_edges[target(*ei, source_graph)][source(*ei, source_graph)] = true;
     }
 
-    et.m_value.rewired = true;
-
     unsigned int N = num_edges(target_graph);
     
     if (rewireFraction > 0.) {

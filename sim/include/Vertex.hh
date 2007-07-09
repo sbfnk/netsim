@@ -13,13 +13,12 @@ class Edge
 {      
 public:
       
-  Edge(): type(0), parallel(false), rewired(false) {;}
-  Edge(int eType): type(eType), parallel(false), rewired(false) {;}
-  Edge(int eType, bool p): type(eType), parallel(false), rewired(p) {;}
+  Edge(): type(0), parallel(false) {;}
+  Edge(int eType): type(eType), parallel(false) {;}
+  Edge(int eType, bool p): type(eType), parallel(false) {;}
       
   unsigned int type;
   bool parallel;
-  bool rewired;
       
 };
 
