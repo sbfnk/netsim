@@ -232,8 +232,9 @@ namespace boost {
     std::vector<vertex_descriptor> stubs;
 
     edge_iterator ei, ei_end;
+    tie(ei, ei_end) = edges(g);
     unsigned int et = g[*ei].type;
-    for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
+    for (; ei != ei_end; ei++) {
       seen_edges[source(*ei, g)][target(*ei, g)] = true;
       seen_edges[target(*ei, g)][source(*ei, g)] = true;
     }
