@@ -64,7 +64,7 @@ namespace boost {
 
   //----------------------------------------------------------
   // checks if unseen edge among stubs
-  // needed for copy_graph and random_regular_graph
+  // needed for random_regular_graph and rewireEdges
 
   template <typename Graph>
   bool suitable(Graph& g,
@@ -82,120 +82,20 @@ namespace boost {
   
   //----------------------------------------------------------
    
-  template <typename Graph1, typename Graph2, typename RandomGenerator>
-  int copy_graph(Graph1& source_graph, Graph2& target_graph,
-                  RandomGenerator& r,
-                  typename edge_property_type<Graph2>::type et =
-                  edge_property_type<Graph2>::type(),
-                  double rewireFraction = 0., double removeFraction = 0.,
-                  double addFraction = 0.)
+  template <typename Graph1, typename Graph2>
+  void copy_graph(Graph1& source_graph, Graph2& target_graph,
+                 typename edge_property_type<Graph2>::type et =
+                 edge_property_type<Graph2>::type())
+
   {
     typedef typename boost::graph_traits<Graph1>::edge_iterator
       edge_iterator;
     
-    typedef typename boost::graph_traits<Graph2>::edge_descriptor
-      edge_descriptor;
-    typedef typename boost::graph_traits<Graph2>::vertex_descriptor
-      vertex_descriptor;
-
-    std::vector< std::vector<bool> >
-      seen_edges(num_vertices(source_graph),
-                    std::vector<bool>(num_vertices(source_graph), false));
-    std::vector<vertex_descriptor> stubs;
-
     edge_iterator ei, ei_end;
     for (tie(ei, ei_end) = edges(source_graph); ei != ei_end; ei++) {
       add_edge(source(*ei, source_graph), target(*ei, source_graph),
                et, target_graph);
-      seen_edges[source(*ei, source_graph)][target(*ei, source_graph)] = true;
-      seen_edges[target(*ei, source_graph)][source(*ei, source_graph)] = true;
     }
-
-    unsigned int N = num_edges(target_graph);
-    
-    if (rewireFraction > 0.) {
-      if (rewireFraction <= 1.) {
-        boost::uniform_01<boost::mt19937, double> uni_gen(r);
-        unsigned int num_rewire =
-          static_cast<unsigned int>(rewireFraction * N);
-        // remove num_rewire random edges
-        
-        for (unsigned int i = 0; i < num_rewire; i++) {
-          edge_descriptor e = random_edge(target_graph, r);
-          stubs.push_back(source(e, target_graph));
-          stubs.push_back(target(e, target_graph));
-          boost::remove_edge(e, target_graph);
-        }
-        // rewire removed edges
-        while (num_rewire > 0) {
-          // rewire two of the stubs
-          unsigned int src =
-            static_cast<unsigned int>(uni_gen() * stubs.size());
-          unsigned int trg = 
-            static_cast<unsigned int>(uni_gen() * stubs.size());
-          // check if suitable pair
-          if ((stubs[src] != stubs[trg]) && (!seen_edges[stubs[src]][stubs[trg]])) {
-            boost::add_edge(stubs[src], stubs[trg], et, target_graph);
-            // remove stubs
-            stubs.erase(stubs.begin() + src);
-            if (src > trg) {
-              stubs.erase(stubs.begin() + trg);
-            } else {
-              stubs.erase(stubs.begin() + trg - 1);
-            }
-            --num_rewire;
-          } else {
-            if (!suitable(target_graph,stubs, seen_edges))
-              return -1; // failure - no more suitable pairs
-          }
-        }
-      } else {
-        std::cerr << "ERROR: rewire fraction must be between 0 and 1" << std::endl;
-        std::cerr << "no rewiring performed" << std::endl;
-      }
-    }
-    if (removeFraction > 0.) {
-      if (removeFraction < 1.) {
-        unsigned int num_remove =
-          static_cast<unsigned int>(removeFraction * N);
-        
-        while (num_remove > 0) {
-          // select random edge for removal
-          edge_descriptor e = random_edge(target_graph, r);
-
-          if (!seen_edges[source(e, target_graph)][target(e, target_graph)]) {
-            // remove edge
-            boost::remove_edge(e, target_graph);
-            --num_remove;
-          }
-        }
-      } else {
-        std::cerr << "ERROR: remove fraction must be between 0 and 1" << std::endl;
-        std::cerr << "no removing performed" << std::endl;
-      }
-    } 
-    if (addFraction > 0.) {
-      unsigned int num_add =
-        static_cast<unsigned int>(addFraction * N);
-
-      
-      while (num_add > 0) {
-        // select random edge for adding
-        bool found = false;
-        vertex_descriptor v1;
-        vertex_descriptor v2;
-        while (!found) {
-          v1 = random_vertex(target_graph, r);
-          do {
-            v2 = random_vertex(target_graph, r);
-          } while (v2 == v1);
-          found = !(edge(v1,v2,target_graph).second);
-        }
-        add_edge(v1,v2,et,target_graph);
-        --num_add;
-      }
-    }
-    return 0;
   }
   
   //----------------------------------------------------------
@@ -304,12 +204,165 @@ namespace boost {
         rrg_edges.push_back(std::make_pair(source, target));
         
       } else { // check if suitable stubs left
-        
-        if (!suitable(g, stubs, seen_edges)) return false; // failure - no more suitable pairs
+
+        if (!suitable(g, stubs, seen_edges)) return false; 
+        // failure - no more suitable pairs
       }
     }   
     
     return true; // success
+  }
+  
+  //----------------------------------------------------------
+
+  template <typename Graph, typename RandomGenerator>
+  int rewireEdges(Graph& g, RandomGenerator& r, double rewireFraction)
+  {
+    typedef typename boost::graph_traits<Graph>::edge_descriptor
+      edge_descriptor;
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor
+      vertex_descriptor;
+    typedef typename boost::graph_traits<Graph>::edge_iterator
+      edge_iterator;
+    typedef typename edge_property_type<Graph>::type
+      edge_property_type;
+    
+    std::vector< std::vector<bool> >
+      seen_edges(num_vertices(g), std::vector<bool>(num_vertices(g), false));
+    std::vector<vertex_descriptor> stubs;
+
+    edge_iterator ei, ei_end;
+    unsigned int et = g[*ei].type;
+    for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
+      seen_edges[source(*ei, g)][target(*ei, g)] = true;
+      seen_edges[target(*ei, g)][source(*ei, g)] = true;
+    }
+    
+    unsigned int N = num_edges(g);
+    
+    if (rewireFraction > 0. && rewireFraction <= 1.) {
+      boost::uniform_01<boost::mt19937, double> uni_gen(r);
+      unsigned int num_rewire =
+        static_cast<unsigned int>(rewireFraction * N);
+      
+      // remove num_rewire random edges
+      for (unsigned int i = 0; i < num_rewire; i++) {
+        edge_descriptor e = random_edge(g, r);
+        stubs.push_back(source(e, g));
+        stubs.push_back(target(e, g));
+        boost::remove_edge(e, g);
+      }
+      // rewire removed edges
+      while (num_rewire > 0) {
+        // rewire two of the stubs
+        unsigned int src =
+          static_cast<unsigned int>(uni_gen() * stubs.size());
+        unsigned int trg = 
+          static_cast<unsigned int>(uni_gen() * stubs.size());
+        // check if suitable pair
+        if ((stubs[src] != stubs[trg]) && (!seen_edges[stubs[src]][stubs[trg]])) {
+          boost::add_edge(stubs[src], stubs[trg], edge_property_type(et), g);
+          // remove stubs
+          stubs.erase(stubs.begin() + src);
+          if (src > trg) {
+            stubs.erase(stubs.begin() + trg);
+          } else {
+            stubs.erase(stubs.begin() + trg - 1);
+          }
+          --num_rewire;
+        } else {
+          if (!suitable(g, stubs, seen_edges))
+            return -1; // failure - no more suitable pairs
+        }
+      }
+    } else {
+      std::cerr << "ERROR: rewire fraction must be between 0 and 1" << std::endl;
+      std::cerr << "no rewiring performed" << std::endl;
+    }
+    return 0;
+  }
+  
+  //----------------------------------------------------------
+
+  template <typename Graph, typename RandomGenerator>
+  void removeEdges(Graph& g, RandomGenerator& r, double removeFraction)
+  {
+    typedef typename boost::graph_traits<Graph>::edge_descriptor
+      edge_descriptor;
+    typedef typename boost::graph_traits<Graph>::edge_iterator
+      edge_iterator;
+
+    unsigned int N = num_edges(g);
+    
+    std::vector< std::vector<bool> >
+      seen_edges(num_vertices(g), std::vector<bool>(num_vertices(g), false));
+
+    edge_iterator ei, ei_end;
+    for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
+      seen_edges[source(*ei, g)][target(*ei, g)] = true;
+      seen_edges[target(*ei, g)][source(*ei, g)] = true;
+    }
+    
+    if (removeFraction > 0. && removeFraction < 1.) {
+      unsigned int num_remove =
+        static_cast<unsigned int>(removeFraction * N);
+      
+      while (num_remove > 0) {
+        // select random edge for removal
+        edge_descriptor e = random_edge(g, r);
+        
+        if (!seen_edges[source(e, g)][target(e, g)]) {
+          // remove edge
+        boost::remove_edge(e, g);
+        --num_remove;
+        }
+      }
+    } else {
+      std::cerr << "ERROR: remove fraction must be between 0 and 1" << std::endl;
+      std::cerr << "no removing performed" << std::endl;
+    }
+  } 
+  
+  //----------------------------------------------------------
+
+  template <typename Graph, typename RandomGenerator>
+  void addEdges(Graph& g, RandomGenerator& r, double addFraction)
+  {
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor
+      vertex_descriptor;
+    typedef typename boost::graph_traits<Graph>::edge_descriptor
+      edge_descriptor;
+    typedef typename edge_property_type<Graph>::type
+      edge_property_type;
+    typedef typename boost::graph_traits<Graph>::edge_iterator
+      edge_iterator;
+    
+    edge_iterator ei, ei_end;
+    tie(ei, ei_end) = edges(g);
+
+    unsigned int et = g[*ei].type;
+    unsigned int N = num_edges(g);
+    
+    if (addFraction > 0.) {
+      unsigned int num_add =
+        static_cast<unsigned int>(addFraction * N);
+      
+      while (num_add > 0) {
+        // select random edge for adding
+        bool found = false;
+        vertex_descriptor v1;
+        vertex_descriptor v2;
+        while (!found) {
+          v1 = random_vertex(g, r);
+          do {
+            v2 = random_vertex(g, r);
+          } while (v2 == v1);
+          found = !(edge(v1,v2,g).second);
+        }
+        add_edge(v1,v2,edge_property_type(et),g);
+        --num_add;
+      }
+    }
   }
   
 } // namespace boost

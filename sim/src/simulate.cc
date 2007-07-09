@@ -80,12 +80,6 @@ struct abOptions
   unsigned int new_edges;
 };
 
-struct copyOptions {
-  double rewireFraction;
-  double removeFraction;
-  double addFraction;
-};
-
 struct readFileOptions {
   std::string fileName;
   bool getStates;
@@ -128,10 +122,9 @@ int main(int argc, char* argv[])
   
   std::string readGraph = ""; // default is to generate graph.
   bool generateIC = true; // default is to generate i.c.
-  bool drawLattice = false;
 
   bool pairs = true;
-            
+
   po::options_description command_line_options
     ("\nUsage: simulate -p params_file [options]... \n\nMain options");
 
@@ -397,32 +390,6 @@ int main(int argc, char* argv[])
     ab_options.push_back(abo);
   }
 
-  // copy graph
-  std::vector<po::options_description*> copy_options;
-  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
-       it != model->getEdgeTypes().end(); it++) {
-    std::stringstream s;
-    s << it->getText() << "-copy options";
-    po::options_description* cpo =
-      new po::options_description(s.str().c_str());
-    s.str("");
-    s << it->getText() << "-rewire";
-    cpo->add_options()
-      (s.str().c_str(), po::value<double>()->default_value(0.),
-       "fraction of edges to rewire");
-    s.str("");
-    s << it->getText() << "-remove";
-    cpo->add_options()
-      (s.str().c_str(), po::value<double>()->default_value(0.),
-       "fraction of edges to remove");
-    s.str("");
-    s << it->getText() << "-add";
-    cpo->add_options()
-      (s.str().c_str(), po::value<double>()->default_value(0.),
-       "fraction of edges to add");
-    copy_options.push_back(cpo);
-  }
-
   // read graph
   std::vector<po::options_description*> readFile_options;
   for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
@@ -444,12 +411,34 @@ int main(int argc, char* argv[])
     readFile_options.push_back(rfo);
   }
 
+  // rewiring options
+  po::options_description rewiring_options("Rewiring options");
+  
+  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
+       it != model->getEdgeTypes().end(); it++) {
+    std::stringstream s;
+    s << it->getText() << "-rewire";
+    rewiring_options.add_options()
+      (s.str().c_str(), po::value<double>()->default_value(0.),
+       "fraction of edges to rewire");
+    s.str("");
+    s << it->getText() << "-remove";
+    rewiring_options.add_options()
+      (s.str().c_str(), po::value<double>()->default_value(0.),
+       "fraction of edges to remove");
+    s.str("");
+    s << it->getText() << "-add";
+    rewiring_options.add_options()
+      (s.str().c_str(), po::value<double>()->default_value(0.),
+       "fraction of edges to add");
+  }
+
   po::options_description model_options = model->getOptions();
 
   // read options from command line
   po::options_description visible_options;
   visible_options.add(command_line_options).add(sim_options).add(graph_options).
-    add(assortativity_options).add(model_options);
+    add(rewiring_options).add(assortativity_options).add(model_options);
   
   po::options_description all_options;
   all_options.add(visible_options).add(hidden_options);
@@ -462,7 +451,6 @@ int main(int argc, char* argv[])
     all_options.add(*(sw_options[it->getId()]));
     all_options.add(*(plod_options[it->getId()]));
     all_options.add(*(ab_options[it->getId()]));
-    all_options.add(*(copy_options[it->getId()]));
     all_options.add(*(readFile_options[it->getId()]));
   }
 
@@ -524,8 +512,10 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // create graph variable
   /******************************************************************/
-  dualtype_graph graph, copy_graph;
-
+  dualtype_graph graph, saved_graph;
+  void (*draw_function)(const dualtype_graph&, const Model&,
+                        std::string, double) = 0;
+            
   /******************************************************************/
   // read graph from file or generate it
   /******************************************************************/
@@ -556,7 +546,7 @@ int main(int argc, char* argv[])
     
     if (topology == "lattice") {
 
-      drawLattice = true;
+      draw_function = &draw_lattice;
       
       /******************************************************************/
       // read lattice specific parameters
@@ -593,8 +583,8 @@ int main(int argc, char* argv[])
       
     } else if (topology == "tri-lattice") {
       
-      drawLattice = true;
-
+      draw_function = &draw_lattice;
+      
       /******************************************************************/
       // read tri-lattice specific parameters
       /******************************************************************/
@@ -627,7 +617,7 @@ int main(int argc, char* argv[])
       boost::add_edge_structure(temp_graph, tli, tli_end, Edge(edgeTypes[i].getId()));
       
     } else if (topology == "random") {
-      
+
       /******************************************************************/
       // read random graph specific parameters
       /******************************************************************/
@@ -725,8 +715,7 @@ int main(int argc, char* argv[])
 
         // copy graph to all edgetypes
         for (unsigned int j = 0; j < edgeTypes.size(); j++) {
-          boost::copy_graph(temp_graph, graph, gen,
-                            Edge(edgeTypes[j].getId()));
+          boost::copy_graph(temp_graph, graph, Edge(edgeTypes[j].getId()));
         }
         temp_graph.clear();
       }
@@ -754,6 +743,8 @@ int main(int argc, char* argv[])
       
     } else if (topology == "small-world") {
       
+      draw_function = &draw_ring;
+
       /******************************************************************/
       // read small-world graph specific parameters
       /******************************************************************/
@@ -874,48 +865,7 @@ int main(int argc, char* argv[])
       /******************************************************************/
 
       if (num_edges(graph) > 0) {
-
-        /******************************************************************/
-        // read copy graph specific parameters
-        /******************************************************************/
-        copyOptions opt;
-        
-        s.str("");
-        s << edgeTypes[i].getText() << "-rewire";
-        if (vm.count(s.str())) {
-          opt.rewireFraction = vm[s.str()].as<double>();
-        } else {
-          opt.rewireFraction = 0.;
-        }
-        s.str("");
-        s << edgeTypes[i].getText() << "-remove";
-        if (vm.count(s.str())) {
-          opt.removeFraction = vm[s.str()].as<double>();
-        } else {
-          opt.removeFraction = 0.;
-        }
-        s.str("");
-        s << edgeTypes[i].getText() << "-add";
-        if (vm.count(s.str())) {
-          opt.addFraction = vm[s.str()].as<double>();
-        } else {
-          opt.addFraction = 0.;
-        }
-
-        int copy_result = -1;
-        unsigned int count = 0;
-        while (copy_result < 0) {
-          temp_graph.clear();
-          copy_result =
-            boost::copy_graph(graph, temp_graph, gen, Edge(edgeTypes[i].getId()),
-                              opt.rewireFraction, opt.removeFraction,
-                              opt.addFraction);
-          ++count;
-        }
-        
-        if (verbose && opt.rewireFraction > 0.) {
-          std::cout << "graph rewired after " << count << " trials\n";
-        }
+        boost::copy_graph(graph, temp_graph, Edge(edgeTypes[i].getId()));
       } else {
         // push back for later
         edgeTypes.push_back(edgeTypes[i]);
@@ -926,6 +876,7 @@ int main(int argc, char* argv[])
           return 1;
         }
       }
+
     } else if (topology == "read") {
         
       /******************************************************************/
@@ -978,6 +929,35 @@ int main(int argc, char* argv[])
                 << std::endl;
       std::cerr << command_line_options << graph_options << std::endl;
     }
+
+    // do rewiring or other graph modifications if desired
+    if (vm.count(edgeTypes[i].getText()+"-rewire")) {
+      double rewireFraction = vm[edgeTypes[i].getText()+"-rewire"].as<double>();
+      if (rewireFraction > 0) {
+        int rewire_result = -1;
+        unsigned int count = 0;
+        onetype_graph rewire_graph = temp_graph;
+        while (rewire_result < 0) {
+          rewire_graph.clear();
+          boost::rewireEdges(rewire_graph, gen, rewireFraction);
+          ++count;
+        }
+        temp_graph = rewire_graph;
+        if (verbose) {
+          std::cout << "graph rewired after " << count << " trials\n";
+        }
+      }
+    }
+    if (vm.count(edgeTypes[i].getText()+"-remove")) {
+      double removeFraction = vm[edgeTypes[i].getText()+"-remove"].as<double>();
+      if (removeFraction > 0) {
+        boost::removeEdges(temp_graph, gen, removeFraction);
+      }
+    }
+    if (vm.count(edgeTypes[i].getText()+"-add")) {
+      double addFraction = vm[edgeTypes[i].getText()+"-add"].as<double>();
+      boost::addEdges(temp_graph, gen, addFraction);
+    }
     
     // copy edges to main graph
     boost::graph_traits<dualtype_graph>::edge_iterator ei, ei_end;
@@ -993,6 +973,8 @@ int main(int argc, char* argv[])
     std::cerr << command_line_options << graph_options << std::endl;
     return 1;
   }
+
+  if (draw_function == 0) draw_function = &write_graph;
 
   /******************************************************************/
   // create given assortativity if desired
@@ -1070,7 +1052,7 @@ int main(int argc, char* argv[])
         }
     }
   }
-  
+
   numSims = vm["nsims"].as<unsigned int>();
   
   unsigned int extLength = 0;
@@ -1181,10 +1163,10 @@ int main(int argc, char* argv[])
     } else { // if generateIC is not set
       if (nSim == 1) {
         // save graph states
-        copy_graph = graph;
+        saved_graph = graph;
       } else {
         // recover graph states
-        graph = copy_graph;
+        graph = saved_graph;
       }
     }
     
@@ -1281,12 +1263,7 @@ int main(int argc, char* argv[])
       // create graph directories
       if (nSim == 1) mkdir(graphDir.c_str(), 0755);
       mkdir(graphDirName.str().c_str(), 0755);
-      if (drawLattice) {
-        draw_lattice(graph, *model,
-                     (graphDirName.str() + "/frame000.png").c_str());
-      } else {
-        write_graph(graph, *model, (graphDirName.str() + "/frame000"), -1);
-      }
+      draw_function(graph, *model, (graphDirName.str() + "/frame000"), -1);
     }
     
     // prints data to outputFile
@@ -1324,15 +1301,10 @@ int main(int argc, char* argv[])
       }
       
       if ((outputGraphviz > 0) && (steps % outputGraphviz == 0)) {
-        if (drawLattice) {
-          draw_lattice(graph, *model,
-                       (generateFileName((graphDirName.str()+"/frame"),
-                                         outputNum)+".png").c_str());
-        } else {
-          write_graph(graph, *model,
+        draw_function(graph, *model,
                       generateFileName((graphDirName.str() +"/frame"),
-                                       outputNum),sim->getTime());
-        }
+                                       outputNum),
+                      sim->getTime());
         ++outputNum;
       }
       if (outputFile && sim->getTime() > nextDataStep) {
@@ -1352,15 +1324,9 @@ int main(int argc, char* argv[])
     if (verbose) std::cout << "Final status (" << sim->getTime() << "): " 
                            << std::endl;
     if (doSim && outputGraphviz >= 0) {
-      if (drawLattice) {
-        draw_lattice(graph, *model,
-                     (generateFileName((graphDirName.str()+"/frame"),
-                                       outputNum)+".png").c_str());
-      } else {
-        write_graph(graph, *model,
+      draw_function(graph, *model,
                     generateFileName((graphDirName.str()+"/frame"),
                                      outputNum),sim->getTime());
-      }
     }
     
     if (outputFile) {
@@ -1433,7 +1399,6 @@ int main(int argc, char* argv[])
     delete sw_options[it->getId()];
     delete plod_options[it->getId()];
     delete ab_options[it->getId()];
-    delete copy_options[it->getId()];
     delete readFile_options[it->getId()];
   }
   
