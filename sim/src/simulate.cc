@@ -930,7 +930,13 @@ int main(int argc, char* argv[])
       std::cerr << command_line_options << graph_options << std::endl;
     }
 
-    // do rewiring or other graph modifications if desired
+    // do graph modifications if desired
+    if (vm.count(edgeTypes[i].getText()+"-remove")) {
+      double removeFraction = vm[edgeTypes[i].getText()+"-remove"].as<double>();
+      if (removeFraction > 0) {
+        boost::removeEdges(temp_graph, gen, removeFraction);
+      }
+    }
     if (vm.count(edgeTypes[i].getText()+"-rewire")) {
       double rewireFraction = vm[edgeTypes[i].getText()+"-rewire"].as<double>();
       if (rewireFraction > 0) {
@@ -946,12 +952,6 @@ int main(int argc, char* argv[])
         if (verbose) {
           std::cout << "graph rewired after " << count << " trials\n";
         }
-      }
-    }
-    if (vm.count(edgeTypes[i].getText()+"-remove")) {
-      double removeFraction = vm[edgeTypes[i].getText()+"-remove"].as<double>();
-      if (removeFraction > 0) {
-        boost::removeEdges(temp_graph, gen, removeFraction);
       }
     }
     if (vm.count(edgeTypes[i].getText()+"-add")) {
