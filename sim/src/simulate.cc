@@ -942,10 +942,10 @@ int main(int argc, char* argv[])
       if (rewireFraction > 0) {
         int rewire_result = -1;
         unsigned int count = 0;
-        onetype_graph rewire_graph = temp_graph;
+        onetype_graph rewire_graph;
         while (rewire_result < 0) {
-          rewire_graph.clear();
-          boost::rewireEdges(rewire_graph, gen, rewireFraction);
+          rewire_graph = temp_graph;
+          rewire_result = boost::rewireEdges(rewire_graph, gen, rewireFraction);
           ++count;
         }
         temp_graph = rewire_graph;
