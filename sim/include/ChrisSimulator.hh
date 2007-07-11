@@ -1,3 +1,7 @@
+/*! \file ChrisSimulator.hh
+  \brief The Simulators::ChrisSimulator class.
+*/
+
 #ifndef CHRISSIMULATOR_HH
 #define CHRISSIMULATOR_HH
 
@@ -7,127 +11,167 @@
 #include "Tree.hh"
 #include "Simulator.hh"
 
-template <typename RandomGenerator, typename Graph>
-class ChrisSimulator :
-  virtual public Simulator
-{
+namespace Simulators {
   
-  // type definitions for easy access of boost graph properties
-  typedef typename boost::graph_traits<Graph>::vertex_descriptor
-  vertex_descriptor;
-  typedef typename boost::graph_traits<Graph>::vertex_iterator
-  vertex_iterator;
-  typedef typename boost::graph_traits<Graph>::adjacency_iterator
-  adjacency_iterator;
-  typedef typename boost::property_map<Graph, boost::vertex_index_t>::type
-  vertex_index_type;
-  typedef typename boost::vertex_property_type<Graph>::type::value_type
-    vertex_property_type;
-
-  typedef typename boost::uniform_01<RandomGenerator, double> uniform_gen;
-
-public:
-
-  ChrisSimulator(RandomGenerator r, Graph& g, Model& m) :
-    Simulator(m), randGen(r), graph(g) {;}
-  ~ChrisSimulator() {;}
-      
-  void initialize();
-  bool updateState();
+  /*! \brief The Chris simulation (dysfunctional)
+    
+  This contains an unfinished attempt to design a Chris simulation, i.e. a
+  simulation storing the events in a priority queue and allowing for arbitrary
+  distributions of interevent times by immediately assigning each event a time
+  at which it will happen according to that distriubtion, as proposed by
+  Watkins(2006). 
   
-  void print();
-
-private:
-
-  struct ChrisEvent
+  */
+  template <typename RandomGenerator, typename Graph>
+  class ChrisSimulator :
+    virtual public Simulator
   {
-    int newState;
-    vertex_descriptor vertex;
-    double eventTime;
-    bool valid;
-
-    // store elements in reverse order --> lowest time has highest priority
-    bool operator<(const ChrisEvent& rhs) const
-    { return eventTime>rhs.eventTime; }
-
-  };
-
-  RandomGenerator& randGen;
-  Graph& graph;
-  
-  std::priority_queue<ChrisEvent*> events;
-  std::multimap<vertex_descriptor, ChrisEvent*> eventPtrs;
-
-  void generateEvents(vertex_descriptor v);
-  
-};
-
-/******************************************************************/
-// ChrisSimulator<RandomGenerator>::initialize
-// initializes the graph with the rates for the possible processes
-/******************************************************************/
-template <typename RandomGenerator, typename Graph>
-void ChrisSimulator<RandomGenerator, Graph>::initialize()
-{
-  vertex_iterator vi, vi_end;
-  for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-    generateEvents(*vi);
-  }
-}
-
-/******************************************************************/
-// ChrisSimulator<RandomGenerator>::updateState
-// updates the state of the graph by advancing one time step
-// and choosing an event to process
-/******************************************************************/
-template <typename RandomGenerator, typename Graph>
-bool ChrisSimulator<RandomGenerator, Graph>::updateState()
-{
-  bool found = false;
-  while (!found && !events.empty()) {
-    ChrisEvent* ev = events.pop();
-    if (ev->valid) {
-      Simulator::updateTime(ev->time);
+    
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor
+    vertex_descriptor;
+    typedef typename boost::graph_traits<Graph>::vertex_iterator
+    vertex_iterator;
+    typedef typename boost::graph_traits<Graph>::adjacency_iterator
+    adjacency_iterator;
+    typedef typename boost::property_map<Graph, boost::vertex_index_t>::type
+    vertex_index_type;
+    typedef typename boost::vertex_property_type<Graph>::type::value_type
+    vertex_property_type;
+    
+    typedef typename boost::uniform_01<RandomGenerator, double> uniform_gen;
+    
+  public:
+    
+    /*! \brief Constructor
       
-      found = true;
+    \param[in] r randGen initialiser
+    \param[in] g graph initialiser
+    \param[in] m model initialiser (in Simulator::Simulator)
+    \param[in] v verbose initialiser (in Simulator::Simulator)
+    */
+    ChrisSimulator(RandomGenerator r, Graph& g, Model& m,
+                   unsigned int v = 0) :
+      Simulator(m, v), randGen(r), graph(g) {;}
+    ~ChrisSimulator() {;}
+    
+    void initialize();
+    bool updateState();
+    
+    void print();
+    
+  private:
+
+    //! \brief An event in the Chris simulator
+    struct ChrisEvent
+    {
+      int newState; //! The new state after the event happens.
+      vertex_descriptor vertex; //! The affected vertex.
+      double eventTime; //! The time at which the event will happen.
+      bool valid; //! Whether the event can still happen.
+      
+      /*! \brief The operator < for Chris events
+      Stores elements in reverse order --> lowest time has highest priority.
+      \param[in] rhs The right hand side of the comparison
+      */
+      bool operator<(const ChrisEvent& rhs) const
+      { return eventTime>rhs.eventTime; }
+      
+    };
+    
+    //! The random generator to be used for choosing event times
+    RandomGenerator& randGen;
+    Graph& graph; //!< The graph determining how vertices can effect another
+    
+    std::priority_queue<ChrisEvent*> events; //!< The queue holding the events.
+    // A map from vertices to the events that can happen to them
+    std::multimap<vertex_descriptor, ChrisEvent*> eventPtrs;
+
+    void generateEvents(vertex_descriptor v);
+    
+  };
+  
+  //----------------------------------------------------------
+  /*! \brief Initialise the simulation.
+    
+  Initialises the graph with the rates for the possible processes.
+  */
+  template <typename RandomGenerator, typename Graph>
+  void ChrisSimulator<RandomGenerator, Graph>::initialize()
+  {
+    vertex_iterator vi, vi_end;
+    for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
+      generateEvents(*vi);
     }
   }
-  return true;
-}
-
-template <typename RandomGenerator, typename Graph>
-void ChrisSimulator<RandomGenerator, Graph>::print()
-{
-  ChrisEvent* ev = events.top();
   
-  std::cout << "Next event: Vertex #" << ev->vertex << " [" <<
-            << model.getVertexStates()[graph[ev->vertex].state] << " --> "
-            << model.getVertexStates()[ev->newState] << "]" << std::endl;
-}
+  //----------------------------------------------------------
+  /*! \brief Perform an update and process one event.
 
-template <typename RandomGenerator, typename Graph>
-void ChrisSimulator<RandomGenerator, Graph>::generateEvents(vertex_descriptor v)
-{
-  generateEventList(graph, v, model);
-
-  for (eventList::iterator it = graph[v].events.begin();
-       it != graph[v].events.end(); it++) {
-    // generate time
-    boost::exponential_distribution<double> exp_dist(it->rate);
-    boost::variate_generator
-      <RandomGenerator&, boost::exponential_distribution<double> >
-      exp_sampler(randGen, exp_dist);
-
-    ChrisEvent* newEvent = new ChrisEvent;
-    newEvent->newState = it->newState;
-    newEvent->vertex_descriptor = v;
-    newEvent->time = exp_sampler();
-    newEvent->valid = true;
-
-    events.push(newEvent);
-    eventPtrs.insert(make_pair(v, newEvent));
+  Chooses the next possible event and processes that event. After that, the
+  priority queue shoudl be updated
+  */
+  template <typename RandomGenerator, typename Graph>
+  bool ChrisSimulator<RandomGenerator, Graph>::updateState()
+  {
+    bool found = false;
+//     while (!found && !events.empty()) {
+//       ChrisEvent* ev;  = events.pop();
+//       if (ev->valid) {
+//         Simulator::updateTime(ev->eventTime);
+        
+//         found = true;
+//       }
+//     }
+    return true;
   }
+  
+  //----------------------------------------------------------
+  /*! \brief Print the state of the simulation. 
+  
+  Prints the priority queue.
+  */
+  template <typename RandomGenerator, typename Graph>
+  void ChrisSimulator<RandomGenerator, Graph>::print()
+  {
+    const Model& model = this->getModel();
+
+    ChrisEvent* ev = events.top();
+    
+    std::cout << "Next event: Vertex #" << ev->vertex << " ["
+              << model.getVertexStates()[graph[ev->vertex].state] << " --> "
+              << model.getVertexStates()[ev->newState] << "]" << std::endl;
+  }
+  
+  //----------------------------------------------------------
+  /*! \brief Generate events.
+    
+  Generates the queue of events.
+  */
+  template <typename RandomGenerator, typename Graph>
+  void ChrisSimulator<RandomGenerator, Graph>::generateEvents(vertex_descriptor v)
+  {
+    const Model& model = this->getModel();
+
+    generateEventList(graph, v, model);
+    
+    for (eventList::iterator it = graph[v].events.begin();
+         it != graph[v].events.end(); it++) {
+      // generate time
+      boost::exponential_distribution<double> exp_dist(it->rate);
+      boost::variate_generator<RandomGenerator&, boost::exponential_distribution<double> >
+        exp_sampler(randGen, exp_dist);
+      
+      ChrisEvent* newEvent = new ChrisEvent;
+      newEvent->newState = it->newState;
+      newEvent->vertex = v;
+      newEvent->eventTime = exp_sampler();
+      newEvent->valid = true;
+      
+      events.push(newEvent);
+      eventPtrs.insert(std::make_pair(v, newEvent));
+    }
+  }
+
 }
 
-  
 #endif

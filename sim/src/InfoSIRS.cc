@@ -1,23 +1,17 @@
-/*******************************************************************/
-//
-// Class InfoSIRS
-// --------------------
-//
-// This is the class implementing the SIRS model, i.e. the parameters
-// and the dependance of the rates of various processes on node states
-// and edge properties
-//
-/******************************************************************/
-
+/*! \file InfoSIRS.cc
+  \brief Implementation of the Models::InfoSIRS class
+*/
 #include <iostream>
 #include <fstream>
 
 #include "InfoSIRS.hh"
 
-/******************************************************************/
-// InfoSIRS constructor
-/******************************************************************/
-InfoSIRS::InfoSIRS(unsigned int v)
+//----------------------------------------------------------
+/*! \brief Constructor.
+
+\sa Model::Model
+*/
+Models::InfoSIRS::InfoSIRS(unsigned int v)
   : Model(v)
 {
   /*************************************/
@@ -74,6 +68,9 @@ InfoSIRS::InfoSIRS(unsigned int v)
      "ratio between uninformed/uninformed susceptibilities")
     ;
 
+  /*************************************/
+  // assign model parameters to variables
+  /************************************/
   params.insert(std::make_pair("beta--", &beta[0][0]));
   params.insert(std::make_pair("beta+-", &beta[1][0]));
   params.insert(std::make_pair("beta-+", &beta[0][1]));
@@ -87,23 +84,14 @@ InfoSIRS::InfoSIRS(unsigned int v)
   params.insert(std::make_pair("omega", &omega));
   params.insert(std::make_pair("lambda", &lambda));
   params.insert(std::make_pair("sigma", &sigma));
-
 }
 
-/******************************************************************/
-// Vertex destructor
-/******************************************************************/
-InfoSIRS::~InfoSIRS()
-{}
-
-/******************************************************************/
-// InfoSIRS::Init
-// initializes the model, uses sigma appropriately
-/******************************************************************/
-void InfoSIRS::Init(po::variables_map& vm)
+//----------------------------------------------------------
+void Models::InfoSIRS::Init(po::variables_map& vm)
 {
   Model::Init(vm);
   if (vm.count("sigma")) {
+    // if sigma is defined, beta+- and beta++ are overwritten
     beta[1][0]=sigma*beta[0][0];
     beta[1][1]=sigma*beta[0][1];
     if (verbose >= 1) {
@@ -113,18 +101,15 @@ void InfoSIRS::Init(po::variables_map& vm)
   }
 }
 
-/******************************************************************/
-// InfoSIRS::getNodeEvents
-// get the events that can happen for a given state of a node. Stores the
-// events in the events list and returns the sum of their rates
-/******************************************************************/
-double InfoSIRS::getNodeEvents(eventList& events,unsigned int state,
-                               unsigned int nb) const
+//----------------------------------------------------------
+double Models::InfoSIRS::getNodeEvents(eventList& events,
+                                       unsigned int state,
+                                       unsigned int nb) const
 {
    double rateSum(.0);
 
-   // loss of immunity
    if (getDisease(state) == Recovered) {
+     // loss of immunity
       event immunityLoss;
       immunityLoss.rate = delta[getInfo(state)];
       immunityLoss.newState = getState(Susceptible, getInfo(state));
@@ -187,15 +172,12 @@ double InfoSIRS::getNodeEvents(eventList& events,unsigned int state,
    return rateSum;
 }
 
-/******************************************************************/
-// InfoSIRS::getNodeEvents
-// get the events that can happen for a given edge type and the states of the
-// neighbouring nodes. Stores the events in the events list and returns the sum
-// of their rates 
-/******************************************************************/
-double InfoSIRS::getEdgeEvents(eventList& events,
-                               unsigned int state, unsigned int edge,
-                               unsigned int nbState, unsigned int nb) const
+//----------------------------------------------------------
+double Models::InfoSIRS::getEdgeEvents(eventList& events,
+                                       unsigned int state,
+                                       unsigned int edge,
+                                       unsigned int nbState,
+                                       unsigned int nb) const
 {
    double rateSum(.0);
    if (edge == Disease) {

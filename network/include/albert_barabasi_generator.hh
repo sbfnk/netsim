@@ -1,3 +1,6 @@
+/*! \file albert_barabasi_generator.hh
+  \brief Contains the iterator for Albert-Barabasi graphs.
+*/
 #ifndef BOOST_GRAPH_ALBERT_BARABASI_GENERATOR_HH
 #define BOOST_GRAPH_ALBERT_BARABASI_GENERATOR_HH
 
@@ -10,6 +13,14 @@
 
 namespace boost {
 
+  //----------------------------------------------------------
+  /*! \brief Iterator for Albert-Barabasi graphs.
+    
+  Provides and interface to generate graphs according to Albert-Barabasi's
+  preferential attachment rule.
+  
+  \ingroup graph_generators
+  */
   template<typename RandomGenerator, typename Graph>
   class albert_barabasi_iterator
   {
@@ -26,9 +37,16 @@ namespace boost {
     typedef const value_type* pointer;
     typedef void difference_type;
 
+    //! Constructor for past-the-end iterator.
     albert_barabasi_iterator() :
       gen(0), n(0), m(0), nodes(), targets(), source(0), target(0)
     {}
+
+    /*! \brief Constructor.
+      \param[in] gen Random generator to use.
+      \param[in] n Number of vertices to create.
+      \param[in] m Number of vertices to connect new nodes to at each step.
+    */
     albert_barabasi_iterator(RandomGenerator& gen, vertices_size_type n, 
                           edges_size_type m = 1)
       : gen(&gen), n(n), m(m), nodes(), targets(),
@@ -45,7 +63,7 @@ namespace boost {
 
     reference operator*() const { return current; }
     pointer operator->() const { return &current; }
-    
+
     albert_barabasi_iterator& operator++()
     {
       if (targets.size() == m) {
@@ -83,7 +101,7 @@ namespace boost {
       current.second = target;
       return *this;
     }
-      
+
     albert_barabasi_iterator operator++(int)
     {
       albert_barabasi_iterator temp(*this);

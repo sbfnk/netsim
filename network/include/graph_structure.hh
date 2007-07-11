@@ -1,10 +1,9 @@
-/******************************************************************/
-// graph_structure.hh
-// contains routines to add vertices and edges with a given structure to an
-// existing graph 
-/******************************************************************/
-#ifndef GENERATE_GRAPH_HH
-#define GENERATE_GRAPH_HH
+/*! \file graph_structure.hh
+  \brief Functions for the creation and modification of graphs.
+*/
+
+#ifndef GRAPH_STRUCTURE_HH
+#define GRAPH_STRUCTURE_HH
 
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
@@ -14,10 +13,21 @@
 #include <iostream>
 #include <sys/time.h>
 
-//----------------------------------------------------------
+//! \addtogroup graph_structure Graph structure
+//! \addtogroup helper_functions Helper functions
+//! \addtogroup graph_generators Graph generators
 
+//----------------------------------------------------------
 namespace boost {
+
+  /*! \brief Add vertices to a graph.
+    
+  Adds a given number of (defaultly constructed) vertices to the graph.
   
+  \param[in, out] g The graph to add the vertices to.
+  \param[in] n The number of vertices to add.
+  \ingroup graph_structure
+  */
   template <typename Graph>
   void add_vertices(Graph& g, 
                     typename graph_traits<Graph>::vertices_size_type n)
@@ -28,7 +38,15 @@ namespace boost {
   }
   
   //----------------------------------------------------------
+  /*! \brief Add vertices to a graph.
+    
+  Adds a given number of vertices with given properties to the graph.
   
+  \param[in, out] g The graph to add the vertices to.
+  \param[in] n The number of vertices to add.
+  \param[in] v Template for the properties of the vertices to add.
+  \ingroup graph_structure
+  */
   template <typename Graph>
   void add_vertices(Graph& g, 
                     typename graph_traits<Graph>::vertices_size_type n,
@@ -40,7 +58,16 @@ namespace boost {
   }
    
   //----------------------------------------------------------
-   
+  /*! \brief Add edges to a graph.
+    
+  Loops over a given iterator and add corresponding (defaultly constructed)
+  edges to the graph.
+  
+  \param[in, out] g The graph to add the vertices to.
+  \param[in] ei The begin edge iterator.
+  \param[in] ei_end The end edge iterator.
+  \ingroup graph_structure
+  */
   template <typename Graph, typename EdgeIterator>
   void add_edge_structure(Graph& g, EdgeIterator ei, EdgeIterator ei_end)
   {
@@ -51,7 +78,17 @@ namespace boost {
   }
 
   //----------------------------------------------------------
-   
+  /*! \brief Add edges to a graph.
+    
+  Loops over a given iterator and add corresponding edges with given properties
+  to the graph.
+  
+  \param[in, out] g The graph to add the vertices to.
+  \param[in] ei The begin edge iterator.
+  \param[in] ei_end The end edge iterator.
+  \param[in] e Template for the properties of the edges to add.
+  \ingroup graph_structure
+  */
   template <typename Graph, typename EdgeIterator>
   void add_edge_structure(Graph& g, EdgeIterator ei, EdgeIterator ei_end,
                           const typename edge_property_type<Graph>::type e)
@@ -63,8 +100,19 @@ namespace boost {
   }
 
   //----------------------------------------------------------
-  // checks if unseen edge among stubs
-  // needed for random_regular_graph and rewireEdges
+  /*! \brief Check if there is an unseen edge among stubs.
+    
+  Loops over all pairs of stubs and checks if they are contained in
+  seen_edges. Needed for random_regular_graph and rewireEdges.
+  
+  \param[in] g The graph to check for unseen edges.
+  \param[in] stubs The vector of stubs in the graph (basically a vector of
+  vertices with each vertices occuring multiple times according to its degree).
+  \param[in] seen_edges The edge pairs which are not usable anymore.
+  \return true if there are still unseen vertices which can be connected with
+  an edge, false if ther are not.
+  \ingroup helper_functions
+  */    
 
   template <typename Graph>
   bool suitable(Graph& g,
@@ -81,7 +129,17 @@ namespace boost {
   }
   
   //----------------------------------------------------------
-   
+  /*! \brief Copy all edges from one graph to another
+    
+  Loops over all edges in a graph and copy them to antoher graph, optionally
+  with different properties.
+  
+  \param[in] source_graph The graph to copy the edges from.
+  \param[out] target_graph The graph to copy the egges to.
+  \param[in] et Properties to assign to the newly created edges in
+  target_graph.
+  \ingroup graph_structure
+  */
   template <typename Graph1, typename Graph2>
   void copy_graph(Graph1& source_graph, Graph2& target_graph,
                  typename edge_property_type<Graph2>::type et =
@@ -92,6 +150,8 @@ namespace boost {
       edge_iterator;
     
     edge_iterator ei, ei_end;
+    // loop over all edges in source graph and add to target_graph with property
+    // et
     for (tie(ei, ei_end) = edges(source_graph); ei != ei_end; ei++) {
       add_edge(source(*ei, source_graph), target(*ei, source_graph),
                et, target_graph);
@@ -99,7 +159,16 @@ namespace boost {
   }
   
   //----------------------------------------------------------
-   
+  /*! \brief Mark all parallel edges in a graph
+    
+  Loops over all edges in a graph and sets the parallel_edges flag for all
+  edges for which there exists an additional edge between the two vertices
+  connected by it. Neede by count_parallel_edges.
+  
+  \param[in] g The graph to mark the parallel edges in.
+  \return The number double edges in the graph.
+  \ingroup helper_functions
+  */
   template <typename Graph>
   unsigned int mark_parallel_edges(Graph& g)
   {
@@ -143,7 +212,21 @@ namespace boost {
   }
 
   //----------------------------------------------------------
+  /*! \brief Create a random regular graph.
+    
+  Creates a random regular graph by creating a vertex of stubs (a list of
+  vertices with each vertex multiply according to degree) and connecting them
+  randomly, as described in Kim and Vu's 2003 paper.
   
+  \param[in] g The graph to mark the parallel edges in.
+  \param[out] rrg_edges Vector of vertex pairs representing edges.
+  \param[in] d The (constant) degree.
+  \param[in] N Number of nodes.
+  \param[in] uni_gen The random generator to be used.
+  \return true if generation of random graph successful, false if one is left
+  without possible pairs of nodes before convergence to a full regular graph.
+  \ingroup graph_generators
+  */
   template <typename Graph, typename DistributionType>
   bool random_regular_graph(Graph& g,
                             std::vector<std::pair<unsigned int, unsigned int> >& rrg_edges,
@@ -214,7 +297,20 @@ namespace boost {
   }
   
   //----------------------------------------------------------
-
+  /*! \brief Randomly rewire edges in a graph.
+    
+  Removes a given fraction of edges from a graph and randomly rewires them,
+  preserving the degree distribution.
+  
+  \param[in, out] g The graph to rewiwre the edges in.
+  \param[in] r The random generator to use for selecting the edges to rewire.
+  \param[in] rewireFraction The fraction of edges to rewire.
+  \param[in] verbose Whether to be verbose.
+  \return 0 if successful, -1 if rewiring fails because one is left without
+  connectable edges according to the given degree distribution before rewiring
+  all the nodes.
+  \ingroup graph_structure
+  */
   template <typename Graph, typename RandomGenerator>
   int rewireEdges(Graph& g, RandomGenerator& r, double rewireFraction, 
                   unsigned int verbose)
@@ -234,7 +330,9 @@ namespace boost {
 
     edge_iterator ei, ei_end;
     tie(ei, ei_end) = edges(g);
+    // initialize edge type from the first edge in the graph
     unsigned int et = g[*ei].type;
+    // loop over all edges and initialise seen_edges to prevent self-loops
     for (; ei != ei_end; ei++) {
       seen_edges[source(*ei, g)][target(*ei, g)] = true;
       seen_edges[target(*ei, g)][source(*ei, g)] = true;
@@ -244,6 +342,7 @@ namespace boost {
     
     if (rewireFraction > 0. && rewireFraction <= 1.) {
       boost::uniform_01<boost::mt19937, double> uni_gen(r);
+      // calculate number of links to rewire
       unsigned int num_rewire =
         static_cast<unsigned int>(rewireFraction * N);
       if (verbose >=1) {
@@ -261,9 +360,9 @@ namespace boost {
         }
         boost::remove_edge(e, g);
       }
-      // rewire removed edges
+      // rewire the removed edges
       while (num_rewire > 0) {
-        // rewire two of the stubs
+        // randomly select two stubs
         unsigned int src =
           static_cast<unsigned int>(uni_gen() * stubs.size());
         unsigned int trg = 
@@ -274,8 +373,9 @@ namespace boost {
             std::cout << "Adding edge " << stubs[src] << "--" 
   	              << stubs[trg] << std::endl;
           }
+          // if suitable, add the edge to the graph
           boost::add_edge(stubs[src], stubs[trg], edge_property_type(et), g);
-          // remove stubs
+          // remove stubs from vector
           stubs.erase(stubs.begin() + src);
           if (src > trg) {
             stubs.erase(stubs.begin() + trg);
@@ -284,8 +384,9 @@ namespace boost {
           }
           --num_rewire;
         } else {
-          if (!suitable(g, stubs, seen_edges))
+          if (!suitable(g, stubs, seen_edges)) {
             return -1; // failure - no more suitable pairs
+          }
         }
       }
     } else {
@@ -296,25 +397,20 @@ namespace boost {
   }
   
   //----------------------------------------------------------
-
+  /*! \brief Randomly remove edges from a graph.
+    
+  \param[in, out] g The graph to remove the edges from.
+  \param[in] r The random generator to use for selecting the edges to remove.
+  \param[in] removeFraction The fraction of edges to remove.
+  \ingroup graph_structure
+  */
   template <typename Graph, typename RandomGenerator>
   void removeEdges(Graph& g, RandomGenerator& r, double removeFraction)
   {
     typedef typename boost::graph_traits<Graph>::edge_descriptor
       edge_descriptor;
-    typedef typename boost::graph_traits<Graph>::edge_iterator
-      edge_iterator;
 
     unsigned int N = num_edges(g);
-    
-    std::vector< std::vector<bool> >
-      seen_edges(num_vertices(g), std::vector<bool>(num_vertices(g), false));
-
-    edge_iterator ei, ei_end;
-    for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
-      seen_edges[source(*ei, g)][target(*ei, g)] = true;
-      seen_edges[target(*ei, g)][source(*ei, g)] = true;
-    }
     
     if (removeFraction > 0. && removeFraction < 1.) {
       unsigned int num_remove =
@@ -323,12 +419,8 @@ namespace boost {
       while (num_remove > 0) {
         // select random edge for removal
         edge_descriptor e = random_edge(g, r);
-        
-        if (!seen_edges[source(e, g)][target(e, g)]) {
-          // remove edge
         boost::remove_edge(e, g);
         --num_remove;
-        }
       }
     } else {
       std::cerr << "ERROR: remove fraction must be between 0 and 1" << std::endl;
@@ -337,7 +429,14 @@ namespace boost {
   } 
   
   //----------------------------------------------------------
-
+  /*! \brief Add random edges to a graph
+    
+  \param[in, out] g The graph to remove the edges from.
+  \param[in] r The random generator to use for selecting the edges to remove.
+  \param[in] addFraction The number of edges to add as a fraction of existing
+  edges.
+  \ingroup graph_structure
+  */
   template <typename Graph, typename RandomGenerator>
   void addEdges(Graph& g, RandomGenerator& r, double addFraction)
   {
@@ -353,6 +452,7 @@ namespace boost {
     edge_iterator ei, ei_end;
     tie(ei, ei_end) = edges(g);
 
+    // initialize edge type from the first edge in the graph
     unsigned int et = g[*ei].type;
     unsigned int N = num_edges(g);
     
@@ -365,6 +465,7 @@ namespace boost {
         bool found = false;
         vertex_descriptor v1;
         vertex_descriptor v2;
+        // find a random pair of yet unconnected vertices
         while (!found) {
           v1 = random_vertex(g, r);
           do {
@@ -372,6 +473,7 @@ namespace boost {
           } while (v2 == v1);
           found = !(edge(v1,v2,g).second);
         }
+        // add edge between the chosen vertices
         add_edge(v1,v2,edge_property_type(et),g);
         --num_add;
       }
@@ -382,4 +484,5 @@ namespace boost {
 
 //----------------------------------------------------------
   
+
 #endif

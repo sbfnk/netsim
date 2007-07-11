@@ -1,23 +1,18 @@
-/*******************************************************************/
-//
-// Class ProtectiveSIRS
-// --------------------
-//
-// This is the class implementing the SIRS model, i.e. the parameters
-// and the dependance of the rates of various processes on node states
-// and edge properties
-//
-/******************************************************************/
-
+/*! \file ProtectiveSIRS.cc
+  \brief Implementation of the Models:: class
+*/
 #include <iostream>
 #include <fstream>
 
 #include "ProtectiveSIRS.hh"
 
-/******************************************************************/
-// ProtectiveSIRS constructor
-/******************************************************************/
-ProtectiveSIRS::ProtectiveSIRS()
+//----------------------------------------------------------
+/*! \brief Constructor.
+
+\sa Model::Model
+*/
+Models::ProtectiveSIRS::ProtectiveSIRS(unsigned int v)
+  : Model(v)
 {
   // susceptible uninformed
   vertexStates.push_back(Label("S-","00;32", 0, "fillcolor=\"royalblue4\""));
@@ -54,19 +49,10 @@ ProtectiveSIRS::ProtectiveSIRS()
   params.insert(std::make_pair("lambda", &lambda));
 }
 
-/******************************************************************/
-// Vertex destructor
-/******************************************************************/
-ProtectiveSIRS::~ProtectiveSIRS()
-{}
-
-/******************************************************************/
-// ProtectiveSIRS::getNodeEvents
-// get the events that can happen for a given state of a node. Stores the
-// events in the events list and returns the sum of their rates
-/******************************************************************/
-double ProtectiveSIRS::getNodeEvents(eventList& events,unsigned int state,
-                                     unsigned int nb) const
+//----------------------------------------------------------
+double Models::ProtectiveSIRS::getNodeEvents(eventList& events,
+                                             unsigned int state,
+                                             unsigned int nb) const
 {
    double rateSum(.0);
 
@@ -104,15 +90,12 @@ double ProtectiveSIRS::getNodeEvents(eventList& events,unsigned int state,
    return rateSum;
 }
 
-/******************************************************************/
-// ProtectiveSIRS::getNodeEvents
-// get the events that can happen for a given edge type and the states of the
-// neighbouring nodes. Stores the events in the events list and returns the sum
-// of their rates 
-/******************************************************************/
-double ProtectiveSIRS::getEdgeEvents(eventList& events,
-                                     unsigned int state, unsigned int edge,
-                                     unsigned int nbState, unsigned int nb) const
+//----------------------------------------------------------
+double Models::ProtectiveSIRS::getEdgeEvents(eventList& events,
+                                             unsigned int state,
+                                             unsigned int edge,
+                                             unsigned int nbState,
+                                             unsigned int nb) const
 {
    double rateSum(.0);
    if (edge == Disease) {

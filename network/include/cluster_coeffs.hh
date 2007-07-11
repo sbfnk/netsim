@@ -1,3 +1,7 @@
+/*! \file cluster_coeffs.hh
+  \brief Routines for calculation of clustering coefficients.
+*/
+
 #include <iostream>
 #include <fstream>
 #include <algorithm>
@@ -12,11 +16,13 @@
 #include "Model.hh"
 #include "Vertex.hh"
 
-namespace boost {
-  
+/*! \brief Sparse matrix routines.
+  \ingroup helper_functions
+*/
+namespace SparseMatrix {
   
   //--------------------------------------------------------------------
-  
+  //! brief Sparse matrix entry.
   template <class T, class C>
   struct Entry {
     
@@ -26,18 +32,23 @@ namespace boost {
     template <class P, class Q>
     friend bool operator< (const Entry<P, Q>& lhs, const Entry<P, Q>& rhs);
   
+    /*! \brief Constructor.
+      \param[in] r row_i initialiser.
+      \param[in] c col_i initialiser.
+      \param[in] v value initialiser.
+    */
     Entry(unsigned int r, unsigned int c, T v) : row_i(r), col_i(c), value(v) {}
+    //! Destructor.
     ~Entry() {}
   
-    unsigned int row_i, col_i;
+    unsigned int row_i; //!< The row index of the matrix entry.
+    unsigned int col_i; //!< The column index of the matrix entry.
  
-    T value;
+    T value; //!< The value contained in the matrix entry.
   
   };
 
   //--------------------------------------------------------------------
-  // operator<<
-
   template <class T, class C>
   std::ostream& operator<< (std::ostream& os, const Entry<T, C>& entry)
   {
@@ -46,8 +57,6 @@ namespace boost {
   }
 
   //--------------------------------------------------------------------
-  // operator<
-
   template <class T, class C> 
   bool operator< (const Entry<T, C>& lhs, const Entry<T, C>& rhs)
   {
@@ -55,8 +64,7 @@ namespace boost {
   }
 
   //--------------------------------------------------------------------
-  // operator< for row major
-
+  //! \brief The comparison operator for row major
   struct RowMajor {
     static bool compare(unsigned int lhs_row_i, unsigned int lhs_col_i,
                         unsigned int rhs_row_i, unsigned int rhs_col_i)
@@ -69,7 +77,7 @@ namespace boost {
   };
 
   //--------------------------------------------------------------------
-  // operator< for column major
+  //! \brief The comparison operator for column major
   struct ColMajor {
     static bool compare(unsigned int lhs_row_i, unsigned int lhs_col_i,
                         unsigned int rhs_row_i, unsigned int rhs_col_i)
@@ -82,34 +90,7 @@ namespace boost {
   };
 
   //--------------------------------------------------------------------
-
-  template <typename Graph, typename Matrix>
-  struct ListToMatrix {
-  
-    ListToMatrix(Graph& g_, Matrix& Jd_, Matrix& Ji_) : g(g_), Jd(Jd_), Ji(Ji_) {}
-  
-    typedef typename boost::graph_traits<Graph>::edge_descriptor ed;
-    void operator() (const ed& e) {
-    
-      if (g[e].type == 0) {
-        Jd.insert(source(e, g), target(e, g), 1);
-        Jd.insert(target(e, g), source(e, g), 1);
-      } else if (g[e].type == 1) {            
-        Ji.insert(source(e, g), target(e, g), 1);
-        Ji.insert(target(e, g), source(e, g), 1);
-      } else { // should never get here
-        std::cerr << "ERROR: corrupted edge\n";
-      }
-    
-    }
-  
-    Graph& g;
-    Matrix& Jd;
-    Matrix& Ji;
-  };
-
-  //--------------------------------------------------------------------
-
+  //! \brief Class holding the sparse matrix.
   template <class T>
   struct SparseMatrix {
   
@@ -120,37 +101,46 @@ namespace boost {
     typedef std::vector<Row> RowMajorMatrix;
     typedef std::vector<Col> ColMajorMatrix;
   
+    /*! \brief Constructor.
+      \param[in] size Matrix size.
+    */
     SparseMatrix(unsigned int size) {
       mr.resize(size);
       mc.resize(size);
     }
-  
+
+    //! Matrix destructor
     ~SparseMatrix() {}
-  
+
+    //! Insert a value into the matrix.
     void insert(unsigned int i, unsigned int j, T val) {
       mr[i].push_back(Mij(i, j, val));
       mc[j].push_back(Mji(i, j, val));
     }
   
     void write_J(std::string fileName);
-  
+
+    //! Sort the matrix.
     void sort() {
       for (unsigned int i = 0; i < mr.size(); ++i) mr[i].sort();    
       for (unsigned int j = 0; j < mc.size(); ++j) mc[j].sort();
     }
 
+    //! Empty the matrix
     void clear() {
       for (unsigned int i = 0; i < mr.size(); ++i) mr[i].clear();    
       for (unsigned int j = 0; j < mc.size(); ++j) mc[j].clear();
     }
     
-    RowMajorMatrix mr;
-    ColMajorMatrix mc;
+    RowMajorMatrix mr; //!< The row major matrix.
+    ColMajorMatrix mc; //!< The column major matrix.
     
   };
   
   //--------------------------------------------------------------------
-  // write_J
+  /*! \brief Write the matrix to a file.
+    \param[in] fileName The name of the file to write.
+  */
   template <class T>
   void SparseMatrix<T>::write_J(std::string fileName) 
   {
@@ -183,8 +173,11 @@ namespace boost {
   }
 
   //--------------------------------------------------------------------
-  // general sparse matrix multiplication
-
+  /*! \brief Multiply two sparse matrices.
+    \param[in] A The first matrix to multiply.
+    \param[in] B The second matrix to multiply.
+    \param[out] C The result of the multiplication.
+  */
   template <class T>
   void prod(SparseMatrix<T>& A, SparseMatrix<T>& B, SparseMatrix<T>& C)
   {  
@@ -225,8 +218,10 @@ namespace boost {
   }
 
   //--------------------------------------------------------------------
-  // general sparse matrix trace
-
+  /*! \brief Trace of a sparse matrix.
+    \param[in] A The matrix to calculate the trace of.
+    \result The trace of the matrix.
+  */
   template <class T>
   T trace(SparseMatrix<T>& A)
   { 
@@ -258,8 +253,10 @@ namespace boost {
   }
 
   //--------------------------------------------------------------------
-  // general sparse matrix norm
-
+  /*! \brief Norm of a sparse matrix.
+    \param[in] A The matrix to calculate the norm of.
+    \result The norm of the matrix.
+  */
   template <class T>
   T norm(SparseMatrix<T>& A)
   {  
@@ -277,8 +274,15 @@ namespace boost {
   }
 
   //--------------------------------------------------------------------
-  // clustering coefficient
-    
+  /*! \brief Clustering coefficient of three adjacency matrices.
+
+  Calculates the clustering coefficient from three adjacency matrices using
+  sparse matrix multiplication.
+  \param[in] J1 First adjacency matrix to consider.
+  \param[in] J2 Second adjacency matrix to consider.
+  \param[in] J3 Third adjacency matrix to consider.
+  \result The clustering coefficient
+  */
   template <class T>
   double clustering(SparseMatrix<T>& J1, SparseMatrix<T>& J2,
                     SparseMatrix<T>& J3)
@@ -300,15 +304,73 @@ namespace boost {
     return .5 * nom / denom ;
   }
   
+}
+
+//--------------------------------------------------------------------
 
   //--------------------------------------------------------------------
+  /*! \brief Class for conversion adjacency list to matrices.
 
+  Converts a boost-type adjacency list with two different edge types to two
+  separate matrices.
+  
+  \ingroup helper_functions
+  */
+  template <typename Graph, typename Matrix>
+  struct ListToMatrix {
+    
+    /*! \brief Constructor.
+      \param[in] g_ g initialiser.
+      \param[in] Jd_ Jd initialiser.
+      \param[in] Ji_ Ji initialiser.
+    */
+    ListToMatrix(Graph& g_, Matrix& Jd_, Matrix& Ji_) :
+      g(g_), Jd(Jd_), Ji(Ji_) {}
+  
+    /*! \brief Operator() to perform the actual conversion for one edge.
+      \param[in] e The edge under consideration
+    */
+    typedef typename boost::graph_traits<Graph>::edge_descriptor ed;
+    void operator() (const ed& e) {
+    
+      if (g[e].type == 0) {
+        Jd.insert(source(e, g), target(e, g), 1);
+        Jd.insert(target(e, g), source(e, g), 1);
+      } else if (g[e].type == 1) {            
+        Ji.insert(source(e, g), target(e, g), 1);
+        Ji.insert(target(e, g), source(e, g), 1);
+      } else { // should never get here
+        std::cerr << "ERROR: corrupted edge\n";
+      }
+    
+    }
+  
+    Graph& g; //!< The graph containing the adjacency list.
+    Matrix& Jd; //!< The matrix storing the edges of type 0.
+    Matrix& Ji; //!< The matrix storing the edges of type 1.
+  };
+
+//--------------------------------------------------------------------
+
+namespace boost {
+
+  //--------------------------------------------------------------------
+  /*! \brief Calculate clustering coefficients.
+
+  Calculates the eight possible clustering coefficients for a network of two
+  edge types
+  \param[in] g The graph containing the edges.
+  \param[in] baseFileName The base name of the files to write the clustering
+  coefficients and (if desired) adjacency matrices to.
+  \param[in] writeJs Whether to save the adjacency matrices to disk.
+  \ingroup graph_statistics
+  */
   template <typename Graph>
   bool cluster_coeff(Graph& g, const std::string baseFileName,
                      const bool writeJs)    
   {
     // Adjacency matrix
-    typedef boost::SparseMatrix<unsigned int> Matrix;
+    typedef SparseMatrix::SparseMatrix<unsigned int> Matrix;
     
     // size
     unsigned int n = boost::num_vertices(g);
@@ -318,7 +380,7 @@ namespace boost {
   
     // filling adjacecny matrices from g
     std::for_each(boost::edges(g).first, boost::edges(g).second,
-                  boost::ListToMatrix<Graph, Matrix>(g, Jd, Ji)); 
+                  ListToMatrix<Graph, Matrix>(g, Jd, Ji)); 
   
     // sort Matrices
     Jd.sort();
@@ -342,14 +404,14 @@ namespace boost {
   
     // write clustering coefficients
   
-    file << "Cidi = " << boost::clustering(Ji, Jd, Ji) << std::endl;
-    file << "Cidd = " << boost::clustering(Ji, Jd, Jd) << std::endl;
-    file << "Cdii = " << boost::clustering(Jd, Ji, Ji) << std::endl;
-    file << "Cdid = " << boost::clustering(Jd, Ji, Jd) << std::endl;
-    file << "Cddi = " << boost::clustering(Jd, Jd, Ji) << std::endl;
-    file << "Cddd = " << boost::clustering(Jd, Jd, Jd) << std::endl;
-    file << "Ciii = " << boost::clustering(Ji, Ji, Ji) << std::endl;
-    file << "Ciid = " << boost::clustering(Ji, Ji, Jd) << std::endl;
+    file << "Cidi = " << SparseMatrix::clustering(Ji, Jd, Ji) << std::endl;
+    file << "Cidd = " << SparseMatrix::clustering(Ji, Jd, Jd) << std::endl;
+    file << "Cdii = " << SparseMatrix::clustering(Jd, Ji, Ji) << std::endl;
+    file << "Cdid = " << SparseMatrix::clustering(Jd, Ji, Jd) << std::endl;
+    file << "Cddi = " << SparseMatrix::clustering(Jd, Jd, Ji) << std::endl;
+    file << "Cddd = " << SparseMatrix::clustering(Jd, Jd, Jd) << std::endl;
+    file << "Ciii = " << SparseMatrix::clustering(Ji, Ji, Ji) << std::endl;
+    file << "Ciid = " << SparseMatrix::clustering(Ji, Ji, Jd) << std::endl;
   
     // close file
     file.close();

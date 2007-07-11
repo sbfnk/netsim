@@ -1,3 +1,6 @@
+/*! \file simulate.cc
+  \brief The main simulation program.
+*/
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -17,23 +20,28 @@
 // #include <boost/graph/erdos_renyi_generator.hpp>
 #include <math.h>
 
-#include "lattice_generator.hh"
 #include "graph_structure.hh"
+#include "graph_statistics.hh"
+#include "lattice_generator.hh"
 #include "erdos_renyi_generator2.hh"
 #include "albert_barabasi_generator.hh"
-#include "visualize_graph.hh"
+#include "visualise_graph.hh"
 #include "cluster_coeffs.hh"
 #include "assortativity.hh"
 
 #include "GillespieSimulator.hh"
+#include "ChrisSimulator.hh"
 #include "Vertex.hh"
 
 // models
 #include "InfoSIRS.hh"
 #include "ProtectiveSIRS.hh"
-#include "Vaccination.hh"
+#include "VaccinationSIRS.hh"
 
 namespace po = boost::program_options;
+
+//! Classes and functions of the boost libraries.
+namespace boost {}
 
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
                               Vertex, Edge> dualtype_graph;
@@ -202,11 +210,11 @@ int main(int argc, char* argv[])
   if (vm.count("usemodel")) {
     std::string modelString = vm["usemodel"].as<std::string>();
     if (modelString == "InfoSIRS") {
-      model = new InfoSIRS(verbose);
+      model = new Models::InfoSIRS(verbose);
     } else if (modelString == "ProtectiveSIRS") {
-      model = new ProtectiveSIRS();
+      model = new Models::ProtectiveSIRS(verbose);
     } else if (modelString == "Vaccination") {
-      model = new Vaccination(verbose);
+      model = new Models::VaccinationSIRS(verbose);
     } else {
       std::cerr << "Error: unknown model: " << modelString << std::endl;
       return 1;
@@ -1187,11 +1195,11 @@ int main(int argc, char* argv[])
     if (vm.count("sim")) {
       std::string simType = vm["sim"].as<std::string>();
       if (simType == "Gillespie") {
-        sim = new GillespieSimulator<boost::mt19937, dualtype_graph>
+        sim = new Simulators::GillespieSimulator<boost::mt19937, dualtype_graph>
           (gen, graph, *model, verbose);
-        //     } else if (simType == "Chris") {
-        //       sim = new ChrisSimulator<boost::mt19937, dualtype_graph>
-        //         (gen, graph, *model);
+      } else if (simType == "Chris") {
+        sim = new Simulators::ChrisSimulator<boost::mt19937, dualtype_graph>
+          (gen, graph, *model, verbose);
       } else {
         std::cerr << "Error: unknown simulator: " << simType << std::endl;
         return 1;

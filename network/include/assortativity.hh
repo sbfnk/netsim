@@ -1,7 +1,6 @@
-/******************************************************************/
-// assortativity.hh
-// contains routines to control assortativity
-/******************************************************************/
+/*! \file assortativity.hh
+  \brief contains routines to control assortativity
+*/
 #ifndef ASSORTATIVITY_HH
 #define ASSORTATIVITY_HH
 
@@ -13,11 +12,19 @@
 #include <sys/time.h>
 #include <math.h>
 
-//----------------------------------------------------------
+//! \addtogroup graph_structure Graph structure
+//! \addtogroup helper_functions Helper functions
+//! \addtogroup graph_statistics Graph statistics
 
 namespace boost {
 
-  // calculate out_degree of a given type (as opposed to total out_degree)
+  //----------------------------------------------------------
+  /*! \brief Calculate out_degree of a given edge type for a given vertex.
+    \param[in] g The graph to consider.
+    \param[in] v The vertex to calculate the degree of.
+    \param[in] et The edge type to consider.
+    \ingroup helper_functions
+  */
   template <typename Graph, typename VertexDescriptor, typename EdgeType>
   unsigned int out_degree_type(Graph& g, VertexDescriptor v, EdgeType et)
   {
@@ -31,8 +38,18 @@ namespace boost {
   }
   
 
-  // calculate Hamiltonian for given assortativity factor and two
-  // degree types whose (dis-)assortativity is to be considered
+  //----------------------------------------------------------
+  /*! \brief Calculate assortativity Hamiltonian
+
+  Calculates the hamiltonian for given assortativity factor and two 
+  degree types whose (dis-)assortativity is to be considered
+
+  \param[in] g The graph to consider.
+  \param[in] J Assortativity factor (\sa boost::rewire_assortatively)
+  \param[in] deg_type1 The first edge type to consider.
+  \param[in] deg_type2 The second edge type to consider.
+  \ingroup helper_functions
+  */
   template <typename Graph, typename EdgeType>
   double hamiltonian(Graph& g, double J,
                      EdgeType deg_type1, EdgeType deg_type2)
@@ -55,10 +72,22 @@ namespace boost {
     return ham;
   }
 
-  // rewire Edges of deg_type2 to create assortativity between the deg_type1
-  // and deg_type2 degrees at the two ends of a deg_type1 edge --
-  // rewiring is controlled by parameter J: positive J leads to
-  // correlation, negative J to anticorrelation, J=0 to no correlation
+  //----------------------------------------------------------
+  /*! \brief Rewire edges assortatively
+
+  Randomly rewires edges of deg_type2 to create assortativity between the
+  deg_type1 and deg_type2 degrees at the two ends of a deg_type1 edge --
+  rewiring is controlled by parameter J: positive J leads to
+  correlation, negative J to anticorrelation, J=0 to no correlation
+
+  \param[in] g The graph to consider.
+  \param[in] r The random generator to use.
+  \param[in] J Assortativity factor.
+  \param[in] deg_type1 The first edge type to consider.
+  \param[in] deg_type2 The second edge type to consider.
+  \param[in] verbose Whether to be verbose.
+  \ingroup graph_structure
+  */
   template <typename RandomGenerator, typename Graph, typename EdgeType>
   void rewire_assortatively(Graph& g, RandomGenerator& r, double J,
                             EdgeType deg_type1, EdgeType deg_type2,
@@ -184,8 +213,19 @@ namespace boost {
     }
   }
 
-  // calculates assortativity as defined by Newman
-  // (DOI: 10.1103/PhysRevLett.89.208701I)
+  //----------------------------------------------------------
+  /*! \brief Calculate assortativity.
+
+  Calculates assortativity in a graph as defined by Newman
+  (DOI: 10.1103/PhysRevLett.89.208701I)
+
+  \param[in] g The graph to consider.
+  \param[in] et The edge type vertices at the end of which are to be considered.
+  \param[in] deg_type1 The first edge type to consider when looking at the
+  degree of vertices at the end of the original edge.
+  \param[in] deg_type2 The second edge type to consider when looking at the
+  degree of vertices at the end of the original edge.
+  */
   template <typename Graph, typename EdgeType>
   double assortativity(Graph& g, EdgeType et,
                        EdgeType deg_type1, EdgeType deg_type2)

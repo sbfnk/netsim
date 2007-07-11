@@ -1,7 +1,6 @@
-/******************************************************************/
-// lattice_generator.hh
-// implements a lattice iterator for the boost graph library
-/******************************************************************/
+/*! \file lattice_generator.hh
+  \brief Contains iterators for square and triangular lattices.
+*/
 #ifndef LATTICE_GENERATOR_HH
 #define LATTICE_GENERATOR_HH
 
@@ -11,10 +10,10 @@
 
 namespace boost {
 
-  /******************************************************************/
-  // lattice_iterator
-  // used to create the lattice graph
-  /******************************************************************/
+  //----------------------------------------------------------
+  /*! \brief Iterator for square lattices.
+  \ingroup graph_generators
+  */
   template <typename Graph>
   class lattice_iterator
   {
@@ -25,7 +24,13 @@ namespace boost {
     typedef const value_type& reference;
     typedef const value_type* pointer;
 
+    //! Constructor for past-the-end iterator.
     lattice_iterator(): past_the_end(true) {}
+    /*! \brief Constructor.
+      \param[in] sl The side length of the lattice.
+      \param[in] dim The dimensionality of the lattice.
+      \param[in] pb Whether to have periodic boundary conditions.
+    */
     lattice_iterator(vertices_size_type sl, unsigned int dim = 2,
                      bool pb = true)
       : past_the_end(false), periodic_boundary(pb), sideLength(sl),
@@ -102,10 +107,10 @@ namespace boost {
     std::vector<unsigned long> powers;
   };
    
-  /******************************************************************/
-  // tri_lattice_iterator
-  // used to create the triangular lattice graph
-  /******************************************************************/
+  //----------------------------------------------------------
+  /*! \brief Iterator for triangular lattices.
+  \ingroup graph_generators
+  */
   template <typename Graph>
   class tri_lattice_iterator
   {
@@ -116,7 +121,12 @@ namespace boost {
     typedef const value_type& reference;
     typedef const value_type* pointer;
     
+    //! Constructor for past-the-end iterator.
     tri_lattice_iterator(): past_the_end(true) {}
+    /*! \brief Constructor.
+      \param[in] sl The side length of the lattice.
+      \param[in] pb Whether to have periodic boundary conditions.
+    */
     tri_lattice_iterator(vertices_size_type sl, bool pb = true)
       : past_the_end(false),periodic_boundary(pb), sideLength(sl), 
         edgeCount(1), source(0),target(1),current(0,1)
@@ -224,26 +234,25 @@ namespace boost {
     value_type current;
   };
   
-  /******************************************************************/
-  // print_lattice
-  // prints the lattice on the screen
-  /******************************************************************/
-  template <typename Graph>
-  void print_lattice
-  (Graph& g,
-   unsigned int sideLength)
-  {
-    typedef typename graph_traits<Graph>::vertex_descriptor vertex_descriptor;
-    vertex_descriptor v;
-    for (unsigned int i = 0; i < sideLength; i++) {
-      for (unsigned int j = 0; j < sideLength; j++) {
-        v = vertex(i*sideLength+j, g);
-        std::cout << g[v].state << " ";
-      }
-      std::cout << std::endl;
+}
+
+//----------------------------------------------------------
+/*! \brief Print the lattice in ASCII characters.
+  \ingroup graph_visualisation
+*/
+template <typename Graph>
+void print_lattice(Graph& g, unsigned int sideLength)
+{
+  typedef typename boost::graph_traits<Graph>::vertex_descriptor
+    vertex_descriptor;
+  vertex_descriptor v;
+  for (unsigned int i = 0; i < sideLength; i++) {
+    for (unsigned int j = 0; j < sideLength; j++) {
+      v = vertex(i*sideLength+j, g);
+      std::cout << g[v].state << " ";
     }
+    std::cout << std::endl;
   }
-  
 }
 
 #endif

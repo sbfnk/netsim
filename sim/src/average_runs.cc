@@ -1,3 +1,6 @@
+/*! \file average_runs.cc
+  \brief A program to average a given number of data files.
+*/
 #include <iostream>
 #include <fstream>
 #include <string>

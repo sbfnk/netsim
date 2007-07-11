@@ -1,3 +1,6 @@
+/*! \file erdos_renyi_generator2.hh
+  \brief Contains the iterator for Erdos-Renyi graphs.
+*/
 #ifndef BOOST_GRAPH_ERDOS_RENYI_GENERATOR2_HH
 #define BOOST_GRAPH_ERDOS_RENYI_GENERATOR2_HH
 
@@ -14,6 +17,14 @@
 
 namespace boost {
 
+  //----------------------------------------------------------
+  /*! \brief Iterator for Erdos-Renyi graphs.
+    
+  Provides and interface to generate random graphs according to Erdos-Renyi's
+  algorithm 
+  
+  \ingroup graph_generators
+  */
   template<typename RandomGenerator, typename Graph>
   class erdos_renyi_iterator2
   {
@@ -34,9 +45,16 @@ namespace boost {
     typedef const value_type* pointer;
     typedef void difference_type;
 
+    //! Constructor for past-the-end iterator.
     erdos_renyi_iterator2() : gen(0), n(0), allow_self_loops(false), prob(0.0),
                               source(0), target(0)
     {}
+    /*! \brief Constructor.
+      \param[in] gen Random generator to use.
+      \param[in] n Number of vertices to create.
+      \param[in] prob Probability of each possible edge to exist.
+      \param[in] allow_self_loops Whether to allow self links.
+    */
     erdos_renyi_iterator2(RandomGenerator& gen, vertices_size_type n, 
                           double prob = 0.0, bool allow_self_loops = false)
        : gen(&gen), n(n), allow_self_loops(allow_self_loops), prob(prob),
