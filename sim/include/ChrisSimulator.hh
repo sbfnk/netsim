@@ -113,7 +113,7 @@ namespace Simulators {
   template <typename RandomGenerator, typename Graph>
   bool ChrisSimulator<RandomGenerator, Graph>::updateState()
   {
-    bool found = false;
+//    bool found = false;
 //     while (!found && !events.empty()) {
 //       ChrisEvent* ev;  = events.pop();
 //       if (ev->valid) {
