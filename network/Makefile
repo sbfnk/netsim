@@ -40,6 +40,12 @@ out/%.o : src/%.cc include/%.hh
 depend:
 	$(MAKEDEPEND) $(DEPENDFLAGS) src/*.cc
 
+htmldoc:
+	doxygen
+
+pdfdoc: htmldoc
+	$(MAKE) -C doc/latex pdf
+
 clean:
 	@echo ... cleaning $(OBJECTS) $(EXEC)
 	@rm -f bin/* out/*
