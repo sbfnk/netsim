@@ -52,7 +52,7 @@ namespace Simulators {
       Simulator(m, v), randGen(r), graph(g) {;}
     ~GillespieSimulator() {;}
       
-    void initialise();
+    void initialize();
     bool updateState();
   
     void print();
@@ -72,7 +72,7 @@ namespace Simulators {
   the Tree using these rates.
   */
   template <typename RandomGenerator, typename Graph>
-  void GillespieSimulator<RandomGenerator, Graph>::initialise()
+  void GillespieSimulator<RandomGenerator, Graph>::initialize()
   {
     // get simulation variables
     Graph& graph = this->getGraph();
