@@ -76,7 +76,7 @@ namespace Simulators {
   {
     // get simulation variables
     Graph& graph = this->getGraph();
-    Model& model = this->getModel();
+    const Model& model = this->getModel();
     unsigned int verbose = this->getVerbose();
 
     // generate event list for each vertex
