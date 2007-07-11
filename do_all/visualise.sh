@@ -20,15 +20,13 @@ frames=`find $run_dir -type f -name frame\* | grep -E "frame[0-9]+$"`
 if [ -z "$frames" ]; then
   png_frames=`find $run_dir -type f -name frame\* | grep -E "frame[0-9]+\.png$"`
   if [ -n "$png_frames" ]; then
-    gthumb $run_dir &
+    qiv -W 400 $run_dir/frame???.png &
     exit 0
   else 
     echo "ERROR: no frames found in $run_dir"
     exit 1
   fi
 fi
-
-sed -i 's/^.*rewired.*$//g' $run_dir/*
 
 for I in $frames
 do
