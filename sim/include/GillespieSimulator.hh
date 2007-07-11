@@ -75,7 +75,6 @@ namespace Simulators {
   void GillespieSimulator<RandomGenerator, Graph>::initialize()
   {
     // get simulation variables
-    Graph& graph = this->getGraph();
     const Model& model = this->getModel();
     unsigned int verbose = this->getVerbose();
 
