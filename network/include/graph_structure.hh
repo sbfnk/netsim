@@ -216,7 +216,8 @@ namespace boost {
   //----------------------------------------------------------
 
   template <typename Graph, typename RandomGenerator>
-  int rewireEdges(Graph& g, RandomGenerator& r, double rewireFraction)
+  int rewireEdges(Graph& g, RandomGenerator& r, double rewireFraction, 
+                  unsigned int verbose)
   {
     typedef typename boost::graph_traits<Graph>::edge_descriptor
       edge_descriptor;
@@ -245,12 +246,19 @@ namespace boost {
       boost::uniform_01<boost::mt19937, double> uni_gen(r);
       unsigned int num_rewire =
         static_cast<unsigned int>(rewireFraction * N);
+      if (verbose >=1) {
+        std::cout << "Randomly rewiring " << num_rewire << " edges" << std::endl;
+      }
       
       // remove num_rewire random edges
       for (unsigned int i = 0; i < num_rewire; i++) {
         edge_descriptor e = random_edge(g, r);
         stubs.push_back(source(e, g));
         stubs.push_back(target(e, g));
+        if (verbose >=2) {
+          std::cout << "Removing edge " << source(e, g) << "--" 
+	            << target(e, g) << std::endl;
+        }
         boost::remove_edge(e, g);
       }
       // rewire removed edges
@@ -262,6 +270,10 @@ namespace boost {
           static_cast<unsigned int>(uni_gen() * stubs.size());
         // check if suitable pair
         if ((stubs[src] != stubs[trg]) && (!seen_edges[stubs[src]][stubs[trg]])) {
+          if (verbose >=2) {
+            std::cout << "Adding edge " << stubs[src] << "--" 
+  	              << stubs[trg] << std::endl;
+          }
           boost::add_edge(stubs[src], stubs[trg], edge_property_type(et), g);
           // remove stubs
           stubs.erase(stubs.begin() + src);

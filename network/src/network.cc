@@ -945,7 +945,8 @@ int main(int argc, char* argv[])
         onetype_graph rewire_graph;
         while (rewire_result < 0) {
           rewire_graph = temp_graph;
-          rewire_result = boost::rewireEdges(rewire_graph, gen, rewireFraction);
+          rewire_result = boost::rewireEdges(rewire_graph, gen,
+                                             rewireFraction, verbose);
           ++count;
         }
         temp_graph = rewire_graph;
