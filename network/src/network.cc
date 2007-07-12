@@ -188,8 +188,15 @@ int main(int argc, char* argv[])
   po::options_description temp_options;
   temp_options.add(command_line_options).add(sim_options);
   po::variables_map vm;
-  po::store(po::command_line_parser(argc, argv).options(temp_options).
-            allow_unregistered().run(), vm);
+  try {
+    po::store(po::command_line_parser(argc, argv).options(temp_options).
+              allow_unregistered().run(), vm);
+  }
+  catch (std::exception& e) {
+    std::cerr << "Error parsing command line parameters: " << e.what()
+              << std::endl;
+    return 1;
+  }
   po::notify(vm);
 
   if (vm.count("verbose")) {
@@ -464,9 +471,16 @@ int main(int argc, char* argv[])
 
   po::parsed_options parsed = po::command_line_parser(argc, argv).
     options(all_options).allow_unregistered().run();
-  po::store(parsed, vm);
+  try {
+    po::store(parsed, vm);
+  }
+  catch (std::exception& e) {
+    std::cerr << "Error parsing command line parameters: " << e.what()
+              << std::endl;
+    return 1;
+  }
   po::notify(vm);
-  
+
   std::vector<std::string> unregistered =
     po::collect_unrecognized(parsed.options, po::exclude_positional);
   for (std::vector<std::string>::iterator it = unregistered.begin();
@@ -1224,11 +1238,7 @@ int main(int argc, char* argv[])
     }
     std::stringstream graphDirName(graphDir, std::ios::in | std::ios::out |
                                    std::ios::ate);
-    if (numSims > 1) {
-      graphDirName << "/run" << std::setfill('0') << std::setw(extLength)
-                   << nSim;
-    }
-    
+    graphDirName << "/run" << std::setfill('0') << std::setw(extLength) << nSim;
     
     // timesteps after which to write graphviz output
     if (vm.count("graphviz")) {
