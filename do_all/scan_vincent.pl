@@ -20,7 +20,7 @@ my $command = "$code_dir/do_all/do_stats.sh";
 
 GetOptions("step=f" => \$step,
 	   "alpha-step=f" => \$alpha_step,
-	   "beta-step=f" => \$beta);
+	   "beta-step=f" => \$beta_step);
 
 my $usage = "Usage: vary_parameter.pl low_beta high_beta ".
   "low_alpha high_alpha [-s step] [-a alpha-step] [-b beta-step]\n";
