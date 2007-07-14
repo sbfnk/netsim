@@ -16,7 +16,7 @@
 //----------------------------------------------------------
 /*! \brief Count vertices.
   
-Counts the number of vertices in a graph being in a given state 
+Counts the number of vertices of a given state in a graph
 
 \param[in] g The graph containing the vertices
 \param[in] vs The vertex state to be counted
