@@ -41,8 +41,8 @@ $ha = shift(@ARGV);
 print "Varying alpha in [$la,$ha] and beta in [$lb,$hb]\n";
 print "Parameters: @ARGV\n\n";
 
-for ($alpha = $la; $alpha <= $ha; $alpha += $step) {
-  for ($beta = $lb; $beta <= $hb; $beta += $step) {
+for ($alpha = $la; $alpha <= $ha; $alpha += $alpha_step) {
+  for ($beta = $lb; $beta <= $hb; $beta += $beta_step) {
     printf("alpha=%.2f beta=%.2f\n", $alpha, $beta);
     $arguments = sprintf("--alpha=%.2f --beta-+=%.2f --beta--=%.2f",$alpha,$beta,$beta);
     system("$command $arguments @ARGV");
