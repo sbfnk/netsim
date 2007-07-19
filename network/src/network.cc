@@ -28,6 +28,7 @@
 #include "visualise_graph.hh"
 #include "cluster_coeffs.hh"
 #include "assortativity.hh"
+#include "path_length.hh"
 
 #include "GillespieSimulator.hh"
 #include "ChrisSimulator.hh"
@@ -175,6 +176,8 @@ int main(int argc, char* argv[])
      "create graphviz output in the images directory at arg timesteps")
     ("nsims", po::value<unsigned int>()->default_value(1),
      "number of simulation runs to produce (on a given graph)")
+    ("path-length",
+     "calculate average path lengths")
     ("graph-dir", po::value<std::string>()->default_value(graphDir),
      "set ouput dir for graphs")
     ("write-file,f", po::value<std::string>(),
@@ -1015,6 +1018,24 @@ int main(int argc, char* argv[])
     }
   }
   
+  /******************************************************************/
+  // calculate average path lengths
+  /******************************************************************/
+  if (vm.count("path-length")) {
+    std::cout << "Average shortest path lengths: " << std::endl;
+    std::cout << "  on d-edges: "
+              << boost::avg_shortest_path_length(graph, Edge(0)) << std::endl;
+    std::cout << "  on i-edges: "
+              << boost::avg_shortest_path_length(graph, Edge(1)) << std::endl;
+    std::cout << "  d-neighbours on i-edges: "
+              << boost::avg_nb_shortest_path_length(graph, Edge(0), Edge(1))
+              << std::endl;
+    std::cout << "  i-neighbours on d-edges: "
+              << boost::avg_nb_shortest_path_length(graph, Edge(1), Edge(0))
+              << std::endl;
+  }
+  
+
   /******************************************************************/
   // mark parallel edges
   /******************************************************************/
