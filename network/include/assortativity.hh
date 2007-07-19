@@ -12,31 +12,13 @@
 #include <sys/time.h>
 #include <math.h>
 
+#include "graph_statistics.hh"
+
 //! \addtogroup graph_structure Graph structure
 //! \addtogroup helper_functions Helper functions
 //! \addtogroup graph_statistics Graph statistics
 
 namespace boost {
-
-  //----------------------------------------------------------
-  /*! \brief Calculate out_degree of a given edge type for a given vertex.
-    \param[in] g The graph to consider.
-    \param[in] v The vertex to calculate the degree of.
-    \param[in] et The edge type to consider.
-    \ingroup helper_functions
-  */
-  template <typename Graph, typename VertexDescriptor, typename EdgeType>
-  unsigned int out_degree_type(Graph& g, VertexDescriptor v, EdgeType et)
-  {
-    unsigned int deg = 0;
-    
-    typename graph_traits<Graph>::out_edge_iterator oi, oi_end;
-    for (tie(oi, oi_end) = out_edges(v, g); oi != oi_end; oi++) {
-      if (g[*oi].type == et.type) ++deg;
-    }
-    return deg;
-  }
-  
 
   //----------------------------------------------------------
   /*! \brief Calculate assortativity Hamiltonian
