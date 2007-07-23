@@ -1111,11 +1111,6 @@ int main(int argc, char* argv[])
     }
   }
 
-  // no-graph overrides other graph options
-  if (vm.count("no-graph")) {
-    outputGraphviz = -1;
-  }
-    
   numSims = vm["nsims"].as<unsigned int>();
   
   unsigned int extLength = 0;
