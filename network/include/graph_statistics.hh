@@ -8,6 +8,7 @@
 #include <fstream>
 
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/multi_array.hpp>
 
 #include "Model.hh"
 
@@ -15,6 +16,62 @@
 
 namespace boost {
 
+  //----------------------------------------------------------
+  /*! \brief Checks for target and type of an edge.
+    \ingroup helper_functions
+  */
+  template <class Graph, class EdgeType>
+  struct target_and_type {
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor Vertex;
+    target_and_type(Graph& g, Vertex v, EdgeType et) :
+      m_graph(g), m_target(v), m_edgetype(et) { }
+    template <class StoredEdge>
+    bool operator()(const StoredEdge& e) const {
+      return (target(e, m_graph) == m_target) &&
+        (m_graph[e].type == m_edgetype);
+    }
+    Graph m_graph;
+    Vertex m_target;
+    EdgeType m_edgetype;
+  };
+
+  //----------------------------------------------------------
+  /*! \brief Check if there is an edge of give type between two vertices.
+    \param[in] g The graph to consider.
+    \param[in] u The first vertex to consider.
+    \param[in] v The second vertex to consider.
+    \param[in] et The edge type to consider.
+    \ingroup helper_functions
+  */
+  template <typename Graph, typename EdgeType>
+  std::pair<typename boost::graph_traits<Graph>::edge_descriptor, bool>
+  edge(Graph& g,
+       typename boost::graph_traits<Graph>::vertex_descriptor u,
+       typename boost::graph_traits<Graph>::vertex_descriptor v,
+       EdgeType et)
+  {
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor
+      vertex_descriptor;
+    typedef typename boost::graph_traits<Graph>::edge_descriptor
+      edge_descriptor;
+    typedef typename graph_traits<Graph>::out_edge_iterator
+      out_edge_iterator;
+
+    out_edge_iterator oi, oi_end;
+    tie(oi, oi_end) = out_edges(u, g);
+    
+    bool found;
+    out_edge_iterator
+      i = std::find_if(oi, oi_end,
+                       target_and_type<Graph, EdgeType>(g, v, et));
+    found = (i != oi_end);
+    if (found)
+      return std::make_pair(edge_descriptor(u, v, (*i).get_property()),
+                            true);
+    else
+      return std::make_pair(edge_descriptor(u, v, 0), false);
+  }
+  
   //----------------------------------------------------------
   /*! \brief Calculate out_degree of a given edge type for a given vertex.
     \param[in] g The graph to consider.
@@ -35,103 +92,217 @@ namespace boost {
   }
   
   //----------------------------------------------------------
+  /*! \brief Count triangles.
+  
+  Counts the number of triangles in the network combining three given edge
+  types. 
+
+  \param[in] g The graph containing the vertices
+  \param[in] et1 The first edge type to consider
+  \param[in] et2 The second edge type to consider
+  \param[in] et3 The third edge type to consider
+  \return The number of triangles found.
+  \ingroup graph_statistics
+  */
+  template <typename Graph, typename EdgeType>
+  unsigned int count_triangles(Graph& g, EdgeType et1, EdgeType et2,
+                               EdgeType et3)
+  {
+    typedef typename graph_traits<Graph>::out_edge_iterator
+      out_edge_iterator;
+    typedef typename graph_traits<Graph>::edge_iterator
+      edge_iterator;
+
+    unsigned int count = 0;
+    
+    edge_iterator ei, ei_end;
+    out_edge_iterator oi, oi_end;
+
+    for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
+      if (g[*ei].type == et1) {
+        for (tie(oi, oi_end) = out_edges(target(*ei, g), g);
+             oi != oi_end; oi++) {
+          if (g[*oi].type == et2) {
+            if (edge(g, source(*ei, g), target(*oi, g), et3).second) {
+              ++count;
+            }
+          }
+        }
+      }
+    }
+    
+    return count;
+  }
+
+  //----------------------------------------------------------
   /*! \brief Count vertices.
   
   Counts the number of vertices of a given state in a graph
 
   \param[in] g The graph containing the vertices
-  \param[in] vs The vertex state to be counted
-  \return The number of vertices found in the given state
+  \param[in] m The model providing the vertex states
+  \return A vector of state counts.
   \ingroup graph_statistics
   */
   template <typename Graph>
-  unsigned int count_vertices(Graph& g, unsigned int vs)
+  std::vector<unsigned int>
+  count_vertices(Graph& g, const Model& m)
   {
     typedef typename boost::graph_traits<Graph>::vertex_iterator
       vertex_iterator;
 
-    unsigned int count = 0;
+    std::vector<unsigned int> counts(m.getVertexStates().size(),0);
+
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
-      if (g[*vi].state == vs) {
-        count++;
-      }
+      ++counts[g[*vi].state];
     }
    
-    return count;
+    return counts;
   }
 
   //----------------------------------------------------------
-  /*! \brief Count edges.
+  /*! \brief Count pairs.
   
-  Counts the number of edges of a given type connecting two vertices in a
-  given state in a graph.
+  Counts the number of pairs in a given state in a graph.
 
   \param[in] g The graph containing the vertices and edges
-  \param[in] vs1 The state the vertex on one end of the edge is supposed to be in
-  \param[in] vs2 The state the vertex on the other end of the edge is supposed
-  to be in
-  \param[in] et The type the edge is supposed to be of
-  \return The number of edges fulfilling the given criteria
+  \param[in] m The model providing the vertex states and edge types
+  \return A 3d array of pairs, the first index of which denounces edge type and
+  the other two vertex states
   \ingroup graph_statistics
   */
   template <typename Graph>
-  unsigned int count_edges(Graph& g,
-                           unsigned int vs1, unsigned int vs2, unsigned int et)
+  boost::multi_array<unsigned int, 3>
+  count_pairs(Graph& g, const Model& m)
   {
     typedef typename boost::graph_traits<Graph>::edge_iterator
       edge_iterator;
+    typedef boost::multi_array<unsigned int, 3> array_type;
 
+    array_type counts(boost::extents
+                      [m.getEdgeTypes().size()]
+                      [m.getVertexStates().size()]
+                      [m.getVertexStates().size()]);
+    
     // count all edges of type et, including parallel
-    unsigned int count = 0;
     edge_iterator ei, ei_end;
     for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
-      if ((g[*ei].type == et) && //!g[*ei].parallel &&
-          ((g[source(*ei, g)].state == vs1 && g[target(*ei, g)].state == vs2) ||
-           (g[source(*ei, g)].state == vs2 && g[target(*ei, g)].state == vs1))) {
-        count++;
-      }
+      std::vector<unsigned int> states(2);
+      states[0] = g[source(*ei, g)].state;
+      states[1] = g[target(*ei, g)].state;
+      std::sort(states.begin(), states.end());
+      ++counts[g[*ei].type][states[0]][states[1]];
     }
-   
-    return count;
+
+    return counts;
   }
 
   //----------------------------------------------------------
   /*! \brief Count parallel edges.
   
-  Loops over all edges of a given type, connecting two vertices in given states,
-  and counts for which edges there is another edge connecting the same two
-  vertices. 
+  Loops over all edges and counts for which edges there is another edge
+  connecting the same two vertices. 
 
   \param[in] g The graph containing the vertices and edges
-  \param[in] vs1 The state the vertex on one end of the edge is supposed to be in
-  \param[in] vs2 The state the vertex on the other end of the edge is supposed
-  to be in
-  \param[in] et The type the edge is supposed to be of
-  \return The number of edges fulfilling the given criteria and having a
-  parallel edge
+  \param[in] m The model providing the vertex states and edge types
+  \return A 2d array of parallel pairs the indices denoting the two vertex states
   \ingroup graph_statistics
   */
   template <typename Graph>
-  unsigned int count_parallel_edges(Graph& g, unsigned int vs1,
-                                    unsigned int vs2, unsigned int et)
+  boost::multi_array<unsigned int, 2>
+  count_parallel_edges(Graph& g, const Model& m)
   {
     typedef typename boost::graph_traits<Graph>::edge_iterator
       edge_iterator;
 
-    // count only PARALLEL edges of type et
-    unsigned int count = 0;
+    // count only PARALLEL edges
+    typedef boost::multi_array<unsigned int, 2> array_type;
+
+    array_type counts(boost::extents
+                      [m.getVertexStates().size()]
+                      [m.getVertexStates().size()]);
+
     edge_iterator ei, ei_end;
     for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
-      if ((g[*ei].type == et) && g[*ei].parallel &&
-          ((g[source(*ei, g)].state == vs1 && g[target(*ei, g)].state == vs2) ||
-           (g[source(*ei, g)].state == vs2 && g[target(*ei, g)].state == vs1))) {
-        count++;
+      if ((g[*ei].type == 0) && g[*ei].parallel) {
+        std::vector<unsigned int> states(2);
+        states[0] = g[source(*ei, g)].state;
+        states[1] = g[target(*ei, g)].state;
+        std::sort(states.begin(), states.end());
+        ++counts[states[0]][states[1]];
       }
     }
 
     // since we looped over all edges of one type, no need to divide by 2
-    return count;
+    return counts;
+  }
+
+  //----------------------------------------------------------
+  /*! \brief Count triples.
+  
+  Counts the number of triples in the network.
+
+  \param[in] g The graph containing the vertices
+  \param[in] et1 The first edge type to consider
+  \param[in] et2 The second edge type to consider
+  \param[in] et3 The third edge type to consider
+  \return The number of triangles found.
+  \ingroup graph_statistics
+  */
+  template <typename Graph>
+  boost::multi_array<unsigned int, 5>
+  count_triples(Graph& g, const Model& m)
+  {
+    typedef typename graph_traits<Graph>::out_edge_iterator
+      out_edge_iterator;
+    typedef typename graph_traits<Graph>::edge_iterator
+      edge_iterator;
+    typedef typename graph_traits<Graph>::vertex_iterator
+      vertex_iterator;
+
+    typedef boost::multi_array<unsigned int, 5> array_type;
+    
+    array_type counts(boost::extents
+                      [m.getEdgeTypes().size()]
+                      [m.getEdgeTypes().size()]
+                      [m.getVertexStates().size()]
+                      [m.getVertexStates().size()]
+                      [m.getVertexStates().size()]);
+    
+    vertex_iterator vi, vi_end;
+    out_edge_iterator oi, oi_end, oi2;
+
+    for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+      if (out_degree(*vi, g) > 0) {
+        for (tie(oi, oi_end) = out_edges(*vi, g); oi != oi_end; oi++) {
+          for(oi2 = oi + 1; oi2 != oi_end; oi2++) {
+            if (target(*oi, g) != target(*oi2, g)) {
+
+              std::vector<unsigned int> edges(2);
+              std::vector<unsigned int> states(2);
+              edges[0] = g[*oi].type;
+              edges[1] = g[*oi2].type;
+              states[0] = g[target(*oi, g)].state;
+              states[1] = g[target(*oi2, g)].state;
+              std::sort(edges.begin(), edges.end());
+              std::sort(states.begin(), states.end());
+            
+              ++counts
+                [edges[0]]
+                [edges[1]]
+                [g[*vi].state]
+                [states[0]]
+                [states[1]];
+
+            }
+          }
+        }
+      }
+    }
+
+    return counts;
+    
   }
 
   //----------------------------------------------------------
@@ -148,33 +319,35 @@ namespace boost {
   \ingroup graph_statistics
   */
   template <typename Graph>
-  void print_graph_statistics(Graph& g, Model& m, bool pairs = true)
+  void print_graph_statistics(Graph& g, Model& m, bool pairs = true,
+                              bool triples = false)
   {
     std::cout << std::endl;
     std::cout << "Vertex count: " << std::endl;
 
     // count states
+    std::vector<unsigned int> vertexCount = count_vertices(g, m);
     for (unsigned int i=0; i < m.getVertexStates().size(); i++) {
-      unsigned int count = count_vertices(g, i);
-      if (count > 0) {
-        std::cout << m.getVertexStates()[i] << ": " << count << std::endl;
+      if (vertexCount[i] > 0) {
+        std::cout << m.getVertexStates()[i] << ": " << vertexCount[i]
+                  << std::endl;
       }
     }
    
     std::cout << std::endl;
     if (pairs) {
     
-      std::cout << "Edge count: " << std::endl;
+      std::cout << "Pair count: " << std::endl;
    
       // count state pairs
+      boost::multi_array<unsigned int, 3> pairCount = count_pairs(g, m);
       for (unsigned int i=0; i < m.getEdgeTypes().size(); i++) {
         std::cout << m.getEdgeTypes()[i] << "-type: " << std::endl;
         for (unsigned int j=0; j < m.getVertexStates().size(); j++) {
           for (unsigned int k=j; k < m.getVertexStates().size(); k++) {
-            unsigned int count = count_edges(g, j, k, i);
-            if (count > 0) {
+            if (pairCount[i][j][k] > 0) {
               std::cout << m.getVertexStates()[j] << m.getVertexStates()[k]
-                        << ": " << count << std::endl;
+                        << ": " << pairCount[i][j][k] << std::endl;
             }
           }
         }
@@ -182,19 +355,44 @@ namespace boost {
    
       // count parallel pairs
       std::cout << "parallel:" << std::endl;
+
+      boost::multi_array<unsigned int, 2> parallelCount =
+        count_parallel_edges(g, m);
+
       for (unsigned int j=0; j < m.getVertexStates().size(); j++) {
         for (unsigned int k=j; k < m.getVertexStates().size(); k++) {
-          unsigned int i = 0; // counting one type is enough
-          unsigned int count = count_parallel_edges(g, j, k, i);
-          if (count > 0) {
+          if (parallelCount[j][k] > 0) {
             std::cout << m.getVertexStates()[j] << m.getVertexStates()[k]
-                      << ": " << count << std::endl;
+                      << ": " << parallelCount[j][k] << std::endl;
           }
         }
       }
+      std::cout << std::endl;
     }
-  
-    std::cout << std::endl;
+
+    if (triples) {
+      std::cout << "Triple count: " << std::endl;
+
+      boost::multi_array<unsigned int, 5> tripleCount =
+        count_triples(g, m);
+
+      for (unsigned int i=0; i < m.getEdgeTypes().size(); i++) {
+        for (unsigned int j=i; j < m.getEdgeTypes().size(); j++) {
+          std::cout << m.getEdgeTypes()[i] << m.getEdgeTypes()[j]
+                    << "-triples: " << std::endl;
+          for (unsigned int k=0; k < m.getVertexStates().size(); k++) {
+            for (unsigned int l=0; l < m.getVertexStates().size(); l++) {
+              for (unsigned int n=l; n < m.getVertexStates().size(); n++) {
+                std::cout << m.getVertexStates()[l] << m.getVertexStates()[k]
+                          << m.getVertexStates()[n] << ": "
+                          << tripleCount[i][j][k][l][n] << std::endl;
+              }
+            }
+          }
+        }
+      }
+      std::cout << std::endl;
+    }
   }
 
   //----------------------------------------------------------
@@ -223,25 +421,29 @@ namespace boost {
     ofile << t << '\t';
 
     // count vertices' states
+    std::vector<unsigned int> vertexCount = count_vertices(g, m);
     for (unsigned int i = 0; i < m.getVertexStates().size(); i++) {
-      line << count_vertices(g, i) << '\t';
+      line << vertexCount[i] << '\t';
     }
 
     if (pairs) {
+      boost::multi_array<unsigned int, 3> pairCount = count_pairs(g, m);
       // count pairs
       for (unsigned int i = 0; i < m.getEdgeTypes().size(); i++) {
         for (unsigned int j = 0; j < m.getVertexStates().size(); j++) {
           for (unsigned int k = j; k < m.getVertexStates().size(); k++) {
-            line << count_edges(g, j, k, i) << '\t';
+            line << pairCount[j][k][i] << '\t';
           }
         }
       }
 
       // count parallel pairs
+      boost::multi_array<unsigned int, 2> parallelCount =
+        count_parallel_edges(g, m);
+
       for (unsigned int j = 0; j < m.getVertexStates().size(); j++) {
         for (unsigned int k = j; k < m.getVertexStates().size(); k++) {
-          unsigned int i = 0; // counting one type is enough
-          line << count_parallel_edges(g, j, k, i) << '\t';
+          line << parallelCount[j][k] << '\t';
         }
       }
     }
