@@ -5,6 +5,8 @@
 #ifndef PATH_LENGTH_HH
 #define PATH_LENGTH_HH
 
+#include <boost/array.hpp>
+
 #include "breadth_first_search.hpp"
 #include "graph_statistics.hh"
 
@@ -41,7 +43,7 @@ namespace boost {
     vertex_iterator vi, vi_end;
 
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
-      std::fill_n(d, num_vertices(g), 0);
+      std::fill_n(&d[0], num_vertices(g), 0);
 
       breadth_first_search(g, *vi, et,
         visitor(make_bfs_visitor(record_distances(d, on_tree_edge()))));
@@ -128,8 +130,9 @@ namespace boost {
     vertex_iterator vi, vi_end;
 
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
-      std::fill_n(d, num_vertices(g), 0);
+
       std::fill_n(d_nb, num_vertices(g), 0);
+      std::fill_n(d, num_vertices(g), 0);
 
       std::vector<vertex_descriptor> et1_neighbours;
       typename graph_traits<Graph>::out_edge_iterator oi, oi_end;
@@ -146,7 +149,8 @@ namespace boost {
         } catch (...) {}
 
         unsigned int nb_count = 0;
-        for (unsigned int i = 0; nb_count < et1_neighbours.size(); ++i) {
+        for (unsigned int i = 0;
+             nb_count < et1_neighbours.size() && i < num_vertices(g); ++i) {
           if (d_nb[i] > 0) {
             ++nb_count;
             distance_sum += d_nb[i];
