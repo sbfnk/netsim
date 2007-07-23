@@ -119,7 +119,7 @@ int main(int argc, char* argv[])
   unsigned int stopInformations;
 
   double outputData = 0.;
-  int outputGraphviz = 0;
+  int outputGraphviz = -1;
   std::string graphDir = "images";
   std::string outputFileName = "";
   std::ofstream* outputFile = 0;
@@ -132,7 +132,8 @@ int main(int argc, char* argv[])
   std::string readGraph = ""; // default is to generate graph.
   bool generateIC = true; // default is to generate i.c.
 
-  bool pairs = true;
+  bool pairs = false;
+  bool triples = false;
 
   po::options_description command_line_options
     ("\nUsage: simulate -p params_file [options]... \n\nMain options");
@@ -172,7 +173,7 @@ int main(int argc, char* argv[])
      "number of informations after which to stop (if >0)")
     ("output", po::value<double>()->default_value(0.),
      "write output data at arg timesteps")
-    ("graphviz,g", po::value<int>()->default_value(0),
+    ("graphviz,g", po::value<int>()->default_value(outputGraphviz),
      "create graphviz output in the images directory at arg timesteps")
     ("nsims", po::value<unsigned int>()->default_value(1),
      "number of simulation runs to produce (on a given graph)")
@@ -235,19 +236,16 @@ int main(int argc, char* argv[])
   }
     
 
-  // declare hidden option for suppression of graph output --
-  // needed for do_all script so that graphviz output
-  // is not generated at each run
-  po::options_description hidden_options
-    ("\nAdditional options");
+  po::options_description statistics_options
+    ("\n Graph statistics");
   
-  hidden_options.add_options()
-    ("no-graph",
-     "do not produce graphviz output no matter what the other settings")
-    ("no-degree-dist",
-     "do not write degree distribution to baseName.degree file")
-    ("no-pairs",
-     "do not consider pairs")
+  statistics_options.add_options()
+    ("degree-dist",
+     "write degree distribution to baseName.degree file")
+    ("pairs",
+     "count pairs")
+    ("triples",
+     "count triples")
     ;
   
   po::options_description graph_options
@@ -454,12 +452,10 @@ int main(int argc, char* argv[])
   po::options_description model_options = model->getOptions();
 
   // read options from command line
-  po::options_description visible_options;
-  visible_options.add(command_line_options).add(sim_options).add(graph_options).
-    add(rewiring_options).add(assortativity_options).add(model_options);
-  
   po::options_description all_options;
-  all_options.add(visible_options).add(hidden_options);
+  all_options.add(command_line_options).add(sim_options).
+    add(graph_options).add(rewiring_options).add(statistics_options).
+    add(assortativity_options).add(model_options);
   
   for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
        it != model->getEdgeTypes().end(); it++) {
@@ -1036,6 +1032,15 @@ int main(int argc, char* argv[])
   }
   
 
+  // consider pairs
+  if (vm.count("pairs")) {
+    pairs = true;
+  }
+  // consider triples
+  if (vm.count("triples")) {
+    triples = true;
+  }
+
   /******************************************************************/
   // mark parallel edges
   /******************************************************************/
@@ -1045,6 +1050,11 @@ int main(int argc, char* argv[])
     unsigned int parallel_edges = mark_parallel_edges(graph);
     if (verbose) std::cout << "No. of parallel edges is: " << parallel_edges
                            << std::endl;
+  }
+
+  // timesteps after which to write graphviz output
+  if (vm.count("graphviz")) {
+    outputGraphviz = vm["graphviz"].as<int>();
   }
 
   // set base file name
@@ -1071,15 +1081,19 @@ int main(int argc, char* argv[])
     }
     
     // calculate degree distribution
-    std::string degreeFileName = baseFileName+".degree";
-    bool status = write_degree(graph, *model, degreeFileName);
-    if (verbose)
-      if (!status) {
-        std::cout << "degree file " << degreeFileName << " was written ok\n";
-      } else {
-        std::cout << "ERROR: something wrong in writing degree file "
-                  << degreeFileName << std::endl;
+    if (vm.count("degree-dist")) {
+      std::string degreeFileName = baseFileName+".degree";
+      bool status = write_degree(graph, *model, degreeFileName);
+      if (verbose) {
+        if (!status) {
+          std::cout << "degree file " << degreeFileName << " was written ok\n";
+        } else {
+          std::cout << "ERROR: something wrong in writing degree file "
+                    << degreeFileName << std::endl;
+        }
       }
+    }
+    
 
     // create sparse adjacency matrices and clustering coefficients
     if (vm.count("cluster-coeff")) {
@@ -1097,6 +1111,11 @@ int main(int argc, char* argv[])
     }
   }
 
+  // no-graph overrides other graph options
+  if (vm.count("no-graph")) {
+    outputGraphviz = -1;
+  }
+    
   numSims = vm["nsims"].as<unsigned int>();
   
   unsigned int extLength = 0;
@@ -1261,19 +1280,6 @@ int main(int argc, char* argv[])
                                    std::ios::ate);
     graphDirName << "/run" << std::setfill('0') << std::setw(extLength) << nSim;
     
-    // timesteps after which to write graphviz output
-    if (vm.count("graphviz")) {
-      outputGraphviz = vm["graphviz"].as<int>();
-    }
-    // no-graph overrides other graph options
-    if (vm.count("no-graph")) {
-      outputGraphviz = -1;
-    }
-    // do not consider pairs
-    if (vm.count("no-pairs")) {
-      pairs = false;
-    }
-    
     /******************************************************************/
     // open output file
     /******************************************************************/
@@ -1312,7 +1318,7 @@ int main(int argc, char* argv[])
       lastLine = write_graph_data(graph, *model, sim->getTime(), *outputFile,
                                   pairs);
     }
-    if (verbose) print_graph_statistics(graph, *model, pairs);
+    if (verbose) print_graph_statistics(graph, *model, pairs, triples);
     
     /******************************************************************/
     // run simulation
@@ -1333,7 +1339,7 @@ int main(int argc, char* argv[])
            doSim && sim->updateState()) {
       
       if (verbose >= 2) {
-        print_graph_statistics(graph, *model, pairs);
+        print_graph_statistics(graph, *model, pairs, triples);
       }
       
       if (verbose && steps%100 == 0) {
@@ -1392,7 +1398,7 @@ int main(int argc, char* argv[])
                 << std::endl;
     }
     
-    if (verbose) print_graph_statistics(graph, *model, pairs);
+    if (verbose) print_graph_statistics(graph, *model, pairs, triples);
     
     // free memory
     delete sim;
