@@ -1,4 +1,4 @@
-/*! \file breadth_first_search.hh
+/*! \file breadth_first_search.hpp
   \brief Additional functions for boost::breadth_first_search to allow for
   searches along edges of only one type.
 */
