@@ -191,14 +191,14 @@ namespace boost {
 
         current_degree_overlap = new_degree_overlap;
 
-        if (verbose >=1) {
+        if (verbose >=2) {
           std::cout << "degree overlap " << new_degree_overlap << std::endl;
         }
         
       }
     }
 
-    if (verbose >= 1) {
+    if (verbose >= 2) {
       std::cout << "Rewiring done: degree overlap "
                 << current_degree_overlap
                 << " obtained after " << steps << " steps" << std::endl;
