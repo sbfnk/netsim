@@ -481,6 +481,22 @@ namespace boost {
   }
 
   //----------------------------------------------------------
+  /*! \brief Reverses an edge.
+  
+  \param[in] e The edge to reverse.
+  \param[in] g The graph containing the edge.
+  \return The reversed edge.
+  \ingroup graph_structure
+  */
+  template <class Graph>
+  typename graph_traits<Graph>::edge_descriptor
+  reverse_edge(typename graph_traits<Graph>::edge_descriptor e, Graph& g)
+  {
+    typedef typename graph_traits<Graph>::edge_descriptor edge_descriptor;
+    return edge_descriptor(target(e, g), source(e, g), e.get_property());
+  }
+  
+  //----------------------------------------------------------
   /*! \brief Choose a random undirected edge from a graph.
 
   This differs from boost:random_edge in that it additionally randomizes source
@@ -512,8 +528,7 @@ namespace boost {
         i = edges(g).first;
       while (n-- > 0) ++i; // std::advance not VC++ portable
       if (reverse) {
-        return typename graph_traits<Graph>::edge_descriptor
-          (target(*i, g), source(*i, g), (*i).get_property());
+        return reverse_edge(*i, g);
       } else {
         return *i;
       }
