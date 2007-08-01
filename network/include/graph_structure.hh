@@ -479,7 +479,48 @@ namespace boost {
       }
     }
   }
+
+  //----------------------------------------------------------
+  /*! \brief Choose a random undirected edge from a graph.
+
+  This differs from boost:random_edge in that it additionally randomizes source
+  and target, whereas boost:edge returns an edge with source and target as they
+  have been created.
   
+  \param[in, out] g The graph to remove the edges from.
+  \param[in] gen The random generator to use for selecting the edges to remove.
+  \return The edge_descriptor of the randomly chosen edge.
+  \ingroup graph_structure
+  */
+  template <class Graph, class RandomNumGen>
+  typename graph_traits<Graph>::edge_descriptor
+  random_edge_undirected(Graph& g, RandomNumGen& gen) {
+    if (num_edges(g) > 1) {
+      bool reverse = false;
+      
+      uniform_int<> distrib(0, (num_edges(g)*2-1));
+      variate_generator<RandomNumGen&, uniform_int<> > rand_gen(gen, distrib);
+      typename graph_traits<Graph>::edges_size_type
+        n = rand_gen();
+
+      if (n > num_edges(g)-1) {
+        reverse = true;
+        n -= num_edges(g);
+      }
+
+      typename graph_traits<Graph>::edge_iterator
+        i = edges(g).first;
+      while (n-- > 0) ++i; // std::advance not VC++ portable
+      if (reverse) {
+        return typename graph_traits<Graph>::edge_descriptor
+          (target(*i, g), source(*i, g), (*i).get_property());
+      } else {
+        return *i;
+      }
+    } else
+      return *edges(g).first;
+  }
+
 } // namespace boost
 
 //----------------------------------------------------------
