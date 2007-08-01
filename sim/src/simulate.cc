@@ -1042,6 +1042,12 @@ int main(int argc, char* argv[])
           rewire_assortatively(graph, gen, ass, it->getId(), it2->getId(),
                                it3->getId(), verbose);
         }
+        if (verbose >=1) {
+          std::cout << s << ": "
+                    << boost::assortativity(graph, it->getId(),
+                                            it2->getId(), it3->getId())
+                    << std::endl;
+        }
       }
     }
   }
@@ -1052,7 +1058,7 @@ int main(int argc, char* argv[])
 
   for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
        it != model->getEdgeTypes().end(); it++) {
-    for (std::vector<Label>::const_iterator it2 = it;
+    for (std::vector<Label>::const_iterator it2 = it+1;
          it2 != model->getEdgeTypes().end(); it2++) {
       std::string s =
         it->getText()+it2->getText()+"-degree-overlap";
@@ -1060,6 +1066,11 @@ int main(int argc, char* argv[])
         double deg_overlap = (vm[s.c_str()].as<double>());
         rewire_degree_overlap(graph, gen, deg_overlap, it->getId(), 
                               it2->getId(), verbose);
+      }
+      if (verbose >=1) {
+        std::cout << s << ": "
+                  << boost::degree_overlap(graph, it->getId(), it2->getId())
+                  << std::endl;
       }
     }
   }
