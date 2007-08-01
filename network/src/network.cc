@@ -1211,7 +1211,8 @@ int main(int argc, char* argv[])
       /******************************************************************/
       // set initial vertex states
       /******************************************************************/
-      
+
+      init.clear();
       // how many random vertices of each state are to be initialized
       // over the background of the base state
       for (unsigned int i = 0; i < model->getVertexStates().size(); i++) {
