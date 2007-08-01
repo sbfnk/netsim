@@ -74,4 +74,4 @@ out/simulate.o: include/Vertex.hh include/Simulator.hh \
 	include/cluster_coeffs.hh include/assortativity.hh \
 	include/ProtectiveSIRS.hh include/VaccinationSIRS.hh \
 	include/graph_statistics.hh include/path_length.hh \
-	include/breadth_first_search.hpp
+	include/breadth_first_search.hpp include/degree_overlap.hh
