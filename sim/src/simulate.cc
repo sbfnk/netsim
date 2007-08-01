@@ -43,7 +43,10 @@
 namespace po = boost::program_options;
 
 //! Classes and functions of the boost libraries.
-namespace boost {}
+namespace boost {
+//! Special classes and functions of the boost libraries.
+  namespace detail {}
+}
 
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
                               Vertex, Edge> dualtype_graph;
@@ -1158,7 +1161,9 @@ int main(int argc, char* argv[])
     }
   }
 
-//   print_degrees(graph, *model);
+  if (verbose >= 2) {
+    print_degrees(graph, *model);
+  }
 
   numSims = vm["nsims"].as<unsigned int>();
   
