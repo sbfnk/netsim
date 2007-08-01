@@ -11,6 +11,7 @@
 #include <iostream>
 #include <sys/time.h>
 #include <math.h>
+#include <stdlib.h>
 
 #include "graph_statistics.hh"
 
@@ -28,13 +29,14 @@ namespace boost {
 
   \param[in] g The graph to consider.
   \param[in] J Assortativity factor (\sa boost::rewire_assortatively)
-  \param[in] deg_type1 The first edge type to consider.
-  \param[in] deg_type2 The second edge type to consider.
+  \param[in] et The edge type at the end of which vertices whill be considered.
+  \param[in] deg_type1 The first adjacent edge type to consider.
+  \param[in] deg_type2 The second adjacent edge type to consider.
   \ingroup helper_functions
   */
   template <typename Graph, typename EdgeType>
-  double hamiltonian(Graph& g, double J,
-                     EdgeType deg_type1, EdgeType deg_type2)
+  double assortativity_hamiltonian(Graph& g, double J, EdgeType et,
+                                   EdgeType deg_type1, EdgeType deg_type2)
   {
     double ham = 0;
     typedef typename boost::graph_traits<Graph>::edge_iterator edge_iterator;
@@ -43,36 +45,39 @@ namespace boost {
     edge_iterator ei, ei_end;
     for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
       // we want the correlation of deg_type1 and deg_type2 degrees, but at
-      // the two ends of a deg_type1 link, so we check here if type is deg_type1
-      if (g[*ei].type == deg_type1.type) {
+      // the two ends of an et link, so we check here if type is et
+      if (g[*ei].type == et) {
         ham += out_degree_type(g, source(*ei, g), deg_type1)*
-          out_degree_type(g, target(*ei, g), deg_type2);
+          out_degree_type(g, target(*ei, g), deg_type2) +
+          out_degree_type(g, target(*ei, g), deg_type1) *
+          out_degree_type(g, source(*ei, g), deg_type2);
       }
     }
     // multiply with desired assortivity factor
-    ham *= -J/2;
+    ham *= -J;
     return ham;
   }
 
   //----------------------------------------------------------
   /*! \brief Rewire edges assortatively
 
-  Randomly rewires edges of deg_type2 to create assortativity between the
-  deg_type1 and deg_type2 degrees at the two ends of a deg_type1 edge --
+  Randomly rewires edges of type et to create assortativity between the
+  deg_type1 and deg_type2 degrees at the two ends of an et edge --
   rewiring is controlled by parameter J: positive J leads to
   correlation, negative J to anticorrelation, J=0 to no correlation
 
   \param[in] g The graph to consider.
   \param[in] r The random generator to use.
   \param[in] J Assortativity factor.
-  \param[in] deg_type1 The first edge type to consider.
-  \param[in] deg_type2 The second edge type to consider.
+  \param[in] et The edge type at the end of which vertices whill be considered.
+  \param[in] deg_type1 The first adjacent edge type to consider.
+  \param[in] deg_type2 The second adjacent edge type to consider.
   \param[in] verbose Whether to be verbose.
   \ingroup graph_structure
   */
   template <typename RandomGenerator, typename Graph, typename EdgeType>
   void rewire_assortatively(Graph& g, RandomGenerator& r, double J,
-                            EdgeType deg_type1, EdgeType deg_type2,
+                            EdgeType et, EdgeType deg_type1, EdgeType deg_type2,
                             unsigned int verbose = 0)
   {
     typedef typename boost::graph_traits<Graph>::edge_descriptor
@@ -81,24 +86,27 @@ namespace boost {
       vertex_descriptor;
     typedef typename boost::graph_traits<Graph>::out_edge_iterator
       out_edge_iterator;
+    typedef typename edge_property_type<Graph>::type
+      edge_property_type;
     
-    const unsigned int max_steps = 100000;
+    const unsigned int max_steps = 10000;
     unsigned int steps = 0;
 
     boost::uniform_01<boost::mt19937, double> uni_gen(r);
 
     double current_assortativity =
-      assortativity(g, deg_type1, deg_type1, deg_type2);
+      assortativity(g, et, deg_type1, deg_type2);
     if (verbose >= 1) {
       std::cout << "Rewiring graph with assortativity "
                 << current_assortativity << std::endl;
     }
     
-    double H = hamiltonian(g, J, deg_type1, deg_type2);
+    double H = assortativity_hamiltonian(g, J, et, deg_type1, deg_type2);
 
-    bool converged = false;
+    bool converged = (fabs(current_assortativity - J)/J < 0.1);
     
     for (unsigned int i = 0; (i < max_steps) && (!converged); i++) {
+//     for (unsigned int i = 0; !converged; i++) {
       // choose two random edges of type deg_type2 which do not share a node for
       // rewiring
       edge_descriptor edge1, edge2, rewired1, rewired2;
@@ -106,8 +114,8 @@ namespace boost {
 
       // choose first random edge for swapping
       do {
-        edge1 = random_edge(g, r);
-      } while (g[edge1].type != deg_type2.type);
+        edge1 = random_edge_undirected(g, r);
+      } while (g[edge1].type != et);
       source1 = source(edge1, g);
       target1 = target(edge1, g);
 
@@ -115,40 +123,37 @@ namespace boost {
       bool valid_swap;
       do {
         valid_swap = false;
-        edge2 = random_edge(g, r);
+        edge2 = random_edge_undirected(g, r);
         source2 = source(edge2, g);
         target2 = target(edge2, g);
         // make sure that the edge has the correct type
-        valid_swap = (g[edge2].type == deg_type2.type);
+        valid_swap = (g[edge2].type == et);
         
         // make sure we have 4 distinct vertices
         valid_swap &= !(source1 == source2 || source1 == target2 ||
                         source2 == target1 || target1 == target2);
         
         // make sure that the none of the possibly new edges is already there
-        out_edge_iterator oi, oi_end;
-        for (tie(oi, oi_end) = out_edges(source1, g);
-             (oi != oi_end && valid_swap); oi++) {
-          if (target(*oi, g) == target2 && g[*oi].type == deg_type2.type) {
-            valid_swap = false;
-          }
-        }
-        for (tie(oi, oi_end) = out_edges(source2, g);
-             (oi != oi_end && valid_swap); oi++) {
-          if (target(*oi, g) == target1 && g[*oi].type == deg_type2.type) {
-            valid_swap = false;
-          }
+        if (edge(g, source1, target2, et).second ||
+            edge(g, source2, target1, et).second) {
+          valid_swap = false;
         }
       } while (!valid_swap);
 
-      // rewire edges
-      remove_edge(edge1, g);
-      remove_edge(edge2, g);
-      rewired1 = (add_edge(source1, target2, deg_type2, g)).first;
-      rewired2 = (add_edge(source2, target1, deg_type2, g)).first;
+      // calculated hamiltonian as it would be after rewiring
+      double s1_d1 = out_degree_type(g, source(edge1, g), deg_type1);
+      double s1_d2 = out_degree_type(g, source(edge1, g), deg_type2);
+      double t1_d1 = out_degree_type(g, target(edge1, g), deg_type1);
+      double t1_d2 = out_degree_type(g, target(edge1, g), deg_type2);
+      double s2_d1 = out_degree_type(g, source(edge2, g), deg_type1);
+      double s2_d2 = out_degree_type(g, source(edge2, g), deg_type2);
+      double t2_d1 = out_degree_type(g, target(edge2, g), deg_type1);
+      double t2_d2 = out_degree_type(g, target(edge2, g), deg_type2);
 
-      // calculate rewired hamiltonian 
-      double temp_H = hamiltonian(g, J, deg_type1, deg_type2);
+      double sum = s1_d1*t2_d2 + t2_d1*s1_d2 + s2_d1*t1_d2 + t1_d1*s2_d2 -
+        s1_d1*t1_d2 - t1_d1*s1_d2 - s2_d1*t2_d2 - t2_d1*s2_d2;
+
+      double temp_H = H - J/4 * sum;
       
       // accept change with probability min(1, exp(-(H(G')-H(G))))
       bool accept = false;
@@ -156,6 +161,7 @@ namespace boost {
       if (prob > 1 || uni_gen() < prob) {
         accept = true;
       }
+      // if we do accept the change, do the swap
       if (verbose >= 2) {
         std::cout << i << " (" << source1 << " " << target1 << ")<->("
                   << source2 << " " << target2 << ") ";
@@ -165,26 +171,33 @@ namespace boost {
                   << ", H=" << H << ", H'=" << temp_H << ")" << std::endl;
       }
       
-      // if we do not accept the change, revert back to previous graph
       if (accept) {
         H = temp_H;
-      } else {
-        remove_edge(rewired1, g);
-        remove_edge(rewired2, g);
-        add_edge(source1, target1, deg_type2, g);
-        add_edge(source2, target2, deg_type2, g);
+        remove_edge(edge1, g);
+        remove_edge(edge2, g);
+        rewired1 =
+          (add_edge(source1, target2, edge_property_type(et), g)).first;
+        rewired2 =
+          (add_edge(source2, target1, edge_property_type(et), g)).first;
       }
-
+      
       // check if assortativity is converging
       ++steps;
-      if (steps%2000 == 0) {
+      if (steps%(num_vertices(g)*10) == 0) {
         double new_assortativity =
           assortativity(g, deg_type1, deg_type1, deg_type2);
-        // less than 5% change in 1000 events
-        if (new_assortativity < (current_assortativity * 1.05)) {
-          converged = true;
+
+        // less than 5% change in 10000 events
+        converged =
+          (fabs(new_assortativity - current_assortativity)/
+           current_assortativity < 0.05);
+//         current_assortativity = new_assortativity;
+
+        if (verbose >=1) {
+          std::cout << "Within " << fabs(new_assortativity - J)*100/J
+                    << "% of convergence (assortativity " << new_assortativity
+                    << ")" << std::endl;
         }
-        current_assortativity = new_assortativity;
       }
     }
 
@@ -207,6 +220,7 @@ namespace boost {
   degree of vertices at the end of the original edge.
   \param[in] deg_type2 The second edge type to consider when looking at the
   degree of vertices at the end of the original edge.
+  \return The assortativity as defined by Newman.
   */
   template <typename Graph, typename EdgeType>
   double assortativity(Graph& g, EdgeType et,
@@ -224,7 +238,7 @@ namespace boost {
 
     edge_iterator ei, ei_end;
     for (tie(ei, ei_end) = edges(g); ei != ei_end; ++ei) {
-      if (g[*ei].type == et.type) {
+      if (g[*ei].type == et) {
         ++count;
         avg_corr += out_degree_type(g, source(*ei, g), deg_type1)*
           out_degree_type(g, target(*ei, g), deg_type2) +
