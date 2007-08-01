@@ -91,10 +91,9 @@ namespace boost {
     typedef typename edge_property_type<Graph>::type
       edge_property_type;
     
-    const unsigned int max_steps = 100000;
     unsigned int steps = 0;
 
-    boost::uniform_01<boost::mt19937, double> uni_gen(r);
+    boost::uniform_01<RandomGenerator, double> uni_gen(r);
 
     double current_assortativity =
       assortativity(g, et, deg_type1, deg_type2);
@@ -105,7 +104,10 @@ namespace boost {
     
     double H = assortativity_hamiltonian(g, J, et, deg_type1, deg_type2);
 
-    bool converged = (fabs(current_assortativity - J)/J < 0.1);
+    bool converged = (fabs(current_assortativity - J)/J < 0.01);
+    // do we want an increasing or decreasing assortativity?
+    bool increasing = (J > current_assortativity);
+    bool last_increasing = increasing;
 
     // we will need to choose a lot of random edges, so we do not want to use
     // the slow boost::random_edge. Instead, we create a vector of edges from
@@ -124,7 +126,6 @@ namespace boost {
     uniform_int<> dist(0, 2*nEdges-1);
     variate_generator<RandomGenerator&, uniform_int<> > rand_gen(r, dist);
 
-//     for (unsigned int i = 0; (i < max_steps) && (!converged); i++) {
     for (unsigned int i = 0; !converged; i++) {
       // choose two random edges of type et which do not share a node for
       // rewiring
@@ -139,42 +140,42 @@ namespace boost {
       n1 = rand_gen();
       if (n1 > nEdges-1) {
         n1 -= nEdges;
-        source1 = target(et_edges[n1], g);
-        target1 = source(et_edges[n1], g);
+        edge1 = reverse_edge(et_edges[n1], g);
       } else {
-        source1 = source(et_edges[n1], g);
-        target1 = target(et_edges[n1], g);
+        edge1 = et_edges[n1];
       }
       
+      source1 = source(et_edges[n1], g);
+      target1 = target(et_edges[n1], g);
+
       // choose second random edge for swapping
       bool valid_swap;
       do {
         n2 = rand_gen();
         if (n2 > nEdges-1) {
           n2 -= nEdges;
-          source2 = target(et_edges[n2], g);
-          target2 = source(et_edges[n2], g);
+          edge2 = reverse_edge(et_edges[n2], g);
         } else {
-          source2 = source(et_edges[n2], g);
-          target2 = target(et_edges[n2], g);
+          edge2 = et_edges[n2];
         }
       
-        valid_swap = (n1 != n2);
-        
+        source2 = source(et_edges[n2], g);
+        target2 = target(et_edges[n2], g);
+
         // make sure we have 4 distinct vertices
         valid_swap = !(source1 == source2 || source1 == target2 ||
-                       source2 == target1 || target1 == target2);
+                       target1 == source2 || target1 == target2);
         
         if (valid_swap) {
           // make sure that the none of the possibly new edges is already
           // there 
           if (edge(g, source1, target2, et).second ||
               edge(g, source2, target1, et).second) {
-            valid_swap = false;
+              valid_swap = false;
           }
         }
       } while (!valid_swap);
-
+      
       // calculated hamiltonian as it would be after rewiring
       double s1_d1 = out_degree_type(g, source1, deg_type1);
       double s1_d2 = out_degree_type(g, source1, deg_type2);
@@ -214,33 +215,32 @@ namespace boost {
           (add_edge(source1, target2, edge_property_type(et), g)).first;
         et_edges[n2] =
           (add_edge(source2, target1, edge_property_type(et), g)).first;
-        et_edges[n1+nEdges] = et_edges[n1];
-        et_edges[n2+nEdges] = et_edges[n2];
       }
       
       // check if assortativity is converging
       ++steps;
       if (steps%(num_vertices(g)*10) == 0) {
         double new_assortativity =
-          assortativity(g, deg_type1, deg_type1, deg_type2);
+          assortativity(g, et, deg_type1, deg_type2);
 
-        // less than 5% change in 10000 events
-//         converged =
-//           (fabs(new_assortativity - current_assortativity)/
-//            current_assortativity < 0.05);
-//         current_assortativity = new_assortativity;
+        // converge if assortativity is going into the wrong direction for two
+        // times in a row
+        bool now_increasing = (new_assortativity > current_assortativity);
+        converged =
+          (increasing != now_increasing) && (increasing != last_increasing);
+        last_increasing = now_increasing;
+
+        current_assortativity = new_assortativity;
 
         if (verbose >=1) {
-          std::cout << "Within " << fabs(new_assortativity - J)*100/J
-                    << "% of convergence (assortativity " << new_assortativity
-                    << ")" << std::endl;
+          std::cout << "assortativity " << new_assortativity << std::endl;
         }
       }
     }
 
     if (verbose >= 1) {
       std::cout << "Rewiring done: assortativity "
-                << assortativity(g, deg_type1, deg_type1, deg_type2)
+                << current_assortativity
                 << " obtained after " << steps << " steps" << std::endl;
     }
   }

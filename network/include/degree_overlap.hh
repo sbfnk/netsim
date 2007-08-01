@@ -88,7 +88,6 @@ namespace boost {
     typedef typename edge_property_type<Graph>::type
       edge_property_type;
     
-//     const unsigned int max_steps = 1000000;
     unsigned int steps = 0;
 
     boost::uniform_01<boost::mt19937, double> uni_gen(r);
@@ -103,9 +102,11 @@ namespace boost {
     
     double H = overlap_hamiltonian(g, J, deg_type1, deg_type2);
 
-    bool converged = (fabs(current_degree_overlap - J)/J < 0.1);
-    
-//     for (unsigned int i = 0; (i < max_steps) && (!converged); i++) {
+    bool converged = (fabs(current_degree_overlap - J)/J < 0.01);
+    // do we want an increasing or decreasing degree overlap?
+    bool increasing = (J > current_degree_overlap);
+    bool last_increasing = increasing;
+
     for (unsigned int i = 0; !converged; i++) {
       // choose two vertices for considering swapping links of deg_type2
       vertex_descriptor vertex1, vertex2;
@@ -180,16 +181,17 @@ namespace boost {
       if (steps%(num_vertices(g)*10) == 0) {
         double new_degree_overlap = degree_overlap(g, deg_type1, deg_type2);
 
-        // less than 5% change in 10000 events
+        // converge if degree overlap is going into the wrong direction for two
+        // times in a row
+        bool now_increasing = (new_degree_overlap > current_degree_overlap);
         converged =
-          (fabs(new_degree_overlap - current_degree_overlap)/
-           current_degree_overlap < 0.01);
-//         current_degree_overlap = new_degree_overlap;
+          (increasing != now_increasing) && (increasing != last_increasing);
+        last_increasing = now_increasing;
+
+        current_degree_overlap = new_degree_overlap;
 
         if (verbose >=1) {
-          std::cout << "Within " << fabs(new_degree_overlap - J)*100/J
-                    << "% of convergence (overlap " << new_degree_overlap
-                    << ")" << std::endl;
+          std::cout << "degree overlap " << new_degree_overlap << std::endl;
         }
         
       }
