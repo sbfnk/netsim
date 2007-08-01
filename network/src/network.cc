@@ -28,6 +28,7 @@
 #include "visualise_graph.hh"
 #include "cluster_coeffs.hh"
 #include "assortativity.hh"
+#include "degree_overlap.hh"
 #include "path_length.hh"
 
 #include "GillespieSimulator.hh"
@@ -75,7 +76,7 @@ struct rrgOptions {
 };
 
 struct swOptions {
-  unsigned int neighbours;
+  unsigned int degree;
   double rewiringProb;
 };
 
@@ -273,14 +274,31 @@ int main(int argc, char* argv[])
        it != model->getEdgeTypes().end(); it++) {
     for (std::vector<Label>::const_iterator it2 = model->getEdgeTypes().begin();
          it2 != model->getEdgeTypes().end(); it2++) {
-      assortativity_options.add_options()
-        ((it->getText() + it2->getText() + "-assortativity").c_str(),
-         po::value<double>(),
-         ("desired assortativity between "+it->getText()+
-          "- and "+it2->getText()+"-edges").c_str());
+      for (std::vector<Label>::const_iterator it3 = it2;
+           it3 != model->getEdgeTypes().end(); it3++) {
+        assortativity_options.add_options()
+          ((it->getText() + "-" + it2->getText() +
+            it3->getText() + "-assortativity").c_str(),
+           po::value<double>(),
+           ("assortativity between "+it2->getText()+
+            "- and "+it3->getText()+"- along "+it->getText()+"-edges").c_str());
+      }
     }
   }
   
+  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
+       it != model->getEdgeTypes().end(); it++) {
+    for (std::vector<Label>::const_iterator it2 = it;
+         it2 != model->getEdgeTypes().end(); it2++) {
+      assortativity_options.add_options()
+        ((it->getText() + it2->getText() +
+            "-degree-overlap").c_str(),
+           po::value<double>(),
+           ("degree overlap between "+it->getText()+
+            "- and "+it2->getText()+"-edges").c_str());
+    }
+  }
+
   for (std::vector<Label>::const_iterator it =
          model->getVertexStates().begin();
        it != model->getVertexStates().end(); it++) {
@@ -357,14 +375,15 @@ int main(int argc, char* argv[])
     po::options_description* swo
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << it->getText() << "-neighbours";
+    s << it->getText() << "-degree";
     swo->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
-       "number of neighbours of each node");
+       "degree of each node");
+    // obsolete rewiring option as this can be done generally using "-rewire"
     s.str("");
     s << it->getText() << "-rewiring-prob";
     swo->add_options()
-      (s.str().c_str(), po::value<double>(),
+      (s.str().c_str(), po::value<double>()->default_value(0.),
        "rewiring probability");
     sw_options.push_back(swo);
   }
@@ -456,7 +475,7 @@ int main(int argc, char* argv[])
   all_options.add(command_line_options).add(sim_options).
     add(graph_options).add(rewiring_options).add(statistics_options).
     add(assortativity_options).add(model_options);
-  
+                                   
   for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
        it != model->getEdgeTypes().end(); it++) {
     all_options.add(*(lattice_options[it->getId()]));
@@ -468,24 +487,28 @@ int main(int argc, char* argv[])
     all_options.add(*(readFile_options[it->getId()]));
   }
 
-  po::parsed_options parsed = po::command_line_parser(argc, argv).
-    options(all_options).allow_unregistered().run();
+  std::vector<std::string> unregistered;
+  
   try {
+    po::parsed_options parsed = po::command_line_parser(argc, argv).
+      options(all_options).allow_unregistered().run();
     po::store(parsed, vm);
+    unregistered =
+      po::collect_unrecognized(parsed.options, po::exclude_positional);
   }
   catch (std::exception& e) {
     std::cerr << "Error parsing command line parameters: " << e.what()
               << std::endl;
     return 1;
   }
-  po::notify(vm);
 
-  std::vector<std::string> unregistered =
-    po::collect_unrecognized(parsed.options, po::exclude_positional);
+  po::notify(vm);
   for (std::vector<std::string>::iterator it = unregistered.begin();
        it != unregistered.end(); it++) {
     std::cerr << "WARNING: ignoring unknown option " << *it << std::endl;
   }
+  
+  
  
   if (vm.count("longhelp")) {
     std::cout << all_options << std::endl;
@@ -773,14 +796,15 @@ int main(int argc, char* argv[])
       swOptions opt;
       
       s.str("");
-      s << edgeTypes[i].getText() << "-neighbours";
+      s << edgeTypes[i].getText() << "-degree";
       if (vm.count(s.str())) {
-        opt.neighbours = vm[s.str()].as<unsigned int>();
+        opt.degree = vm[s.str()].as<unsigned int>();
       } else {
-        std::cerr << "ERROR: no number of neighbours specified" << std::endl;
+        std::cerr << "ERROR: no degree specified" << std::endl;
         std::cerr << *sw_options[edgeTypes[i].getId()] << std::endl;
         return 1;
       }
+      // obsolete rewiring option as this can be done generally using "-rewire"
       s.str("");
       s << edgeTypes[i].getText() << "-rewiring-prob";
       if (vm.count(s.str())) {
@@ -797,7 +821,7 @@ int main(int argc, char* argv[])
       typedef boost::small_world_iterator<boost::mt19937, dualtype_graph>
         sw_iterator;
       
-      sw_iterator swi(gen,N,opt.neighbours, opt.rewiringProb);
+      sw_iterator swi(gen,N,opt.degree,opt.rewiringProb);
       sw_iterator swi_end;
       
       boost::add_edge_structure(temp_graph, swi, swi_end, Edge(edgeTypes[i].getId()));
@@ -899,7 +923,7 @@ int main(int argc, char* argv[])
       }
 
     } else if (topology == "read") {
-        
+      
       /******************************************************************/
       // read file graph specific parameters
       /******************************************************************/
@@ -949,6 +973,7 @@ int main(int argc, char* argv[])
       std::cerr << "ERROR: unknown " << s.str() << ": " << topology
                 << std::endl;
       std::cerr << command_line_options << graph_options << std::endl;
+      return 1;
     }
 
     // do graph modifications if desired
@@ -990,7 +1015,7 @@ int main(int argc, char* argv[])
   }
   
   // checking graph  
-  if (num_vertices(graph) == 0) {
+                                   if (num_vertices(graph) == 0) {
     std::cerr << "ERROR: no vertices" << std::endl;
     std::cerr << command_line_options << graph_options << std::endl;
     return 1;
@@ -1005,15 +1030,37 @@ int main(int argc, char* argv[])
        it != model->getEdgeTypes().end(); it++) {
     for (std::vector<Label>::const_iterator it2 = model->getEdgeTypes().begin();
          it2 != model->getEdgeTypes().end(); it2++) {
-      std::string s = it->getText()+it2->getText()+"-assortativity";
-      if (vm.count(s.c_str())) {
-        double ass = (vm[s.c_str()].as<double>());
-        rewire_assortatively(graph, gen, ass,
-                             Edge(it->getId()), Edge(it2->getId()), verbose);
+      for (std::vector<Label>::const_iterator it3 = it2;
+           it3 != model->getEdgeTypes().end(); it3++) {
+        std::string s =
+          it->getText()+"-"+it2->getText()+it3->getText()+"-assortativity";
+        if (vm.count(s.c_str())) {
+          double ass = (vm[s.c_str()].as<double>());
+          rewire_assortatively(graph, gen, ass, it->getId(), it2->getId(),
+                               it3->getId(), verbose);
+        }
       }
     }
   }
   
+  /******************************************************************/
+  // create given degree overlap if desired
+  /******************************************************************/
+
+  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
+       it != model->getEdgeTypes().end(); it++) {
+    for (std::vector<Label>::const_iterator it2 = it;
+         it2 != model->getEdgeTypes().end(); it2++) {
+      std::string s =
+        it->getText()+it2->getText()+"-degree-overlap";
+      if (vm.count(s.c_str())) {
+        double deg_overlap = (vm[s.c_str()].as<double>());
+        rewire_degree_overlap(graph, gen, deg_overlap, it->getId(), 
+                              it2->getId(), verbose);
+      }
+    }
+  }
+
   /******************************************************************/
   // calculate average path lengths
   /******************************************************************/
@@ -1110,6 +1157,8 @@ int main(int argc, char* argv[])
         }
     }
   }
+
+//   print_degrees(graph, *model);
 
   numSims = vm["nsims"].as<unsigned int>();
   
