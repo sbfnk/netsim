@@ -104,7 +104,7 @@ namespace boost {
     
     double H = assortativity_hamiltonian(g, J, et, deg_type1, deg_type2);
 
-    bool converged = (fabs(current_assortativity - J)/J < 0.01);
+    bool converged = (fabs((current_assortativity - J)/J) < 0.01);
     // do we want an increasing or decreasing assortativity?
     bool increasing = (J > current_assortativity);
     bool last_increasing = increasing;
@@ -232,13 +232,13 @@ namespace boost {
 
         current_assortativity = new_assortativity;
 
-        if (verbose >=1) {
+        if (verbose >=2) {
           std::cout << "assortativity " << new_assortativity << std::endl;
         }
       }
     }
 
-    if (verbose >= 1) {
+    if (verbose >= 2) {
       std::cout << "Rewiring done: assortativity "
                 << current_assortativity
                 << " obtained after " << steps << " steps" << std::endl;

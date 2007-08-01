@@ -102,7 +102,8 @@ namespace boost {
     
     double H = overlap_hamiltonian(g, J, deg_type1, deg_type2);
 
-    bool converged = (fabs(current_degree_overlap - J)/J < 0.01);
+    bool converged = (fabs((current_degree_overlap - J)/J) < 0.01);
+    
     // do we want an increasing or decreasing degree overlap?
     bool increasing = (J > current_degree_overlap);
     bool last_increasing = increasing;
