@@ -1172,7 +1172,7 @@ int main(int argc, char* argv[])
     }
   }
 
-  if (verbose >= 2) {
+  if (verbose >= 1) {
     print_degrees(graph, *model);
   }
 
@@ -1260,8 +1260,9 @@ int main(int argc, char* argv[])
         initSum += (*it);
       }   
       if (initSum > N) {
-        std::cerr << "Error: number of vertices to select randomly"
-                  << " higher than number of total vertices" << std::endl;
+        std::cerr << "Error: number of vertices to select randomly (" << initSum
+                  << ") higher than number of total vertices (" << N << ")"
+                  << std::endl;
       }
       
       // inserting init[i] vertices of type i
