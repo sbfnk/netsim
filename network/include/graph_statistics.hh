@@ -30,7 +30,7 @@ namespace boost {
       return (target(e, m_graph) == m_target) &&
         (m_graph[e].type == m_edgetype);
     }
-    Graph m_graph;
+    Graph& m_graph;
     Vertex m_target;
     EdgeType m_edgetype;
   };
@@ -86,7 +86,7 @@ namespace boost {
     
     typename graph_traits<Graph>::out_edge_iterator oi, oi_end;
     for (tie(oi, oi_end) = out_edges(v, g); oi != oi_end; oi++) {
-      if (g[*oi].type == et.type) ++deg;
+      if (g[*oi].type == et) ++deg;
     }
     return deg;
   }
@@ -244,10 +244,7 @@ namespace boost {
   Counts the number of triples in the network.
 
   \param[in] g The graph containing the vertices
-  \param[in] et1 The first edge type to consider
-  \param[in] et2 The second edge type to consider
-  \param[in] et3 The third edge type to consider
-  \return The number of triangles found.
+  \param[in] m The model providing the vertex states
   \ingroup graph_statistics
   */
   template <typename Graph>
@@ -314,8 +311,8 @@ namespace boost {
 
   \param[in] g The graph containing the vertices and edges
   \param[in] m The model to be used to find all possible states
-  \param[in] pairs Whether pairs should be counted as well (intensive on
-  computation) or not 
+  \param[in] pairs Whether pairs should be counted as well
+  \param[in] triples Whether triples should be counted as well
   \ingroup graph_statistics
   */
   template <typename Graph>
@@ -452,6 +449,50 @@ namespace boost {
 
     ofile << line.str();
     return line.str();
+  }
+
+  //----------------------------------------------------------
+  /*! \brief Print degrees
+
+  Prints the degree of each vertex
+
+  \param[in] g The graph containing the vertices and edges
+  \param[in] m The model to be used to find all possible edge types
+  \ingroup graph_statistics
+  */
+  template <typename Graph>
+  void print_degrees(Graph& g, Model& m)
+  {
+    typedef typename boost::graph_traits<Graph>::vertex_iterator
+      vertex_iterator;
+
+    std::vector<std::string> symbols;
+    symbols.push_back("*");
+    symbols.push_back("-");
+
+    std::stringstream s;
+    s << num_vertices(g);
+    
+    unsigned int vLength = s.str().length();
+
+    vertex_iterator vi, vi_end;
+    for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+      bool firstLine = true;
+      for (unsigned int i = 0; i < m.getEdgeTypes().size(); ++i) {
+        if (firstLine) {
+          std::cout << std::setw(vLength) << *vi;
+          firstLine = false;
+        } else {
+          for (unsigned int j = 0; j < vLength; ++j) std::cout << " ";
+        }
+        
+        std::cout << " : ";
+        for (unsigned j = 0; j < out_degree_type(g, *vi, i); ++j) {
+          std::cout << symbols[i];
+        }
+        std::cout << std::endl;
+      }
+    }
   }
 
 } // namespace boost
