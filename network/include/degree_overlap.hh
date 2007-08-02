@@ -191,7 +191,7 @@ namespace boost {
 
         current_degree_overlap = new_degree_overlap;
 
-        if (verbose >=2) {
+        if (verbose >= 1) {
           std::cout << "degree overlap " << new_degree_overlap << std::endl;
         }
         
@@ -207,6 +207,9 @@ namespace boost {
 
   //----------------------------------------------------------
   /*! \brief Calculate degree overlap.
+
+  Calculates the degree overlap as Pearson correlation coefficient of the two
+  degrees of vertices.
   \param[in] g The graph to consider.
   \param[in] deg_type1 The first edge type to consider. 
   \param[in] deg_type2 The second edge type to consider.
@@ -219,28 +222,25 @@ namespace boost {
     typedef typename boost::graph_traits<Graph>::vertex_iterator
       vertex_iterator;
     
-    double avg_corr = 0.;
-    double avg_deg = 0.;
-    double avg_sq_deg = 0.;
-
-    unsigned int count = 0;
+    double corr_sum(0.), deg_sum_1(0.), deg_sum_2(0.);
+    double deg_sq_sum_1(0.), deg_sq_sum_2(0.);
 
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
-      ++count;
-      avg_corr += out_degree_type(g, *vi, deg_type1)*
+      corr_sum += out_degree_type(g, *vi, deg_type1)*
         out_degree_type(g, *vi, deg_type2);
-      avg_deg += out_degree_type(g, *vi, deg_type1) +
-        out_degree_type(g, *vi, deg_type2);
-      avg_sq_deg += pow(out_degree_type(g, *vi, deg_type1), 2) +
-        pow(out_degree_type(g, *vi, deg_type2), 2);
+      deg_sum_1 += out_degree_type(g, *vi, deg_type1);
+      deg_sum_2 += out_degree_type(g, *vi, deg_type2);
+      deg_sq_sum_1 += pow(out_degree_type(g, *vi, deg_type1), 2);
+      deg_sq_sum_2 += pow(out_degree_type(g, *vi, deg_type2), 2);
     }
 
-    avg_corr /= count;
-    avg_deg /= 2*count;
-    avg_sq_deg /= 2*count;
+    double correlation =
+      (corr_sum - (deg_sum_1*deg_sum_2)/(double)num_vertices(g))/
+      sqrt((deg_sq_sum_1 - pow(deg_sum_1, 2)/(double)num_vertices(g))*
+           (deg_sq_sum_2 - pow(deg_sum_2, 2)/(double)num_vertices(g)));
     
-    return (avg_corr - pow(avg_deg, 2))/(avg_sq_deg - pow(avg_deg, 2));
+    return correlation;
   }
   
 } // namespace boost
