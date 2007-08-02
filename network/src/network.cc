@@ -17,7 +17,7 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/graph/small_world_generator.hpp>
 #include <boost/graph/plod_generator.hpp>
-// #include <boost/graph/erdos_renyi_generator.hpp>
+#include <boost/graph/erdos_renyi_generator.hpp>
 #include <math.h>
 
 #include "graph_structure.hh"
@@ -684,20 +684,14 @@ int main(int argc, char* argv[])
       /******************************************************************/
       // generate random graph with desired properties
       /******************************************************************/
-      typedef boost::erdos_renyi_iterator2<boost::mt19937, dualtype_graph>
+//       typedef boost::erdos_renyi_iterator2<boost::mt19937, dualtype_graph>
+//         rg_iterator;
+      
+      typedef boost::erdos_renyi_iterator<boost::mt19937, dualtype_graph>
         rg_iterator;
       
-      //         typedef boost::erdos_renyi_iterator<boost::mt19937, dualtype_graph>
-      //           rg_iterator;
-      
-      double p = (double)opt.edges*2.0/((double)N*(double)(N-1));
-      
-      // fix for E = p * N * N
-      //         p = p * ((double)(N-1) / (double)N);
-      
-      //         std::cout << "p=" << p << std::endl;
-      //         std::cout << p*(double)N*(double)N << std::endl;
-      //         std::cout << (int)(p*N*N)/2 << std::endl;
+//       double p = (double)opt.edges*2.0/((double)N*(double)(N-1));
+      double p = (double)opt.edges*2.0/((double)N*(double)N);
       
       rg_iterator ri(gen, N, p);
       rg_iterator ri_end;
