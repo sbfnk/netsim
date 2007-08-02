@@ -232,7 +232,7 @@ namespace boost {
 
         current_assortativity = new_assortativity;
 
-        if (verbose >=2) {
+        if (verbose >= 1) {
           std::cout << "assortativity " << new_assortativity << std::endl;
         }
       }
@@ -248,8 +248,9 @@ namespace boost {
   //----------------------------------------------------------
   /*! \brief Calculate assortativity.
 
-  Calculates assortativity in a graph as defined by Newman
-  (DOI: 10.1103/PhysRevLett.89.208701I)
+  Calculates assortativity in a graph as Pearson correlation coefficient of the
+  two degrees. In the case of a single network, this reduces to assortativity as
+  defined by Newman (DOI: 10.1103/PhysRevLett.89.208701I)
 
   \param[in] g The graph to consider.
   \param[in] et The edge type vertices at the end of which are to be considered.
@@ -267,36 +268,38 @@ namespace boost {
     typedef typename boost::graph_traits<Graph>::edge_iterator
       edge_iterator;
     
-    double avg_corr = 0.;
-    double avg_deg = 0.;
-    double avg_sq_deg = 0.;
+    double corr_sum(0.), deg_sum_1(0.), deg_sum_2(0.);
+    double deg_sq_sum_1(0.), deg_sq_sum_2(0.);
 
-    unsigned int count = 0;
+    unsigned int count(0);
 
     edge_iterator ei, ei_end;
     for (tie(ei, ei_end) = edges(g); ei != ei_end; ++ei) {
       if (g[*ei].type == et) {
-        ++count;
-        avg_corr += out_degree_type(g, source(*ei, g), deg_type1)*
+        // we actually add two contributions, according to both directions of
+        // the edge
+        count += 2;
+        corr_sum += out_degree_type(g, source(*ei, g), deg_type1)*
           out_degree_type(g, target(*ei, g), deg_type2) +
           out_degree_type(g, target(*ei, g), deg_type1) *
           out_degree_type(g, source(*ei, g), deg_type2);
-        avg_deg += out_degree_type(g, source(*ei, g), deg_type1) +
-          out_degree_type(g, target(*ei, g), deg_type2) +
-          out_degree_type(g, source(*ei, g), deg_type2) +
+        deg_sum_1 += out_degree_type(g, source(*ei, g), deg_type1) +
           out_degree_type(g, target(*ei, g), deg_type1);
-        avg_sq_deg += pow(out_degree_type(g, source(*ei, g), deg_type1), 2) +
-          pow(out_degree_type(g, target(*ei, g), deg_type2), 2) +
-          pow(out_degree_type(g, source(*ei, g), deg_type2), 2) +
+        deg_sum_2 += out_degree_type(g, source(*ei, g), deg_type2) +
+          out_degree_type(g, target(*ei, g), deg_type2);
+        deg_sq_sum_1 += pow(out_degree_type(g, source(*ei, g), deg_type1), 2) +
           pow(out_degree_type(g, target(*ei, g), deg_type1), 2);
+        deg_sq_sum_2 += pow(out_degree_type(g, source(*ei, g), deg_type2), 2) +
+          pow(out_degree_type(g, target(*ei, g), deg_type2), 2);
       }
     }
 
-    avg_corr /= 2*count;
-    avg_deg /= 4*count;
-    avg_sq_deg /= 4*count;
+    double correlation =
+      (corr_sum - (deg_sum_1*deg_sum_2)/(double)count)/
+      sqrt((deg_sq_sum_1 - pow(deg_sum_1, 2)/(double)count)*
+           (deg_sq_sum_2 - pow(deg_sum_2, 2)/(double)count));
     
-    return (avg_corr - pow(avg_deg, 2))/(avg_sq_deg - pow(avg_deg, 2));
+    return correlation;
   }
   
 } // namespace boost
