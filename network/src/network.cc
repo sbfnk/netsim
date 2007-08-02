@@ -1452,6 +1452,13 @@ int main(int argc, char* argv[])
                 << std::endl;
       std::cout << "Cumulative number of informations: " << sim->getNumInformations() 
                 << std::endl;
+      unsigned int infectedVertices = 0;
+      boost::graph_traits<dualtype_graph>::vertex_iterator vi, vi_end;
+      for (tie(vi, vi_end) = vertices(graph); vi != vi_end; vi++) {
+        if (graph[*vi].infected) ++infectedVertices;
+      }
+      std::cout << "Number of infected vertices: " << infectedVertices
+                << std::endl;
     }
     
     if (verbose) print_graph_statistics(graph, *model, pairs, triples);

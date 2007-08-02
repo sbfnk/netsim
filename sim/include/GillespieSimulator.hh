@@ -82,6 +82,7 @@ namespace Simulators {
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
       generateEventList(graph, *vi, model, verbose);
+      graph[*vi].infected = 0;
     }
 
     // generate the tree holding rate sums corresponding to vertices
@@ -155,7 +156,11 @@ namespace Simulators {
       }
 
       // collect statistics
-      if (model.isInfection(graph[v].state, it->newState)) addInfection();
+      if (model.isInfection(graph[v].state, it->newState)) {
+        addInfection();
+        graph[v].infected = true;
+      }
+      
       else if (model.isInformation(graph[v].state, it->newState)) addInformation();
       else if (model.isRecovery(graph[v].state, it->newState)) addRecovery();
       else if (model.isForgetting(graph[v].state, it->newState)) addForgetting();
