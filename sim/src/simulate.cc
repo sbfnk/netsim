@@ -1166,7 +1166,7 @@ int main(int argc, char* argv[])
     }
   }
 
-  if (verbose >= 1) {
+  if (verbose >= 2) {
     print_degrees(graph, *model);
   }
 
