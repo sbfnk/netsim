@@ -68,7 +68,7 @@ namespace boost {
 
   \param[in] g The graph to consider.
   \param[in] r The random generator to use.
-  \param[in] J Assortativity factor.
+  \param[in] ass The desired assortativity.
   \param[in] et The edge type at the end of which vertices whill be considered.
   \param[in] deg_type1 The first adjacent edge type to consider.
   \param[in] deg_type2 The second adjacent edge type to consider.
@@ -76,7 +76,7 @@ namespace boost {
   \ingroup graph_structure
   */
   template <typename RandomGenerator, typename Graph, typename EdgeType>
-  void rewire_assortatively(Graph& g, RandomGenerator& r, double J,
+  void rewire_assortatively(Graph& g, RandomGenerator& r, double ass,
                             EdgeType et, EdgeType deg_type1, EdgeType deg_type2,
                             unsigned int verbose = 0)
   {
@@ -101,13 +101,13 @@ namespace boost {
       std::cout << "Rewiring graph with assortativity "
                 << current_assortativity << std::endl;
     }
+
+    double J = (ass > current_assortativity) ? 1 : 0;
     
     double H = assortativity_hamiltonian(g, J, et, deg_type1, deg_type2);
 
-    bool converged = (fabs((current_assortativity - J)/J) < 0.01);
-    // do we want an increasing or decreasing assortativity?
-    bool increasing = (J > current_assortativity);
-    bool last_increasing = increasing;
+    bool converged = (fabs(current_assortativity - ass) < 0.01);
+    bool converging = true;
 
     // we will need to choose a lot of random edges, so we do not want to use
     // the slow boost::random_edge. Instead, we create a vector of edges from
@@ -218,22 +218,23 @@ namespace boost {
       }
       
       // check if assortativity is converging
-      ++steps;
-      if (steps%(num_vertices(g)*10) == 0) {
+      ++steps;    
+      if (steps%num_vertices(g) == 0) {
         double new_assortativity =
           assortativity(g, et, deg_type1, deg_type2);
 
         // converge if assortativity is going into the wrong direction for two
         // times in a row
-        bool now_increasing = (new_assortativity > current_assortativity);
-        converged =
-          (increasing != now_increasing) && (increasing != last_increasing);
-        last_increasing = now_increasing;
+        bool now_converging =
+          (fabs(ass-new_assortativity) < fabs(ass-current_assortativity));
+        converged = !now_converging && !converging;
+        converging = now_converging;
 
         current_assortativity = new_assortativity;
 
         if (verbose >= 1) {
-          std::cout << "assortativity " << new_assortativity << std::endl;
+          std::cout << "assortativity " << new_assortativity << " step " << steps
+                    << std::endl;
         }
       }
     }

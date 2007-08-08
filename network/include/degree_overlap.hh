@@ -64,14 +64,14 @@ namespace boost {
 
   \param[in] g The graph to consider.
   \param[in] r The random generator to use.
-  \param[in] J Degree_overlap factor.
+  \param[in] ol The desired degree overlap.
   \param[in] deg_type1 The first edge type to consider.
   \param[in] deg_type2 The second edge type to consider.
   \param[in] verbose Whether to be verbose.
   \ingroup graph_structure
   */
   template <typename RandomGenerator, typename Graph, typename EdgeType>
-  void rewire_degree_overlap(Graph& g, RandomGenerator& r, double J,
+  void rewire_degree_overlap(Graph& g, RandomGenerator& r, double ol,
                              EdgeType deg_type1, EdgeType deg_type2,
                              unsigned int verbose = 0)
   {
@@ -100,14 +100,13 @@ namespace boost {
                 << current_degree_overlap << std::endl;
     }
     
+    double J = (ol > current_degree_overlap) ? 1 : 0;
+    
     double H = overlap_hamiltonian(g, J, deg_type1, deg_type2);
 
-    bool converged = (fabs((current_degree_overlap - J)/J) < 0.01);
+    bool converged = (fabs(current_degree_overlap - ol) < 0.01);
+    bool converging = true;
     
-    // do we want an increasing or decreasing degree overlap?
-    bool increasing = (J > current_degree_overlap);
-    bool last_increasing = increasing;
-
     for (unsigned int i = 0; !converged; i++) {
       // choose two vertices for considering swapping links of deg_type2
       vertex_descriptor vertex1, vertex2;
@@ -179,20 +178,22 @@ namespace boost {
       
       // check if degree_overlap is converging
       ++steps;
-      if (steps%(num_vertices(g)*10) == 0) {
-        double new_degree_overlap = degree_overlap(g, deg_type1, deg_type2);
+      if (steps%num_vertices(g) == 0) {
+        double new_degree_overlap =
+          degree_overlap(g, deg_type1, deg_type2);
 
         // converge if degree overlap is going into the wrong direction for two
         // times in a row
-        bool now_increasing = (new_degree_overlap > current_degree_overlap);
-        converged =
-          (increasing != now_increasing) && (increasing != last_increasing);
-        last_increasing = now_increasing;
+        bool now_converging =
+          (fabs(ol-new_degree_overlap) < fabs(ol-current_degree_overlap));
+        converged = !now_converging && !converging;
+        converging = now_converging;
 
         current_degree_overlap = new_degree_overlap;
 
         if (verbose >= 1) {
-          std::cout << "degree overlap " << new_degree_overlap << std::endl;
+          std::cout << "degree overlap " << new_degree_overlap << " step " << steps
+                    << std::endl;
         }
         
       }
@@ -210,6 +211,7 @@ namespace boost {
 
   Calculates the degree overlap as Pearson correlation coefficient of the two
   degrees of vertices.
+  
   \param[in] g The graph to consider.
   \param[in] deg_type1 The first edge type to consider. 
   \param[in] deg_type2 The second edge type to consider.
