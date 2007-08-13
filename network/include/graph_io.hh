@@ -373,8 +373,9 @@ int read_graph(Graph& g, Model& m, const std::string graphFileName,
       std::cout << std::endl
                 <<"data from read_graph file = " << graphFileName
                 << std::endl;
+      
+      unsigned int tmpSum = 0;
         
-      unsigned int tmpSum = 0, type = 0;
       for (unsigned int i = 0; i < m.getVertexStates().size(); i++) 
         if (state_count[i] > 0) {
           std::cout << "# of vertices in state "
@@ -387,9 +388,9 @@ int read_graph(Graph& g, Model& m, const std::string graphFileName,
       
       tmpSum = 0;
       for (it = edge_count.begin(); it != edge_count.end(); ++it) {         
-        std::cout << "# of edges of type " << m.getEdgeTypes()[type] << " read: "
-                  << edge_count[type] << std::endl;
-        tmpSum += edge_count[type++];
+        std::cout << "# of edges of type " << it->first << " read: "
+                  << it->second << std::endl;
+        tmpSum += it->second;
       }
       std::cout << "Total # of edges read: " << tmpSum << std::endl
                 << std::endl;
