@@ -6,6 +6,8 @@
 
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/random.hpp>
+#include <boost/numeric/ublas/matrix.hpp>
+#include <boost/numeric/ublas/io.hpp>
 #include <boost/random.hpp>
 #include <vector>
 #include <iostream>
@@ -169,8 +171,8 @@ namespace boost {
         if (valid_swap) {
           // make sure that the none of the possibly new edges is already
           // there 
-          if (edge(g, source1, target2, et).second ||
-              edge(g, source2, target1, et).second) {
+          if (edge(source1, target2, g, et).second ||
+              edge(source2, target1, g, et).second) {
               valid_swap = false;
           }
         }
@@ -301,6 +303,66 @@ namespace boost {
            (deg_sq_sum_2 - pow(deg_sum_2, 2)/(double)count));
     
     return correlation;
+  }
+  
+  //----------------------------------------------------------
+  /*! \brief Calculate e_jk's.
+
+  */
+  template <typename Graph>
+  void print_corr_matrices(Graph& g, unsigned int nEdgeTypes = 2)
+  {
+
+    typedef typename boost::graph_traits<Graph>::edge_iterator
+      edge_iterator;
+
+    typedef boost::multi_array<boost::numeric::ublas::matrix<unsigned int>, 3>
+      array_type;
+
+    array_type e(boost::extents[nEdgeTypes][nEdgeTypes][nEdgeTypes]);
+    
+    std::vector<unsigned int> count(nEdgeTypes, 0);
+
+    edge_iterator ei, ei_end;
+    for (tie(ei, ei_end) = edges(g); ei != ei_end; ++ei) {
+
+      std::vector<unsigned int> source_degree(nEdgeTypes);
+      std::vector<unsigned int> target_degree(nEdgeTypes);
+      
+      ++count[g[*ei].type];
+      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+        source_degree[i] = out_degree_type(g, source(*ei, g), i);
+        target_degree[i] = out_degree_type(g, target(*ei, g), i);
+      }
+
+      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+        for (unsigned int j = i; j < nEdgeTypes; ++j) {
+          if (source_degree[i]+1 > e[g[*ei].type][i][j].size1()) {
+            e[g[*ei].type][i][j].resize(source_degree[i]+1, source_degree[i]+1);
+          }
+          if (source_degree[j]+1 > e[g[*ei].type][i][j].size1()) {
+            e[g[*ei].type][i][j].resize(source_degree[j]+1, source_degree[j]+1);
+          }
+          if (target_degree[i]+1 > e[g[*ei].type][i][j].size2()) {
+            e[g[*ei].type][i][j].resize(target_degree[i]+1, target_degree[i]+1);
+          }
+          if (target_degree[j]+1 > e[g[*ei].type][i][j].size2()) {
+            e[g[*ei].type][i][j].resize(target_degree[j]+1, target_degree[j]+1);
+          }
+          ++e[g[*ei].type][i][j](source_degree[i], target_degree[j]);
+          if (j > i) ++e[g[*ei].type][i][j](source_degree[j],target_degree[i]);
+        }
+      }
+    }
+    
+    for (unsigned int et = 0; et < nEdgeTypes; ++et) {
+      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+        for (unsigned int j = i; j < nEdgeTypes; ++j) {
+          std::cout << et << " " << i << " " << j << ":" << std::endl;
+          std::cout << e[et][i][j] << std::endl;
+        }
+      }
+    }
   }
   
 } // namespace boost
