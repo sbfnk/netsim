@@ -13,6 +13,8 @@
 #include <iostream>
 #include <sys/time.h>
 
+#include "graph_statistics.hh"
+
 //! \addtogroup graph_structure Graph structure
 //! \addtogroup helper_functions Helper functions
 //! \addtogroup graph_generators Graph generators
@@ -387,6 +389,103 @@ namespace boost {
           if (!suitable(g, stubs, seen_edges)) {
             return -1; // failure - no more suitable pairs
           }
+        }
+      }
+    } else {
+      std::cerr << "ERROR: rewire fraction must be between 0 and 1" << std::endl;
+      std::cerr << "no rewiring performed" << std::endl;
+    }
+    return 0;
+  }
+  
+  //----------------------------------------------------------
+  /*! \brief Randomly rewire edges in a graph, clustering them in another graph.
+    
+  Removes a given fraction of edges from a graph and randomly rewires them,
+  preserving the degree distribution and clustering them in another graph.
+  
+  \param[out] g The graph to cluster.
+  \param[in, out] g The graph to rewire the edges in.
+  \param[in] r The random generator to use for selecting the edges to rewire.
+  \param[in] rewireFraction The fraction of edges to rewire.
+  \param[in] verbose Whether to be verbose.
+  \return 0 if successful, -1 if rewiring fails because one is left without
+  connectable edges according to the given degree distribution before rewiring
+  all the nodes.
+  \ingroup graph_structure
+  */
+  template <typename ClusterGraph, typename Graph, typename RandomGenerator>
+  int rewireClustered(const ClusterGraph& cg, Graph& g, RandomGenerator& r,
+                      double rewireFraction, unsigned int verbose)
+  {
+    typedef typename boost::graph_traits<Graph>::edge_iterator
+      g_edge_iterator;
+    typedef typename boost::graph_traits<Graph>::edge_descriptor
+      g_edge_descriptor;
+    typedef typename boost::graph_traits<Graph>::out_edge_iterator
+      g_out_edge_iterator;
+    typedef typename edge_property_type<Graph>::type
+      g_edge_property_type;
+    typedef typename boost::graph_traits<ClusterGraph>::out_edge_iterator
+      cg_out_edge_iterator;
+    typedef typename boost::graph_traits<ClusterGraph>::vertex_descriptor
+      cg_vertex_descriptor;
+
+    // initialize edge type from the first edge in the graph
+    unsigned int N = num_edges(g);
+    g_edge_iterator ei, ei_end;
+    tie(ei, ei_end) = edges(g);
+    unsigned int et = g[*ei].type;
+    
+    if (rewireFraction > 0. && rewireFraction <= 1.) {
+      boost::uniform_01<boost::mt19937, double> uni_gen(r);
+      // calculate number of links to rewire
+      unsigned int num_rewire =
+        static_cast<unsigned int>(rewireFraction * N);
+      if (verbose >=1) {
+        std::cout << "Randomly rewiring " << num_rewire << " edges, clustering "
+                  << "them in the remaining graph." << std::endl;
+      }
+      
+      // rewire edges
+      while (num_rewire > 0) {
+        // randomly select edge
+        g_edge_descriptor e = random_edge(g, r);
+        cg_vertex_descriptor source_vertex = source(e, g);
+        if (verbose >= 2) std::cout << "chose edge " << e << std::endl;
+        // select random neighbour of source vertex in cluster graph
+        unsigned int rand_no =
+          static_cast<unsigned int>(uni_gen() * out_degree(source_vertex, cg));
+        cg_out_edge_iterator cg_oi, cg_oi_end;
+        unsigned int rand_idx = 0;
+        tie(cg_oi, cg_oi_end) = out_edges(source_vertex, cg);
+        while (rand_idx < rand_no) cg_oi++;
+        if (verbose >= 2) {
+          std::cout << "chose edge on cluster graph " << *cg_oi << std::endl;
+        }
+        cg_vertex_descriptor rand_nb = target(*cg_oi, cg);
+        
+        // randomly select second edge
+        if (out_degree(rand_nb, g) > 0) {
+          rand_no =
+            static_cast<unsigned int>(uni_gen() * out_degree(rand_nb, g));
+          g_out_edge_iterator g_oi, g_oi_end;
+          rand_idx = 0;
+          tie(g_oi, g_oi_end) = out_edges(rand_nb, g);
+          while (rand_idx < rand_no) g_oi++;
+          if (verbose >= 2) std::cout << "chose 2nd edge " << *g_oi << std::endl;
+          cg_vertex_descriptor rand_new = target(*g_oi, g);
+
+          // rewire if both edges to be created do not exist yet
+          if (edge(source_vertex, rand_nb, g).second == false &&
+              edge(rand_nb, rand_new, g).second == false) {
+            std::cout << "rewiring" << std::endl;
+            boost::remove_edge(e, g);
+            boost::remove_edge(*g_oi, g);
+            boost::add_edge(source_vertex,rand_nb,g_edge_property_type(et),g);
+            boost::add_edge(rand_nb,rand_new,g_edge_property_type(et),g);
+            --num_rewire;
+          } else std::cout << "not rewiring" << std::endl;
         }
       }
     } else {

@@ -45,10 +45,9 @@ namespace boost {
   */
   template <typename Graph, typename EdgeType>
   std::pair<typename boost::graph_traits<Graph>::edge_descriptor, bool>
-  edge(Graph& g,
-       typename boost::graph_traits<Graph>::vertex_descriptor u,
+  edge(typename boost::graph_traits<Graph>::vertex_descriptor u,
        typename boost::graph_traits<Graph>::vertex_descriptor v,
-       EdgeType et)
+       Graph& g, EdgeType et)
   {
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
       vertex_descriptor;
@@ -123,7 +122,7 @@ namespace boost {
         for (tie(oi, oi_end) = out_edges(target(*ei, g), g);
              oi != oi_end; oi++) {
           if (g[*oi].type == et2) {
-            if (edge(g, source(*ei, g), target(*oi, g), et3).second) {
+            if (edge(source(*ei, g), target(*oi, g), et3, g).second) {
               ++count;
             }
           }

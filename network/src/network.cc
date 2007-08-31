@@ -460,6 +460,11 @@ int main(int argc, char* argv[])
       (s.str().c_str(), po::value<double>()->default_value(0.),
        "fraction of edges to rewire");
     s.str("");
+    s << it->getText() << "-rewire-clustered";
+    rewiring_options.add_options()
+      (s.str().c_str(), po::value<double>()->default_value(0.),
+       "fraction of edges to rewire");
+    s.str("");
     s << it->getText() << "-remove";
     rewiring_options.add_options()
       (s.str().c_str(), po::value<double>()->default_value(0.),
@@ -998,6 +1003,17 @@ int main(int argc, char* argv[])
         }
       }
     }
+    if (vm.count(edgeTypes[i].getText()+"-rewire-clustered")) {
+      double clusteredRewireFraction =
+        vm[edgeTypes[i].getText()+"-rewire-clustered"].as<double>();
+      if (clusteredRewireFraction > 0) {
+        boost::rewireClustered(graph, temp_graph, gen,
+                               clusteredRewireFraction, verbose);
+        if (verbose) {
+          std::cout << "graph rewired\n";
+        }
+      }
+    }
     if (vm.count(edgeTypes[i].getText()+"-add")) {
       double addFraction = vm[edgeTypes[i].getText()+"-add"].as<double>();
       boost::addEdges(temp_graph, gen, addFraction);
@@ -1166,8 +1182,9 @@ int main(int argc, char* argv[])
     }
   }
 
-  if (verbose >= 2) {
+  if (verbose >= 1) {
     print_degrees(graph, *model);
+//     print_corr_matrices(graph);
   }
 
   numSims = vm["nsims"].as<unsigned int>();
