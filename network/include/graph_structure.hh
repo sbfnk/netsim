@@ -459,23 +459,24 @@ namespace boost {
       while (num_rewire > 0) {
         // randomly select edge
         bool reverse = false;
-        unsigned rand_edge =
+        unsigned int rand_edge =
           static_cast<unsigned int>(uni_gen() * temp_edges.size() * 2);
         if (rand_edge > temp_edges.size()-1) {
           reverse = true;
           rand_edge -= temp_edges.size();
         }
         
-        std::pair<unsigned int, unsigned int> random_edge =
-          temp_edges[rand_edge];
+        g_edge_descriptor randomEdge = 
+	  edge(temp_edges[rand_edge].first,
+               temp_edges[rand_edge].second, g).first;
         cg_vertex_descriptor source_vertex;
         cg_vertex_descriptor target_vertex;
         if (reverse) {
-          source_vertex = random_edge.second;
-          target_vertex = random_edge.first;
+          source_vertex = target(randomEdge, g);
+          target_vertex = source(randomEdge, g);
         } else {
-          source_vertex = random_edge.first;
-          target_vertex = random_edge.second;
+          source_vertex = source(randomEdge, g);
+          target_vertex = target(randomEdge, g);
         }
         // select random neighbour of source vertex in cluster graph
         unsigned int rand_no =
@@ -518,7 +519,7 @@ namespace boost {
             if (rand_new != source_vertex &&
                 edge(source_vertex, rand_nb, g).second == false &&
                 edge(target_vertex, rand_new, g).second == false) {
-              boost::remove_edge(edge(source_vertex, target_vertex, g).first, g);
+              boost::remove_edge(randomEdge, g);
               boost::remove_edge(*g_oi, g);
               temp_edges.erase(temp_edges.begin()+rand_edge);
               g_edge_descriptor new_edge1 =
@@ -529,7 +530,7 @@ namespace boost {
                                 g_edge_property_type(et), g).first;
               --num_rewire;
               if (verbose >= 2) {
-                std::cout << "Rewiring " << rand_edge << " and "
+                std::cout << "Rewiring " << randomEdge << " and "
                           << *g_oi << " to " << new_edge1 << " and "
                           << new_edge2 << std::endl;
                 std::cout << num_rewire << " to go" << std::endl;
