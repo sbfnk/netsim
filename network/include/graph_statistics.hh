@@ -428,7 +428,7 @@ namespace boost {
       for (unsigned int i = 0; i < m.getEdgeTypes().size(); i++) {
         for (unsigned int j = 0; j < m.getVertexStates().size(); j++) {
           for (unsigned int k = j; k < m.getVertexStates().size(); k++) {
-            line << pairCount[j][k][i] << '\t';
+            line << pairCount[i][j][k] << '\t';
           }
         }
       }
