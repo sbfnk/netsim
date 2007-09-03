@@ -79,7 +79,7 @@ namespace boost {
     \ingroup helper_functions
   */
   template <typename Graph, typename VertexDescriptor, typename EdgeType>
-  unsigned int out_degree_type(Graph& g, VertexDescriptor v, EdgeType et)
+  unsigned int out_degree_type(VertexDescriptor v, Graph& g, EdgeType et)
   {
     unsigned int deg = 0;
     
@@ -91,10 +91,150 @@ namespace boost {
   }
   
   //----------------------------------------------------------
+  /*! \brief Calculate the clustering coefficients for a given vertex.
+  \param[in] g The graph containing the vertices.
+  \param[in] m The model providing the vertex states.
+  \param[in] v The vertex under consideration.
+  \return The clustering coefficients.
+  \ingroup graph_statistics
+  */
+  template <typename Graph>
+  boost::multi_array<double, 3>
+  local_cluster_coeff_vertex
+  (Graph& g, const Model& m,
+   typename boost::graph_traits<Graph>::vertex_descriptor v)
+  {
+
+    typedef typename graph_traits<Graph>::out_edge_iterator
+      out_edge_iterator;
+
+    typedef boost::multi_array<unsigned int, 2> triple_type;
+    typedef boost::multi_array<unsigned int, 3> triangle_type;
+    typedef boost::multi_array<double, 3> coeff_type;
+    
+    triple_type triples(boost::extents
+                       [m.getEdgeTypes().size()]
+                       [m.getEdgeTypes().size()]);
+    
+    triangle_type triangles(boost::extents
+                         [m.getEdgeTypes().size()]
+                         [m.getEdgeTypes().size()]
+                         [m.getEdgeTypes().size()]);
+    
+    out_edge_iterator oi, oi_end, oi2, oi3, oi3_end;
+
+    for (tie(oi, oi_end) = out_edges(v, g); oi != oi_end; oi++) {
+      for(oi2 = oi + 1; oi2 != oi_end; oi2++) {
+        std::vector<unsigned int> edges(3);
+        edges[0] = g[*oi].type;
+        edges[1] = g[*oi2].type;
+        std::sort(edges.begin(), edges.begin()+1);
+        ++triples
+          [edges[0]]
+          [edges[1]];
+        for (tie(oi3, oi3_end) = out_edges(target(*oi, g), g);
+             oi3 != oi3_end; oi3++) {
+          if (target(*oi3, g) == target(*oi2, g)) {
+            edges[2] = g[*oi3].type;
+            ++triangles
+              [edges[0]]
+              [edges[1]]
+              [edges[2]];
+          }
+        }
+      }
+    }
+
+    coeff_type cluster_coeffs(boost::extents
+                              [m.getEdgeTypes().size()]
+                              [m.getEdgeTypes().size()]
+                              [m.getEdgeTypes().size()]);
+
+    for (unsigned int i = 0; i< m.getEdgeTypes().size(); ++i) {
+      for (unsigned int j = i; j< m.getEdgeTypes().size(); ++j) {
+        for (unsigned int k = 0; k< m.getEdgeTypes().size(); ++k) {
+          if (triples[i][j] > 0) {
+            cluster_coeffs[i][j][k] =
+              static_cast<double>(triangles[i][j][k]) /
+              static_cast<double>(triples[i][j]);
+          } else {
+            cluster_coeffs[i][j][k] = 0.;
+          }
+        }
+      }
+    }
+            
+    return cluster_coeffs;
+  }
+
+  //----------------------------------------------------------
+  /*! \brief Calculate local clustering coefficients.
+
+  Calculates the clustering coefficients for a network using the averaged
+  clustering coefficients of the vertices, as defined by Watts and Strogatz
+  (1998). The clustering coefficients are printed to stdout.
+  
+  \param[in] g The graph containing the vertices.
+  \param[in] m The model providing the vertex states.
+  \return The clustering coefficients.
+  \ingroup graph_statistics
+  */
+  template <typename Graph>
+  void local_cluster_coeffs
+  (Graph& g, const Model& m)
+  {
+    typedef typename boost::graph_traits<Graph>::vertex_iterator
+      vertex_iterator;
+
+    typedef boost::multi_array<double, 3> coeff_type;
+    coeff_type cluster_coeffs(boost::extents
+                              [m.getEdgeTypes().size()]
+                              [m.getEdgeTypes().size()]
+                              [m.getEdgeTypes().size()]);
+
+    for (unsigned int i = 0; i< m.getEdgeTypes().size(); ++i) {
+      for (unsigned int j = i; j< m.getEdgeTypes().size(); ++j) {
+        for (unsigned int k = 0; k< m.getEdgeTypes().size(); ++k) {
+          cluster_coeffs[i][j][k] = 0.;
+        }
+      }
+    }
+    
+    unsigned int vertex_count = 0;
+    
+    vertex_iterator vi, vi_end;
+    for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+      if (out_degree(*vi, g) > 1) {
+        ++vertex_count;
+        coeff_type vertex_coeffs = local_cluster_coeff_vertex(g, m, *vi);
+        for (unsigned int i = 0; i< m.getEdgeTypes().size(); ++i) {
+          for (unsigned int j = i; j< m.getEdgeTypes().size(); ++j) {
+            for (unsigned int k = 0; k< m.getEdgeTypes().size(); ++k) {
+              cluster_coeffs[i][j][k] += vertex_coeffs[i][j][k];
+            }
+          }
+        }
+      }
+    }
+
+    if (vertex_count > 0) {
+      for (unsigned int i = 0; i< m.getEdgeTypes().size(); ++i) {
+        for (unsigned int j = i; j< m.getEdgeTypes().size(); ++j) {
+          for (unsigned int k = 0; k< m.getEdgeTypes().size(); ++k) {
+            cluster_coeffs[i][j][k] /= static_cast<double>(vertex_count);
+            std::cout << "C" << m.getEdgeTypes()[i]
+                      << m.getEdgeTypes()[j] << m.getEdgeTypes()[k]
+                      << " = " << cluster_coeffs[i][j][k] << std::endl;
+          }
+        }
+      }
+    }
+  }
+  
+  //----------------------------------------------------------
   /*! \brief Count triangles.
   
-  Counts the number of triangles in the network combining three given edge
-  types. 
+  Counts the number of triangles in the graph.
 
   \param[in] g The graph containing the vertices
   \param[in] et1 The first edge type to consider
@@ -161,9 +301,9 @@ namespace boost {
   }
 
   //----------------------------------------------------------
-  /*! \brief Count pairs.
+  /*! \brief Count state pairs.
   
-  Counts the number of pairs in a given state in a graph.
+  Counts the number of pairs of states in a graph.
 
   \param[in] g The graph containing the vertices and edges
   \param[in] m The model providing the vertex states and edge types
@@ -173,7 +313,7 @@ namespace boost {
   */
   template <typename Graph>
   boost::multi_array<unsigned int, 3>
-  count_pairs(Graph& g, const Model& m)
+  count_state_pairs(Graph& g, const Model& m)
   {
     typedef typename boost::graph_traits<Graph>::edge_iterator
       edge_iterator;
@@ -238,9 +378,86 @@ namespace boost {
   }
 
   //----------------------------------------------------------
-  /*! \brief Count triples.
+  /*! \brief Count triples centered on a given vertex.
+  \param[in] g The graph containing the vertices.
+  \param[in] m The model providing the edge types.
+  \param[in] v The vertex under consideration.
+  \ingroup graph_statistics
+  */
+  template <typename Graph>
+  boost::multi_array<unsigned int, 2>
+  count_triples_vertex
+  (Graph& g, const Model& m,
+   typename boost::graph_traits<Graph>::vertex_descriptor v)
+  {
+    typedef typename graph_traits<Graph>::out_edge_iterator
+      out_edge_iterator;
+    typedef boost::multi_array<unsigned int, 2> array_type;
+    
+    array_type counts(boost::extents
+                      [m.getEdgeTypes().size()]
+                      [m.getEdgeTypes().size()]);
+    
+    out_edge_iterator oi, oi_end, oi2;
+
+    if (out_degree(v, g) > 1) {
+      for (tie(oi, oi_end) = out_edges(v, g); oi != oi_end; oi++) {
+        for(oi2 = oi + 1; oi2 != oi_end; oi2++) {
+          if (target(*oi, g) != target(*oi2, g)) {
+            
+            std::vector<unsigned int> edges(2);
+            edges[0] = g[*oi].type;
+            edges[1] = g[*oi2].type;
+            std::sort(edges.begin(), edges.end());
+            
+            ++counts
+              [edges[0]]
+              [edges[1]];
+          }
+        }
+      }
+    }
+
+    return counts;
+  }
   
-  Counts the number of triples in the network.
+  //----------------------------------------------------------
+  /*! \brief Count triples in a graph.
+  \param[in] g The graph containing the vertices
+  \param[in] m The model providing the edge types
+  \ingroup graph_statistics
+  */
+  template <typename Graph>
+  boost::multi_array<unsigned int, 2>
+  count_triples(Graph& g, const Model& m)
+  {
+    typedef typename graph_traits<Graph>::vertex_iterator
+      vertex_iterator;
+
+    typedef boost::multi_array<unsigned int, 2> array_type;
+    
+    array_type counts(boost::extents
+                      [m.getEdgeTypes().size()]
+                      [m.getEdgeTypes().size()]);
+
+    vertex_iterator vi, vi_end;
+    
+    for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+      array_type vertex_counts = count_triples_vertex(g, m, *vi);
+      for (unsigned int i = 0; i< m.getEdgeTypes().size(); ++i) {
+        for (unsigned int j = i; j < m.getEdgeTypes().size(); ++j) {
+          counts[i][j] += vertex_counts[i][j];
+        }
+      }
+    }
+
+    return counts;
+  }
+  
+  //----------------------------------------------------------
+  /*! \brief Count state triples.
+  
+  Counts the number of triples of states in the network.
 
   \param[in] g The graph containing the vertices
   \param[in] m The model providing the vertex states
@@ -248,7 +465,7 @@ namespace boost {
   */
   template <typename Graph>
   boost::multi_array<unsigned int, 5>
-  count_triples(Graph& g, const Model& m)
+  count_state_triples(Graph& g, const Model& m)
   {
     typedef typename graph_traits<Graph>::out_edge_iterator
       out_edge_iterator;
@@ -336,7 +553,7 @@ namespace boost {
       std::cout << "Pair count: " << std::endl;
    
       // count state pairs
-      boost::multi_array<unsigned int, 3> pairCount = count_pairs(g, m);
+      boost::multi_array<unsigned int, 3> pairCount = count_state_pairs(g, m);
       for (unsigned int i=0; i < m.getEdgeTypes().size(); i++) {
         std::cout << m.getEdgeTypes()[i] << "-type: " << std::endl;
         for (unsigned int j=0; j < m.getVertexStates().size(); j++) {
@@ -370,7 +587,7 @@ namespace boost {
       std::cout << "Triple count: " << std::endl;
 
       boost::multi_array<unsigned int, 5> tripleCount =
-        count_triples(g, m);
+        count_state_triples(g, m);
 
       for (unsigned int i=0; i < m.getEdgeTypes().size(); i++) {
         for (unsigned int j=i; j < m.getEdgeTypes().size(); j++) {
@@ -423,7 +640,7 @@ namespace boost {
     }
 
     if (pairs) {
-      boost::multi_array<unsigned int, 3> pairCount = count_pairs(g, m);
+      boost::multi_array<unsigned int, 3> pairCount = count_state_pairs(g, m);
       // count pairs
       for (unsigned int i = 0; i < m.getEdgeTypes().size(); i++) {
         for (unsigned int j = 0; j < m.getVertexStates().size(); j++) {
@@ -486,7 +703,7 @@ namespace boost {
         }
         
         std::cout << " : ";
-        for (unsigned j = 0; j < out_degree_type(g, *vi, i); ++j) {
+        for (unsigned j = 0; j < out_degree_type(*vi, g, i); ++j) {
           std::cout << symbols[i];
         }
         std::cout << std::endl;
