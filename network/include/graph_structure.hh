@@ -519,6 +519,10 @@ namespace boost {
             if (rand_new != source_vertex &&
                 edge(source_vertex, rand_nb, g).second == false &&
                 edge(target_vertex, rand_new, g).second == false) {
+              if (verbose >= 2) {
+                std::cout << "Rewiring " << rand_edge << " and "
+                          << *g_oi;
+              }
               boost::remove_edge(randomEdge, g);
               boost::remove_edge(*g_oi, g);
               temp_edges.erase(temp_edges.begin()+rand_edge);
@@ -530,8 +534,7 @@ namespace boost {
                                 g_edge_property_type(et), g).first;
               --num_rewire;
               if (verbose >= 2) {
-                std::cout << "Rewiring " << randomEdge << " and "
-                          << *g_oi << " to " << new_edge1 << " and "
+                std::cout << " to " << new_edge1 << " and "
                           << new_edge2 << std::endl;
                 std::cout << num_rewire << " to go" << std::endl;
               }
