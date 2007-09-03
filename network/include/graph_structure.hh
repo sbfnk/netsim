@@ -516,7 +516,7 @@ namespace boost {
             cg_vertex_descriptor rand_new = target(*g_oi, g);
             
             // rewire if both edges to be created do not exist yet
-            if (rand_new != source_vertex &&
+            if (rand_new != source_vertex && rand_new != target_vertex &&
                 edge(source_vertex, rand_nb, g).second == false &&
                 edge(target_vertex, rand_new, g).second == false) {
               if (verbose >= 2) {
