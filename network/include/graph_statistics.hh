@@ -91,16 +91,23 @@ namespace boost {
   }
   
   //----------------------------------------------------------
-  /*! \brief Calculate the clustering coefficients for a given vertex.
+  /*! \brief Counts the number of triangles a vertex takes part in.
+
+  Calculates the number of triangles a vertex takes part in, as well as the
+  number of triples with the vertex in the middle. This information can be used
+  to calculate clustering coefficients.
+  
   \param[in] g The graph containing the vertices.
   \param[in] m The model providing the vertex states.
   \param[in] v The vertex under consideration.
-  \return The clustering coefficients.
+  \return A pair of multi_arrays, the first one containing the number of triples
+  for a given combination of edge types, the second the number of triangles.
   \ingroup graph_statistics
   */
   template <typename Graph>
-  boost::multi_array<double, 3>
-  local_cluster_coeff_vertex
+  std::pair<boost::multi_array<unsigned int, 2>,
+            boost::multi_array<unsigned int, 3> >
+  count_triangles_vertex
   (Graph& g, const Model& m,
    typename boost::graph_traits<Graph>::vertex_descriptor v)
   {
@@ -110,7 +117,6 @@ namespace boost {
 
     typedef boost::multi_array<unsigned int, 2> triple_type;
     typedef boost::multi_array<unsigned int, 3> triangle_type;
-    typedef boost::multi_array<double, 3> coeff_type;
     
     triple_type triples(boost::extents
                        [m.getEdgeTypes().size()]
@@ -145,26 +151,7 @@ namespace boost {
       }
     }
 
-    coeff_type cluster_coeffs(boost::extents
-                              [m.getEdgeTypes().size()]
-                              [m.getEdgeTypes().size()]
-                              [m.getEdgeTypes().size()]);
-
-    for (unsigned int i = 0; i< m.getEdgeTypes().size(); ++i) {
-      for (unsigned int j = i; j< m.getEdgeTypes().size(); ++j) {
-        for (unsigned int k = 0; k< m.getEdgeTypes().size(); ++k) {
-          if (triples[i][j] > 0) {
-            cluster_coeffs[i][j][k] =
-              static_cast<double>(triangles[i][j][k]) /
-              static_cast<double>(triples[i][j]);
-          } else {
-            cluster_coeffs[i][j][k] = 0.;
-          }
-        }
-      }
-    }
-            
-    return cluster_coeffs;
+    return std::make_pair(triples, triangles);
   }
 
   //----------------------------------------------------------
@@ -176,7 +163,6 @@ namespace boost {
   
   \param[in] g The graph containing the vertices.
   \param[in] m The model providing the vertex states.
-  \return The clustering coefficients.
   \ingroup graph_statistics
   */
   template <typename Graph>
@@ -186,6 +172,8 @@ namespace boost {
     typedef typename boost::graph_traits<Graph>::vertex_iterator
       vertex_iterator;
 
+    typedef boost::multi_array<unsigned int, 2> triple_type;
+    typedef boost::multi_array<unsigned int, 3> triangle_type;
     typedef boost::multi_array<double, 3> coeff_type;
     coeff_type cluster_coeffs(boost::extents
                               [m.getEdgeTypes().size()]
@@ -206,11 +194,16 @@ namespace boost {
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
       if (out_degree(*vi, g) > 1) {
         ++vertex_count;
-        coeff_type vertex_coeffs = local_cluster_coeff_vertex(g, m, *vi);
+        std::pair<triple_type, triangle_type> vertex_triangles =
+          count_triangles_vertex(g, m, *vi);
         for (unsigned int i = 0; i< m.getEdgeTypes().size(); ++i) {
           for (unsigned int j = i; j< m.getEdgeTypes().size(); ++j) {
-            for (unsigned int k = 0; k< m.getEdgeTypes().size(); ++k) {
-              cluster_coeffs[i][j][k] += vertex_coeffs[i][j][k];
+            if (vertex_triangles.first[i][j] > 0) {
+              for (unsigned int k = 0; k< m.getEdgeTypes().size(); ++k) {
+                cluster_coeffs[i][j][k] +=
+                  static_cast<double>(vertex_triangles.second[i][j][k]) /
+                  static_cast<double>(vertex_triangles.first[i][j]);
+              }
             }
           }
         }
@@ -226,6 +219,79 @@ namespace boost {
                       << m.getEdgeTypes()[j] << m.getEdgeTypes()[k]
                       << " = " << cluster_coeffs[i][j][k] << std::endl;
           }
+        }
+      }
+    }
+  }
+  
+  //----------------------------------------------------------
+  /*! \brief Calculate global clustering coefficients.
+
+  Calculates the clustering coefficients for a network using the ratio of
+  triangles to triples in the graph. The clustering coefficients are printed to
+  stdout. 
+  
+  \param[in] g The graph containing the vertices.
+  \param[in] m The model providing the vertex states.
+  \ingroup graph_statistics
+  */
+  template <typename Graph>
+  void global_cluster_coeffs
+  (Graph& g, const Model& m)
+  {
+    typedef typename boost::graph_traits<Graph>::vertex_iterator
+      vertex_iterator;
+
+    typedef typename graph_traits<Graph>::out_edge_iterator
+      out_edge_iterator;
+
+    typedef boost::multi_array<unsigned int, 2> triple_type;
+    typedef boost::multi_array<unsigned int, 3> triangle_type;
+    typedef boost::multi_array<double, 3> coeff_type;
+    
+    triple_type triples(boost::extents
+                       [m.getEdgeTypes().size()]
+                       [m.getEdgeTypes().size()]);
+    
+    triangle_type triangles(boost::extents
+                         [m.getEdgeTypes().size()]
+                         [m.getEdgeTypes().size()]
+                         [m.getEdgeTypes().size()]);
+    
+    vertex_iterator vi, vi_end;
+    for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+      if (out_degree(*vi, g) > 1) {
+        std::pair<triple_type, triangle_type> vertex_triangles =
+          count_triangles_vertex(g, m, *vi);
+        for (unsigned int i = 0; i< m.getEdgeTypes().size(); ++i) {
+          for (unsigned int j = i; j< m.getEdgeTypes().size(); ++j) {
+            triples[i][j] += vertex_triangles.first[i][j];
+            for (unsigned int k = 0; k< m.getEdgeTypes().size(); ++k) {
+              triangles[i][j][k] += vertex_triangles.second[i][j][k];
+            }
+          }
+        }
+      }
+    }
+    
+    coeff_type cluster_coeffs(boost::extents
+                              [m.getEdgeTypes().size()]
+                              [m.getEdgeTypes().size()]
+                              [m.getEdgeTypes().size()]);
+
+    for (unsigned int i = 0; i< m.getEdgeTypes().size(); ++i) {
+      for (unsigned int j = i; j< m.getEdgeTypes().size(); ++j) {
+        for (unsigned int k = 0; k< m.getEdgeTypes().size(); ++k) {
+          if (triples[i][j] > 0) {
+            cluster_coeffs[i][j][k] =
+              static_cast<double>(triangles[i][j][k]) /
+              static_cast<double>(triples[i][j]);
+          } else {
+            cluster_coeffs[i][j][k] = 0.;
+          }
+          std::cout << "C" << m.getEdgeTypes()[i]
+                    << m.getEdgeTypes()[j] << m.getEdgeTypes()[k]
+                    << " = " << cluster_coeffs[i][j][k] << std::endl;
         }
       }
     }

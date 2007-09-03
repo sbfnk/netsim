@@ -179,7 +179,7 @@ int main(int argc, char* argv[])
      "write output data at arg timesteps")
     ("graphviz,g", po::value<int>()->default_value(outputGraphviz),
      "create graphviz output in the images directory at arg timesteps")
-    ("nsims", po::value<unsigned int>()->default_value(1),
+    ("nsims", po::value<unsigned int>()->default_value(0),
      "number of simulation runs to produce (on a given graph)")
     ("path-length",
      "calculate average path lengths")
@@ -188,7 +188,11 @@ int main(int argc, char* argv[])
     ("write-file,f", po::value<std::string>(),
      "output data to file (.sim.dat will be appended)")
     ("cluster-coeff",
-     "write clustering coefficients to baseName.cluster file")    
+     "write clustering coefficients to baseName.cluster file (from adjacency matrices)")    
+    ("local-cluster-coeff",
+     "print averaged local clustering coefficients")
+    ("global-cluster-coeff",
+     "print gloable clustering coefficients (from network)")
     ("write-Js",
      "write adjacency matrices to files  baseName.Jd/i")        
     ;
@@ -1182,6 +1186,13 @@ int main(int argc, char* argv[])
     }
   }
 
+  if (vm.count("local-cluster-coeff")) {
+    local_cluster_coeffs(graph, *model);
+  }
+  if (vm.count("global-cluster-coeff")) {
+    global_cluster_coeffs(graph, *model);
+  }
+  
   if (verbose >= 1) {
     print_degrees(graph, *model);
 //     print_corr_matrices(graph);
