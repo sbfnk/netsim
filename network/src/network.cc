@@ -983,13 +983,13 @@ int main(int argc, char* argv[])
     }
 
     // do graph modifications if desired
-    if (vm.count(edgeTypes[i].getText()+"-remove")) {
+    if (num_edges(graph) > 0 && vm.count(edgeTypes[i].getText()+"-remove")) {
       double removeFraction = vm[edgeTypes[i].getText()+"-remove"].as<double>();
       if (removeFraction > 0) {
         boost::removeEdges(temp_graph, gen, removeFraction);
       }
     }
-    if (vm.count(edgeTypes[i].getText()+"-rewire")) {
+    if (num_edges(graph) > 0 && vm.count(edgeTypes[i].getText()+"-rewire")) {
       double rewireFraction = vm[edgeTypes[i].getText()+"-rewire"].as<double>();
       if (rewireFraction > 0) {
         int rewire_result = -1;
@@ -1007,7 +1007,8 @@ int main(int argc, char* argv[])
         }
       }
     }
-    if (vm.count(edgeTypes[i].getText()+"-rewire-clustered")) {
+    if (num_edges(graph) > 0 &&
+        vm.count(edgeTypes[i].getText()+"-rewire-clustered")) {
       double clusteredRewireFraction =
         vm[edgeTypes[i].getText()+"-rewire-clustered"].as<double>();
       if (clusteredRewireFraction > 0) {
@@ -1018,7 +1019,7 @@ int main(int argc, char* argv[])
         }
       }
     }
-    if (vm.count(edgeTypes[i].getText()+"-add")) {
+    if (num_edges(graph) > 0 && vm.count(edgeTypes[i].getText()+"-add")) {
       double addFraction = vm[edgeTypes[i].getText()+"-add"].as<double>();
       boost::addEdges(temp_graph, gen, addFraction);
     }
