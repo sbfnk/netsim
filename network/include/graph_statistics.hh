@@ -131,21 +131,24 @@ namespace boost {
 
     for (tie(oi, oi_end) = out_edges(v, g); oi != oi_end; oi++) {
       for(oi2 = oi + 1; oi2 != oi_end; oi2++) {
-        std::vector<unsigned int> edges(3);
-        edges[0] = g[*oi].type;
-        edges[1] = g[*oi2].type;
-        std::sort(edges.begin(), edges.begin()+1);
-        ++triples
-          [edges[0]]
-          [edges[1]];
-        for (tie(oi3, oi3_end) = out_edges(target(*oi, g), g);
-             oi3 != oi3_end; oi3++) {
-          if (target(*oi3, g) == target(*oi2, g)) {
-            edges[2] = g[*oi3].type;
-            ++triangles
-              [edges[0]]
-              [edges[1]]
-              [edges[2]];
+        // make sure we do not have two edges going to the same vertex
+        if (target(*oi, g) != target(*oi2, g)) {
+          std::vector<unsigned int> edges(3);
+          edges[0] = g[*oi].type;
+          edges[1] = g[*oi2].type;
+          std::sort(edges.begin(), edges.begin()+1);
+          ++triples
+            [edges[0]]
+            [edges[1]];
+          for (tie(oi3, oi3_end) = out_edges(target(*oi, g), g);
+               oi3 != oi3_end; oi3++) {
+            if (target(*oi3, g) == target(*oi2, g)) {
+              edges[2] = g[*oi3].type;
+              ++triangles
+                [edges[0]]
+                [edges[1]]
+                [edges[2]];
+            }
           }
         }
       }
@@ -291,7 +294,9 @@ namespace boost {
           }
           std::cout << "C" << m.getEdgeTypes()[i]
                     << m.getEdgeTypes()[j] << m.getEdgeTypes()[k]
-                    << " = " << cluster_coeffs[i][j][k] << std::endl;
+                    << " = " << triangles[i][j][k] << " / "
+                    << triples[i][j] << " = "
+                    << cluster_coeffs[i][j][k] << std::endl;
         }
       }
     }
