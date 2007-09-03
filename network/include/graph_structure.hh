@@ -520,12 +520,21 @@ namespace boost {
                 edge(source_vertex, rand_nb, g).second == false &&
                 edge(target_vertex, rand_new, g).second == false) {
               if (verbose >= 2) {
-                std::cout << "Rewiring " << rand_edge << " and "
-                          << *g_oi;
+                std::cout << "Rewiring " << randomEdge << " and " << *g_oi;
               }
               boost::remove_edge(randomEdge, g);
               boost::remove_edge(*g_oi, g);
               temp_edges.erase(temp_edges.begin()+rand_edge);
+              bool found = false;
+              for(std::vector<std::pair<unsigned int, unsigned int> >::iterator it =
+                    temp_edges.begin(); (it != temp_edges.end()) && (!found); it++) {
+                if ((it->first == rand_nb && it->second == rand_new) ||
+                    (it->first == rand_new && it->second == rand_nb)) {
+                  found = true;
+                  *it = std::make_pair(target_vertex, rand_new);
+                }
+              }
+                
               g_edge_descriptor new_edge1 =
                 boost::add_edge(source_vertex, rand_nb,
                                 g_edge_property_type(et), g).first;
