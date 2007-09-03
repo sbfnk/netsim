@@ -45,8 +45,8 @@ namespace boost {
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
       // we want the correlation of deg_type1 and deg_type2 degrees
-      ham += out_degree_type(g, *vi, deg_type1)*
-        out_degree_type(g, *vi, deg_type2);
+      ham += out_degree_type(*vi, g, deg_type1)*
+        out_degree_type(*vi, g, deg_type2);
     }
     // multiply with desired assortivity factor
     ham *= -J;
@@ -120,14 +120,14 @@ namespace boost {
       } while (vertex1 == vertex2);
       
       // calculated hamiltonian as it would be after rewiring
-      double s1 = out_degree_type(g, vertex1, deg_type1) *
-        out_degree_type(g, vertex2, deg_type2);
-      double s2 = out_degree_type(g, vertex2, deg_type1) *
-        out_degree_type(g, vertex1, deg_type2);
-      double s3 = out_degree_type(g, vertex1, deg_type1) *
-        out_degree_type(g, vertex1, deg_type2);
-      double s4 = out_degree_type(g, vertex2, deg_type1) *
-        out_degree_type(g, vertex2, deg_type2);
+      double s1 = out_degree_type(vertex1, g, deg_type1) *
+        out_degree_type(vertex2, g, deg_type2);
+      double s2 = out_degree_type(vertex2, g, deg_type1) *
+        out_degree_type(vertex1, g, deg_type2);
+      double s3 = out_degree_type(vertex1, g, deg_type1) *
+        out_degree_type(vertex1, g, deg_type2);
+      double s4 = out_degree_type(vertex2, g, deg_type1) *
+        out_degree_type(vertex2, g, deg_type2);
 
       double sum = s1 + s2 - s3 - s4;
 
@@ -229,12 +229,12 @@ namespace boost {
 
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
-      corr_sum += out_degree_type(g, *vi, deg_type1)*
-        out_degree_type(g, *vi, deg_type2);
-      deg_sum_1 += out_degree_type(g, *vi, deg_type1);
-      deg_sum_2 += out_degree_type(g, *vi, deg_type2);
-      deg_sq_sum_1 += pow(out_degree_type(g, *vi, deg_type1), 2);
-      deg_sq_sum_2 += pow(out_degree_type(g, *vi, deg_type2), 2);
+      corr_sum += out_degree_type(*vi, g, deg_type1)*
+        out_degree_type(*vi, g, deg_type2);
+      deg_sum_1 += out_degree_type(*vi, g, deg_type1);
+      deg_sum_2 += out_degree_type(*vi, g, deg_type2);
+      deg_sq_sum_1 += pow(out_degree_type(*vi, g, deg_type1), 2);
+      deg_sq_sum_2 += pow(out_degree_type(*vi, g, deg_type2), 2);
     }
 
     double correlation =

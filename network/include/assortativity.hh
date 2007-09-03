@@ -49,10 +49,10 @@ namespace boost {
       // we want the correlation of deg_type1 and deg_type2 degrees, but at
       // the two ends of an et link, so we check here if type is et
       if (g[*ei].type == et) {
-        ham += out_degree_type(g, source(*ei, g), deg_type1)*
-          out_degree_type(g, target(*ei, g), deg_type2) +
-          out_degree_type(g, target(*ei, g), deg_type1) *
-          out_degree_type(g, source(*ei, g), deg_type2);
+        ham += out_degree_type(source(*ei, g), g, deg_type1)*
+          out_degree_type(target(*ei, g), g, deg_type2) +
+          out_degree_type(target(*ei, g), g, deg_type1) *
+          out_degree_type(source(*ei, g), g, deg_type2);
       }
     }
     // multiply with desired assortivity factor
@@ -179,14 +179,14 @@ namespace boost {
       } while (!valid_swap);
       
       // calculated hamiltonian as it would be after rewiring
-      double s1_d1 = out_degree_type(g, source1, deg_type1);
-      double s1_d2 = out_degree_type(g, source1, deg_type2);
-      double t1_d1 = out_degree_type(g, target1, deg_type1);
-      double t1_d2 = out_degree_type(g, target1, deg_type2);
-      double s2_d1 = out_degree_type(g, source2, deg_type1);
-      double s2_d2 = out_degree_type(g, source2, deg_type2);
-      double t2_d1 = out_degree_type(g, target2, deg_type1);
-      double t2_d2 = out_degree_type(g, target2, deg_type2);
+      double s1_d1 = out_degree_type(source1, g, deg_type1);
+      double s1_d2 = out_degree_type(source1, g, deg_type2);
+      double t1_d1 = out_degree_type(target1, g, deg_type1);
+      double t1_d2 = out_degree_type(target1, g, deg_type2);
+      double s2_d1 = out_degree_type(source2, g, deg_type1);
+      double s2_d2 = out_degree_type(source2, g, deg_type2);
+      double t2_d1 = out_degree_type(target2, g, deg_type1);
+      double t2_d2 = out_degree_type(target2, g, deg_type2);
 
       double sum = s1_d1*t2_d2 + t2_d1*s1_d2 + s2_d1*t1_d2 + t1_d1*s2_d2 -
         s1_d1*t1_d2 - t1_d1*s1_d2 - s2_d1*t2_d2 - t2_d1*s2_d2;
@@ -282,18 +282,18 @@ namespace boost {
         // we actually add two contributions, according to both directions of
         // the edge
         count += 2;
-        corr_sum += out_degree_type(g, source(*ei, g), deg_type1)*
-          out_degree_type(g, target(*ei, g), deg_type2) +
-          out_degree_type(g, target(*ei, g), deg_type1) *
-          out_degree_type(g, source(*ei, g), deg_type2);
-        deg_sum_1 += out_degree_type(g, source(*ei, g), deg_type1) +
-          out_degree_type(g, target(*ei, g), deg_type1);
-        deg_sum_2 += out_degree_type(g, source(*ei, g), deg_type2) +
-          out_degree_type(g, target(*ei, g), deg_type2);
-        deg_sq_sum_1 += pow(out_degree_type(g, source(*ei, g), deg_type1), 2) +
-          pow(out_degree_type(g, target(*ei, g), deg_type1), 2);
-        deg_sq_sum_2 += pow(out_degree_type(g, source(*ei, g), deg_type2), 2) +
-          pow(out_degree_type(g, target(*ei, g), deg_type2), 2);
+        corr_sum += out_degree_type(source(*ei, g), g, deg_type1)*
+          out_degree_type(target(*ei, g), g, deg_type2) +
+          out_degree_type(target(*ei, g), g, deg_type1) *
+          out_degree_type(source(*ei, g), g, deg_type2);
+        deg_sum_1 += out_degree_type(source(*ei, g), g, deg_type1) +
+          out_degree_type(target(*ei, g), g, deg_type1);
+        deg_sum_2 += out_degree_type(source(*ei, g), g, deg_type2) +
+          out_degree_type(target(*ei, g), g, deg_type2);
+        deg_sq_sum_1 += pow(out_degree_type(source(*ei, g), g, deg_type1), 2) +
+          pow(out_degree_type(target(*ei, g), g, deg_type1), 2);
+        deg_sq_sum_2 += pow(out_degree_type(source(*ei, g), g, deg_type2), 2) +
+          pow(out_degree_type(target(*ei, g), g, deg_type2), 2);
       }
     }
 
