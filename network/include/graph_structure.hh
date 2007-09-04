@@ -479,82 +479,84 @@ namespace boost {
           target_vertex = target(randomEdge, g);
         }
         // select random neighbour of source vertex in cluster graph
-        unsigned int rand_no =
-          static_cast<unsigned int>
-        (uni_gen() * out_degree(source_vertex, cg));
-        cg_out_edge_iterator cg_oi, cg_oi_end;
-        unsigned int rand_idx = 0;
-        tie(cg_oi, cg_oi_end) = out_edges(source_vertex, cg);
-        while (rand_idx < rand_no) {
-          cg_oi++;
-          ++rand_idx;
-        }
-        cg_vertex_descriptor rand_temp = target(*cg_oi, cg);
-        if (rand_temp != target_vertex) {
-          // select random neighbour of that vertex in cluster graph
-          rand_no =
-            static_cast<unsigned int>(uni_gen() * out_degree(rand_temp, cg));
-          rand_idx = 0;
-          tie(cg_oi, cg_oi_end) = out_edges(rand_temp, cg);
+        if (out_degree(source_vertex, cg) > 0) {
+          unsigned int rand_no =
+            static_cast<unsigned int>
+            (uni_gen() * out_degree(source_vertex, cg));
+          cg_out_edge_iterator cg_oi, cg_oi_end;
+          unsigned int rand_idx = 0;
+          tie(cg_oi, cg_oi_end) = out_edges(source_vertex, cg);
           while (rand_idx < rand_no) {
             cg_oi++;
             ++rand_idx;
           }
-          cg_vertex_descriptor rand_nb = target(*cg_oi, cg);
-          
-          // randomly select second edge
-          if (out_degree(rand_nb, g) > 0 && rand_nb != source_vertex) {
+          cg_vertex_descriptor rand_temp = target(*cg_oi, cg);
+          if (rand_temp != target_vertex) {
+            // select random neighbour of that vertex in cluster graph
             rand_no =
-              static_cast<unsigned int>(uni_gen() * out_degree(rand_nb, g));
-            g_out_edge_iterator g_oi, g_oi_end;
+              static_cast<unsigned int>(uni_gen() * out_degree(rand_temp, cg));
             rand_idx = 0;
-            tie(g_oi, g_oi_end) = out_edges(rand_nb, g);
+            tie(cg_oi, cg_oi_end) = out_edges(rand_temp, cg);
             while (rand_idx < rand_no) {
-              g_oi++;
+              cg_oi++;
               ++rand_idx;
             }
-            cg_vertex_descriptor rand_new = target(*g_oi, g);
+            cg_vertex_descriptor rand_nb = target(*cg_oi, cg);
             
-            // rewire if both edges to be created do not exist yet
-            if (rand_new != source_vertex && rand_new != target_vertex &&
-                edge(source_vertex, rand_nb, g).second == false &&
-                edge(target_vertex, rand_new, g).second == false) {
-              if (verbose >= 2) {
-                std::cout << "Rewiring " << randomEdge << " and " << *g_oi;
+            // randomly select second edge
+            if (out_degree(rand_nb, g) > 0 && rand_nb != source_vertex) {
+              rand_no =
+                static_cast<unsigned int>(uni_gen() * out_degree(rand_nb, g));
+              g_out_edge_iterator g_oi, g_oi_end;
+              rand_idx = 0;
+              tie(g_oi, g_oi_end) = out_edges(rand_nb, g);
+              while (rand_idx < rand_no) {
+                g_oi++;
+                ++rand_idx;
               }
-              boost::remove_edge(randomEdge, g);
-              boost::remove_edge(*g_oi, g);
-              temp_edges.erase(temp_edges.begin()+rand_edge);
-              bool found = false;
-              for(std::vector<std::pair<unsigned int, unsigned int> >::iterator it =
-                    temp_edges.begin(); (it != temp_edges.end()) && (!found); it++) {
-                if ((it->first == rand_nb && it->second == rand_new) ||
-                    (it->first == rand_new && it->second == rand_nb)) {
-                  found = true;
-                  *it = std::make_pair(target_vertex, rand_new);
+              cg_vertex_descriptor rand_new = target(*g_oi, g);
+              
+              // rewire if both edges to be created do not exist yet
+              if (rand_new != source_vertex && rand_new != target_vertex &&
+                  edge(source_vertex, rand_nb, g).second == false &&
+                  edge(target_vertex, rand_new, g).second == false) {
+                if (verbose >= 2) {
+                  std::cout << "Rewiring " << randomEdge << " and " << *g_oi;
+                }
+                boost::remove_edge(randomEdge, g);
+                boost::remove_edge(*g_oi, g);
+                temp_edges.erase(temp_edges.begin()+rand_edge);
+                bool found = false;
+                for(std::vector<std::pair<unsigned int, unsigned int> >::iterator it =
+                      temp_edges.begin(); (it != temp_edges.end()) && (!found); it++) {
+                  if ((it->first == rand_nb && it->second == rand_new) ||
+                      (it->first == rand_new && it->second == rand_nb)) {
+                    found = true;
+                    *it = std::make_pair(target_vertex, rand_new);
+                  }
+                }
+                
+                g_edge_descriptor new_edge1 =
+                  boost::add_edge(source_vertex, rand_nb,
+                                  g_edge_property_type(et), g).first;
+                g_edge_descriptor new_edge2 =
+                  boost::add_edge(target_vertex, rand_new,
+                                  g_edge_property_type(et), g).first;
+                --num_rewire;
+                if (verbose >= 2) {
+                  std::cout << " to " << new_edge1 << " and "
+                            << new_edge2 << std::endl;
+                  std::cout << num_rewire << " to go" << std::endl;
                 }
               }
-                
-              g_edge_descriptor new_edge1 =
-                boost::add_edge(source_vertex, rand_nb,
-                                g_edge_property_type(et), g).first;
-              g_edge_descriptor new_edge2 =
-                boost::add_edge(target_vertex, rand_new,
-                                g_edge_property_type(et), g).first;
-              --num_rewire;
-              if (verbose >= 2) {
-                std::cout << " to " << new_edge1 << " and "
-                          << new_edge2 << std::endl;
-                std::cout << num_rewire << " to go" << std::endl;
-              }
             }
-          }
-        } else if (out_degree(rand_temp, cg) == 1) {
-          // cannot rewire this link, so remove it from the list
-          temp_edges.erase(temp_edges.begin() + rand_edge);
-          --num_rewire;
-          if (verbose >=2) {
-            std::cout << num_rewire << " to go" << std::endl;
+          } else if (out_degree(rand_temp, cg) == 1) {
+            // cannot rewire this link, so remove it from the list
+            temp_edges.erase(temp_edges.begin() + rand_edge);
+            --num_rewire;
+            if (verbose >=2) {
+              std::cout << num_rewire << " to go" << std::endl;
+            }
           }
         }
       }
