@@ -697,7 +697,8 @@ namespace boost {
   */
   template<typename Graph>
   std::string write_graph_data(const Graph& g, const Model& m,
-                               double t, std::ofstream& ofile, bool pairs = true)
+                               double t, std::ofstream& ofile, bool pairs = true,
+                               bool triples = true)
   {
     std::stringstream line("");
 
@@ -728,6 +729,23 @@ namespace boost {
       for (unsigned int j = 0; j < m.getVertexStates().size(); j++) {
         for (unsigned int k = j; k < m.getVertexStates().size(); k++) {
           line << parallelCount[j][k] << '\t';
+        }
+      }
+    }
+
+    if (triples) {
+      boost::multi_array<unsigned int, 5> tripleCount =
+        count_state_triples(g, m);
+
+      for (unsigned int i=0; i < m.getEdgeTypes().size(); i++) {
+        for (unsigned int j=i; j < m.getEdgeTypes().size(); j++) {
+          for (unsigned int k=0; k < m.getVertexStates().size(); k++) {
+            for (unsigned int l=0; l < m.getVertexStates().size(); l++) {
+              for (unsigned int n=l; n < m.getVertexStates().size(); n++) {
+                line << tripleCount[i][j][k][l][n] << '\t';
+              }
+            }
+          }
         }
       }
     }
