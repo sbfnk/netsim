@@ -80,7 +80,6 @@ struct rrgOptions {
 
 struct swOptions {
   unsigned int degree;
-  double rewiringProb;
 };
 
 struct plodOptions {
@@ -349,6 +348,11 @@ int main(int argc, char* argv[])
     ro->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "number of edges");
+    s.str("");
+    s << it->getText() << "-degree";
+    ro->add_options()
+      (s.str().c_str(), po::value<unsigned int>(),
+       "average degree");
     rg_options.push_back(ro);
   }
 
@@ -630,7 +634,7 @@ int main(int argc, char* argv[])
       /******************************************************************/
       // generate lattice with desired properties
       /******************************************************************/
-      typedef boost::lattice_iterator<dualtype_graph> lattice_iterator;
+      typedef boost::lattice_iterator<onetype_graph> lattice_iterator;
       
       lattice_iterator li(opt.sideLength,opt.dimensions,opt.periodicBoundary);
       lattice_iterator li_end;
@@ -665,7 +669,7 @@ int main(int argc, char* argv[])
       /******************************************************************/
       // generate lattice with desired properties
       /******************************************************************/
-      typedef boost::tri_lattice_iterator<dualtype_graph> tri_lattice_iterator;
+      typedef boost::tri_lattice_iterator<onetype_graph> tri_lattice_iterator;
       
       tri_lattice_iterator tli(opt.sideLength,opt.periodicBoundary);
       tri_lattice_iterator tli_end;
@@ -679,15 +683,27 @@ int main(int argc, char* argv[])
       /******************************************************************/
       
       rgOptions opt;
-      
+
       s.str("");
       s << edgeTypes[i].getText() << "-edges";
+      std::stringstream t;
+      t << edgeTypes[i].getText() << "-degree";
       if (vm.count(s.str())) {
         opt.edges = vm[s.str()].as<unsigned int>();
+        if (vm.count(t.str())) {
+          std::cerr << "WARNING: " << s.str() << " and " << t.str()
+                     << " exclude each other, ignoring " << t.str()
+                     << std::endl;
+        }
       } else {
-        std::cerr << "ERROR: no number of edges specified" << std::endl;
-        std::cerr << *rg_options[edgeTypes[i].getId()] << std::endl;
-        return 1;
+        if (vm.count(t.str())) {
+          opt.edges = vm[s.str()].as<unsigned int>() * N / 2;
+        } else {
+          std::cerr << "ERROR: neither " << s.str() << " nor "
+                    << t.str() << " specified." << std::endl;
+          std::cerr << *rg_options[edgeTypes[i].getId()] << std::endl;
+          return 1;
+        }
       }
       
       /******************************************************************/
@@ -696,11 +712,12 @@ int main(int argc, char* argv[])
 //       typedef boost::erdos_renyi_iterator2<boost::mt19937, dualtype_graph>
 //         rg_iterator;
       
-      typedef boost::erdos_renyi_iterator<boost::mt19937, dualtype_graph>
+      typedef boost::erdos_renyi_iterator<boost::mt19937, onetype_graph>
         rg_iterator;
       
 //       double p = (double)opt.edges*2.0/((double)N*(double)(N-1));
       double p = (double)opt.edges*2.0/((double)N*(double)N);
+      if (p> 1) p=1;
       
       rg_iterator ri(gen, N, p);
       rg_iterator ri_end;
@@ -734,6 +751,17 @@ int main(int argc, char* argv[])
       // generate random regular graph with desired properties
       /******************************************************************/
       
+
+
+
+
+
+
+
+
+
+
+
       bool success = false;
       unsigned int count = 0;
 
@@ -810,24 +838,14 @@ int main(int argc, char* argv[])
         std::cerr << *sw_options[edgeTypes[i].getId()] << std::endl;
         return 1;
       }
-      // obsolete rewiring option as this can be done generally using "-rewire"
-      s.str("");
-      s << edgeTypes[i].getText() << "-rewiring-prob";
-      if (vm.count(s.str())) {
-        opt.rewiringProb = vm[s.str()].as<double>();
-      } else {
-        std::cerr << "ERROR: no rewiring probability" << std::endl;
-        std::cerr << *sw_options[edgeTypes[i].getId()] << std::endl;
-        return 1;
-      }
       
       /******************************************************************/
       // generate small-world graph with desired properties
       /******************************************************************/
-      typedef boost::small_world_iterator<boost::mt19937, dualtype_graph>
+      typedef boost::small_world_iterator<boost::mt19937, onetype_graph>
         sw_iterator;
       
-      sw_iterator swi(gen,N,opt.degree,opt.rewiringProb);
+      sw_iterator swi(gen,N,opt.degree,0);
       sw_iterator swi_end;
       
       boost::add_edge_structure(temp_graph, swi, swi_end, Edge(edgeTypes[i].getId()));
@@ -862,7 +880,7 @@ int main(int argc, char* argv[])
       /******************************************************************/
       // generate plod graph with desired properties
       /******************************************************************/
-      typedef boost::plod_iterator<boost::mt19937, dualtype_graph>
+      typedef boost::plod_iterator<boost::mt19937, onetype_graph>
         plod_iterator;
       
       plod_iterator plodi(gen,N,opt.alpha,opt.beta);
@@ -891,7 +909,7 @@ int main(int argc, char* argv[])
       /******************************************************************/
       // generate Albert-Barabasi with desired properties
       /******************************************************************/
-      typedef boost::albert_barabasi_iterator<boost::mt19937, dualtype_graph>
+      typedef boost::albert_barabasi_iterator<boost::mt19937, onetype_graph>
         albert_barabasi_iterator;
       
       albert_barabasi_iterator ab(gen,N,opt.new_edges);
@@ -1137,15 +1155,6 @@ int main(int argc, char* argv[])
   std::string baseFileName;
   if (vm.count("write-file")) {
     baseFileName = vm["write-file"].as<std::string>();
-    outputFileName = baseFileName+".sim.dat";
-    
-    try {
-      outputFile = new std::ofstream();
-      outputFile->open(outputFileName.c_str(), std::ios::out);
-    }
-    catch (std::exception &e) {
-      std::cerr << "Unable to open output file: " << e.what() << std::endl;
-    }
     
     if (outputGraphviz >=0) {
       
@@ -1357,6 +1366,9 @@ int main(int argc, char* argv[])
     stopInformations = vm["pmax"].as<unsigned int>();
     outputData = vm["output"].as<double>();
         
+    bool doSim = !(stopTime == 0 && stopInfections == 0 &&
+                   stopRecoveries == 0 && stopInformations == 0);
+    
     // graph directory
     if (vm.count("graph-dir")) {
       graphDir = vm["graph-dir"].as<std::string>();
@@ -1368,7 +1380,7 @@ int main(int argc, char* argv[])
     /******************************************************************/
     // open output file
     /******************************************************************/
-    if (vm.count("write-file")) {
+    if (vm.count("write-file") && doSim) {
       outputFileName = fileName.str()+".sim.dat";
       
       try {
@@ -1401,7 +1413,7 @@ int main(int argc, char* argv[])
     std::string lastLine = "";
     if (outputFile) {
       lastLine = write_graph_data(graph, *model, sim->getTime(), *outputFile,
-                                  pairs);
+                                  pairs, triples);
     }
     if (verbose) print_graph_statistics(graph, *model, pairs, triples);
     
@@ -1412,9 +1424,6 @@ int main(int argc, char* argv[])
     
     unsigned int steps = 0;
     unsigned int outputNum = 1;
-    
-    bool doSim = !(stopTime == 0 && stopInfections == 0 &&
-                   stopRecoveries == 0 && stopInformations == 0);
     
     while ((stopTime == 0 || sim->getTime()<stopTime) &&
            (stopInfections == 0 || (sim->getNumInfections() < stopInfections &&
@@ -1440,7 +1449,7 @@ int main(int argc, char* argv[])
       }
       if (outputFile && sim->getTime() > nextDataStep) {
         lastLine = 
-          write_graph_data(graph, *model, sim->getTime(), *outputFile, pairs);
+          write_graph_data(graph, *model, sim->getTime(), *outputFile, pairs, triples);
         if (outputData > 0) {
           do {
             nextDataStep += outputData;
@@ -1463,7 +1472,7 @@ int main(int argc, char* argv[])
     if (outputFile) {
       if (sim->getTime() < stopTime) {
         lastLine = 
-          write_graph_data(graph, *model, sim->getTime(), *outputFile, pairs);
+          write_graph_data(graph, *model, sim->getTime(), *outputFile, pairs, triples);
       }
       *outputFile << stopTime << '\t' << lastLine;
       outputFile->close();
@@ -1498,33 +1507,35 @@ int main(int argc, char* argv[])
   }
 
   if (vm.count("write-file")) {
-    
-    std::ofstream gpFile;
-    std::string gpFileName = baseFileName+".gp";
-    
-    try {
-      gpFile.open(gpFileName.c_str(), std::ios::out);
-    }
-    catch (std::exception &e) {
-      std::cerr << "... unable to open gnuplot output file " 
-                << gpFileName << std::endl;
-      std::cerr << "... Standard exception: " << e.what() << std::endl;      
-      return 1; 
-    }
-    
-    gpFile << "### model parameters generated by simulate" << std::endl;
-    gpFile << "N=" << num_vertices(graph) << std::endl;
-    gpFile << "Tmax=" << stopTime << std::endl;
-    gpFile << "### end of model parameters" << std::endl;
-    
-    try {
-      gpFile.close();
-    }
-    catch (std::exception &e) {
-      std::cerr << "... unable to close gnuplot output file " 
-                << gpFileName << std::endl;
-      std::cerr << "... Standard exception: " << e.what() << std::endl;      
-      return 1; 
+
+    if (stopTime > 0) {
+      std::ofstream gpFile;
+      std::string gpFileName = baseFileName+".gp";
+      
+      try {
+        gpFile.open(gpFileName.c_str(), std::ios::out);
+      }
+      catch (std::exception &e) {
+        std::cerr << "... unable to open gnuplot output file " 
+                  << gpFileName << std::endl;
+        std::cerr << "... Standard exception: " << e.what() << std::endl;      
+        return 1; 
+      }
+      
+      gpFile << "### model parameters generated by simulate" << std::endl;
+      gpFile << "N=" << num_vertices(graph) << std::endl;
+      gpFile << "Tmax=" << stopTime << std::endl;
+      gpFile << "### end of model parameters" << std::endl;
+      
+      try {
+        gpFile.close();
+      }
+      catch (std::exception &e) {
+        std::cerr << "... unable to close gnuplot output file " 
+                  << gpFileName << std::endl;
+        std::cerr << "... Standard exception: " << e.what() << std::endl;      
+        return 1; 
+      }
     }
   }
   
