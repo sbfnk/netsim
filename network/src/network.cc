@@ -980,7 +980,7 @@ int main(int argc, char* argv[])
       }
       
       // reading graph structure and initial state from file
-      if (read_graph(graph, *model, opt.fileName, edgeTypes[i].getId(),
+      if (read_graph(temp_graph, *model, opt.fileName, edgeTypes[i].getId(),
                      opt.getStates, verbose) == 0) {
         
         // update number of vertices
@@ -1203,7 +1203,7 @@ int main(int argc, char* argv[])
     global_cluster_coeffs(graph, *model);
   }
   
-  if (verbose >= 1) {
+  if (verbose >= 2) {
     print_degrees(graph, *model);
 //     print_corr_matrices(graph);
   }

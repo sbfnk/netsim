@@ -441,7 +441,20 @@ namespace boost {
     unsigned int et = g[*ei].type;
     std::vector<std::pair<unsigned int, unsigned int> > temp_edges;
     for(; ei != ei_end; ei++) {
-      temp_edges.push_back(std::make_pair(source(*ei, g), target(*ei, g)));
+      cg_out_edge_iterator oi, oi_end;
+      bool found = false;
+      for (tie(oi, oi_end) = out_edges(source(*ei, g), cg);
+           (oi != oi_end) && !found; oi++) {
+        if (edge(target(*oi, cg), target(*ei, g), cg).second) found = true;
+      }
+      if (!found) {
+        temp_edges.push_back(std::make_pair(source(*ei, g), target(*ei, g)));
+        std::cout << *ei << std::endl;
+      }
+    }
+
+    if (verbose >=2) {
+      std::cout << temp_edges.size() << " edges can be rewired" << std::endl;
     }
 
     // initialize edge type from the first edge in the graph
@@ -456,14 +469,25 @@ namespace boost {
       }
       
       // rewire edges
-      while (num_rewire > 0) {
+      while (num_rewire > 0 && temp_edges.size() > 1) {
+        std::cout << "Got " << temp_edges.size() << " left." << std::endl;
         // randomly select edge
         bool reverse = false;
-        unsigned int rand_edge =
-          static_cast<unsigned int>(uni_gen() * temp_edges.size() * 2);
-        if (rand_edge > temp_edges.size()-1) {
-          reverse = true;
-          rand_edge -= temp_edges.size();
+        bool validEdge = false;
+        unsigned int rand_edge;
+        while (!validEdge) {
+          rand_edge =
+            static_cast<unsigned int>(uni_gen() * temp_edges.size() * 2);
+          if (rand_edge > temp_edges.size()-1) {
+            reverse = true;
+            rand_edge -= temp_edges.size();
+          }
+          if (edge(temp_edges[rand_edge].first,
+                   temp_edges[rand_edge].second, g).second) {
+            validEdge = true;
+          } else {
+            temp_edges.erase(temp_edges.begin() + rand_edge);
+          }
         }
         
         g_edge_descriptor randomEdge = 
@@ -542,6 +566,7 @@ namespace boost {
                 g_edge_descriptor new_edge2 =
                   boost::add_edge(target_vertex, rand_new,
                                   g_edge_property_type(et), g).first;
+                temp_edges.push_back(std::make_pair(target_vertex, rand_new));
                 --num_rewire;
                 if (verbose >= 2) {
                   std::cout << " to " << new_edge1 << " and "
