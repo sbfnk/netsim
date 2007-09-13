@@ -50,7 +50,7 @@ if [ $sim ]; then
 fi
 
 # set sim_command
-sim_base="$CODEDIR/graph/bin/simulate"
+sim_base="$CODEDIR/sim/bin/simulate"
 sim_base="$sim_base $sim_options --print-stats"
 sim_base="$sim_base $options"
 echo $sim_base

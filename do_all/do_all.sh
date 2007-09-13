@@ -95,7 +95,7 @@ cp -f $model $output_dir/$file_id.model.prm
 cp -f $sim $output_dir/$file_id.sim.prm
 
 # set sim_command
-sim_command="$CODEDIR/graph/bin/simulate"
+sim_command="$CODEDIR/sim/bin/simulate"
 sim_command="$sim_command --graph-dir $output_dir/images $sim_options"
 sim_command="$sim_command $options"
 sim_command="$sim_command --write-file $output_dir/$file_id"
@@ -109,7 +109,7 @@ echo "Averaging runs..."
 
 data_files=`find $output_dir | grep -E "$file_id[0-9]+.sim.dat"`
 
-avg_command="$CODEDIR/graph/bin/average_runs -d $dt -o $output_dir/$file_id"
+avg_command="$CODEDIR/sim/bin/average_runs -d $dt -o $output_dir/$file_id"
 avg_command="$avg_command $data_files"
 
 # execute average

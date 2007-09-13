@@ -83,7 +83,7 @@ if [ $sim ]; then
 fi
 
 # set sim_command
-sim_base="$CODEDIR/graph/bin/simulate"
+sim_base="$CODEDIR/sim/bin/simulate"
 sim_base="$sim_base --graph-dir $output_dir/images $sim_options"
 sim_base="$sim_base $options"
 sim_command="$sim_base --write-file $output_dir/$file_id"
@@ -98,7 +98,7 @@ echo "Averaging runs..."
 
 data_files=`find $output_dir | grep -E "$file_id[0-9]+.sim.dat"`
 
-avg_command="$CODEDIR/graph/bin/average_runs -d $dt -o $output_dir/$file_id"
+avg_command="$CODEDIR/sim/bin/average_runs -d $dt -o $output_dir/$file_id"
 avg_command="$avg_command $data_files"
 
 # execute average

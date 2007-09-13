@@ -13,7 +13,6 @@ DEPENDFLAGS = -m
 
 #--------------------------------------------------------------------
 
-#SOURCES     = simulate.cc Bin.cc InfoSIRS.cc Model.cc
 SOURCES     = simulate.cc Bin.cc InfoSIRS.cc ProtectiveSIRS.cc \
 	VaccinationSIRS.cc Model.cc
 OBJECTS     = $(patsubst %.cc,out/%.o,${SOURCES})
@@ -59,19 +58,8 @@ cleaner:
 #-------------------------------------------------------------------
 # DO NOT DELETE
 
-out/InfoSIRS.o: include/InfoSIRS.hh include/Model.hh
-
-out/ProtectiveSIRS.o: include/ProtectiveSIRS.hh include/Model.hh
-
-out/Vaccination.o: include/Vaccination.hh include/Model.hh
-
 out/simulate.o: include/Vertex.hh include/Simulator.hh \
 	include/GillespieSimulator.hh \
 	include/ChrisSimulator.hh include/Tree.hh include/Bin.hh \
-	include/InfoSIRS.hh include/Model.hh include/lattice_generator.hh \
-	include/graph_structure.hh include/erdos_renyi_generator2.hh \
-	include/visualise_graph.hh include/albert_barabasi_generator.hh \
-	include/cluster_coeffs.hh include/assortativity.hh \
+	include/InfoSIRS.hh include/Model.hh include/sim_statistics.hh \
 	include/ProtectiveSIRS.hh include/VaccinationSIRS.hh \
-	include/graph_statistics.hh include/path_length.hh \
-	include/breadth_first_search.hpp include/degree_overlap.hh
