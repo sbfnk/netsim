@@ -1,5 +1,5 @@
-/*! \file simulate.cc
-  \brief The main simulation program.
+/*! \file network.cc
+  \brief The main graph program.
 */
 #include <iostream>
 #include <fstream>
@@ -20,25 +20,16 @@
 #include <boost/graph/erdos_renyi_generator.hpp>
 #include <math.h>
 
+#include "graph_io.hh"
 #include "graph_structure.hh"
 #include "graph_statistics.hh"
 #include "lattice_generator.hh"
 #include "erdos_renyi_generator2.hh"
 #include "albert_barabasi_generator.hh"
-#include "visualise_graph.hh"
 #include "cluster_coeffs.hh"
 #include "assortativity.hh"
 #include "degree_overlap.hh"
 #include "path_length.hh"
-
-#include "GillespieSimulator.hh"
-#include "ChrisSimulator.hh"
-#include "Vertex.hh"
-
-// models
-#include "InfoSIRS.hh"
-#include "ProtectiveSIRS.hh"
-#include "VaccinationSIRS.hh"
 
 namespace po = boost::program_options;
 
@@ -49,16 +40,12 @@ namespace boost {
 }
 
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
-                              Vertex, Edge> dualtype_graph;
+                              boost::no_property, Edge> multitype_graph;
 typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
-                              Vertex, Edge> onetype_graph;
+                              boost::no_property, Edge> onetype_graph;
 
 struct latticeOptions {
-  
-  latticeOptions()
-    : sideLength(0)
-  {;}
-  
+  latticeOptions() : sideLength(0) {}
   unsigned int sideLength;
   unsigned int dimensions;
   bool periodicBoundary;
@@ -69,11 +56,7 @@ struct rgOptions {
 };
 
 struct rrgOptions {
-
-  rrgOptions()
-    : degree(0), jointDegree(0)
-  {;}
-  
+  rrgOptions() : degree(0), jointDegree(0) {}
   unsigned int degree;
   unsigned int jointDegree;
 };
@@ -94,54 +77,30 @@ struct abOptions
 
 struct readFileOptions {
   std::string fileName;
-  bool getStates;
 };
-
-std::string generateFileName(std::string nameBase, unsigned int id)
-{
-  std::stringstream s;
-  s << nameBase << std::setw(3) << std::setfill('0') << id;
-  return s.str();
-}
 
 int main(int argc, char* argv[])
 {
-  Model* model;
-  
-  std::vector <unsigned int> init;
-  
   /******************************************************************/
   // read parameters
   /******************************************************************/
   std::string topology;
+
+  unsigned int nEdgeTypes = 2;
   
   unsigned int N = 0;
-  double stopTime = 0;
-  unsigned int stopRecoveries;
-  unsigned int stopInfections;
-  unsigned int stopInformations;
 
-  double outputData = 0.;
-  int outputGraphviz = -1;
-  std::string graphDir = "images";
   std::string outputFileName = "";
-  std::ofstream* outputFile = 0;
 
   unsigned int verbose = 0;
-  bool printStats = false;
 
-  unsigned int numSims = 1;
-  
   std::string readGraph = ""; // default is to generate graph.
-  bool generateIC = true; // default is to generate i.c.
+  std::string edgeLabels = "di";
 
-  bool pairs = false;
-  bool triples = false;
+  po::options_description main_options
+    ("\nUsage: network -p params_file [options]... \n\nMain options");
 
-  po::options_description command_line_options
-    ("\nUsage: simulate -p params_file [options]... \n\nMain options");
-
-  command_line_options.add_options()
+  main_options.add_options()
     ("help,h",
      "produce help message")
     ("longhelp,H",
@@ -150,58 +109,24 @@ int main(int argc, char* argv[])
      "produce verbose output")
     ("very-verbose,V",
      "produce very verbose output")
-    ("print-stats",
-     "print stats at the end of run")
     ("params-file,p",po::value<std::string>(),
      "file containing graph parameters")
-    ("model-file,m",po::value<std::string>(),
-     "file containing model parameters")
     ;
 
-  po::options_description sim_options
-    ("\nSimulation options");
+  po::options_description edgetype_options
+    ("anEdge types");
 
-  sim_options.add_options()
-    ("sim", po::value<std::string>()->default_value("Gillespie"),
-     "simulator to use (Gillespie, Chris)")
-    ("usemodel", po::value<std::string>()->default_value("InfoSIRS"),
-     "model to use (InfoSIRS, ProtectiveSIRS)")
-    ("tmax", po::value<double>()->default_value(stopTime),
-     "time after which to stop\n(use tmax=0 to just generate graph and exit)")
-    ("rmax", po::value<unsigned int>()->default_value(0),
-     "number of recoveries after which to stop (if >0)")
-    ("imax", po::value<unsigned int>()->default_value(0),
-     "number of infections after which to stop (if >0)")
-    ("pmax", po::value<unsigned int>()->default_value(0),
-     "number of informations after which to stop (if >0)")
-    ("output", po::value<double>()->default_value(0.),
-     "write output data at arg timesteps")
-    ("graphviz,g", po::value<int>()->default_value(outputGraphviz),
-     "create graphviz output in the images directory at arg timesteps")
-    ("nsims", po::value<unsigned int>()->default_value(0),
-     "number of simulation runs to produce (on a given graph)")
-    ("path-length",
-     "calculate average path lengths")
-    ("graph-dir", po::value<std::string>()->default_value(graphDir),
-     "set ouput dir for graphs")
-    ("write-file,f", po::value<std::string>(),
-     "output data to file (.sim.dat will be appended)")
-    ("cluster-coeff",
-     "write clustering coefficients to baseName.cluster file (from adjacency matrices)")    
-    ("local-cluster-coeff",
-     "print averaged local clustering coefficients")
-    ("global-cluster-coeff",
-     "print gloable clustering coefficients (from network)")
-    ("write-Js",
-     "write adjacency matrices to files  baseName.Jd/i")        
+  edgetype_options.add_options()
+    ("ntypes,n",po::value<unsigned int>()->default_value(nEdgeTypes),
+     "number of edge types")
+    ("labels,l",po::value<std::string>()->default_value(edgeLabels),
+     "labels of the edge types")
     ;
-  
-  po::options_description temp_options;
-  temp_options.add(command_line_options).add(sim_options);
+
   po::variables_map vm;
   try {
-    po::store(po::command_line_parser(argc, argv).options(temp_options).
-              allow_unregistered().run(), vm);
+    po::store(po::command_line_parser(argc, argv).options(main_options).
+              options(edgetype_options).allow_unregistered().run(), vm);
   }
   catch (std::exception& e) {
     std::cerr << "Error parsing command line parameters: " << e.what()
@@ -216,35 +141,41 @@ int main(int argc, char* argv[])
   if (vm.count("very-verbose")) {
     verbose = 2;
   }
-  if (vm.count("print-stats")) {
-    printStats = true;
-  }
 
   if (vm.count("help")) {
-    std::cout << command_line_options << sim_options << std::endl;
+    std::cout << main_options << std::endl;
     return 0;
   }
 
-  if (vm.count("usemodel")) {
-    std::string modelString = vm["usemodel"].as<std::string>();
-    if (modelString == "InfoSIRS") {
-      model = new Models::InfoSIRS(verbose);
-    } else if (modelString == "ProtectiveSIRS") {
-      model = new Models::ProtectiveSIRS(verbose);
-    } else if (modelString == "Vaccination") {
-      model = new Models::VaccinationSIRS(verbose);
-    } else {
-      std::cerr << "Error: unknown model: " << modelString << std::endl;
-      return 1;
-    }
-  } else {
-    std::cerr << "Error: no model specified" << std::endl;
-    return 1;
+  if (vm.count("ntypes")) {
+    nEdgeTypes = vm["ntypes"].as<unsigned int>();
   }
-    
 
+  if (vm.count("labels")) {
+    edgeLabels = vm["labels"].as<std::string>();
+  }
+
+  if (edgeLabels.size() < nEdgeTypes) {
+    edgeLabels.clear();
+    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+      std::stringstream ss;
+      ss << (i+1);
+      edgeLabels.append(ss.str());
+    }
+  } 
+
+  po::options_description output_options
+    ("\nOutput options");
+  
+  output_options.add_options()
+    ("write-file,f", po::value<std::string>(),
+     "output graph to file (.graph will be appended)")
+    ("split,s", 
+     "split graph output input")
+    ;
+  
   po::options_description statistics_options
-    ("\n Graph statistics");
+    ("\nGraph statistics");
   
   statistics_options.add_options()
     ("degree-dist",
@@ -253,6 +184,18 @@ int main(int argc, char* argv[])
      "count pairs")
     ("triples",
      "count triples")
+    ("local-cluster-coeff",
+     "print averaged local clustering coefficients")
+    ("global-cluster-coeff",
+     "print global clustering coefficients (from network)")
+    ("path-length",
+     "calculate shortest path lengths")
+    ("print-degrees",
+     "print the degrees of vertices")
+    ("cluster-coeff",
+     "write clustering coefficients to baseName.cluster file (from adjacency matrices)")
+    ("write-Js",
+     "write adjacency matrices to files  baseName.Jd/i")        
     ;
   
   po::options_description graph_options
@@ -261,75 +204,58 @@ int main(int argc, char* argv[])
   graph_options.add_options()
     ("vertices,N", po::value<unsigned int>(),
      "number of vertices");
-  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
-       it != model->getEdgeTypes().end(); it++) {
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     graph_options.add_options()
-      ((it->getText() + "-topology").c_str(), po::value<std::string>(),
-       (it->getText() + "-network topology\n((tri-)lattice,random,random-regular,"+
-        "small-world,plod,albert-barabasi,complete,read,null)").c_str());
+      ((std::string(1,edgeLabels[i]) + "-topology").c_str(),
+       po::value<std::string>(),
+       (std::string(1,edgeLabels[i]) + "-network topology\n((tri-)lattice, "+
+        "random, random-regular, small-world, plod, albert-barabasi, "+
+        "complete, read, null)").c_str());
   }
-  graph_options.add_options()
-    ("base,b", po::value<std::string>()->default_value
-     (model->getVertexStates().begin()->getText()),
-     "base state of individuals");
   
   po::options_description assortativity_options
     ("\nAssortativity options");
   
-  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
-       it != model->getEdgeTypes().end(); it++) {
-    for (std::vector<Label>::const_iterator it2 = model->getEdgeTypes().begin();
-         it2 != model->getEdgeTypes().end(); it2++) {
-      for (std::vector<Label>::const_iterator it3 = it2;
-           it3 != model->getEdgeTypes().end(); it3++) {
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+    for (unsigned int j = 0; j < nEdgeTypes; ++j) {
+      for (unsigned int k = j; k < nEdgeTypes; ++k) {
         assortativity_options.add_options()
-          ((it->getText() + "-" + it2->getText() +
-            it3->getText() + "-assortativity").c_str(),
+          ((std::string(1,edgeLabels[i]) + "-" + std::string(1,edgeLabels[j]) +
+            std::string(1,edgeLabels[k]) + "-assortativity").c_str(),
            po::value<double>(),
-           ("assortativity between "+it2->getText()+
-            "- and "+it3->getText()+"- along "+it->getText()+"-edges").c_str());
+           ("assortativity between "+ std::string(1,edgeLabels[j]) + "- and " +
+            std::string(1,edgeLabels[k]) + "- along " +
+            std::string(1,edgeLabels[i]) +"-edges").c_str());
       }
     }
   }
   
-  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
-       it != model->getEdgeTypes().end(); it++) {
-    for (std::vector<Label>::const_iterator it2 = it;
-         it2 != model->getEdgeTypes().end(); it2++) {
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+    for (unsigned int j = i+1; j < nEdgeTypes; ++j) {
       assortativity_options.add_options()
-        ((it->getText() + it2->getText() +
-            "-degree-overlap").c_str(),
-           po::value<double>(),
-           ("degree overlap between "+it->getText()+
-            "- and "+it2->getText()+"-edges").c_str());
+        ((std::string(1,edgeLabels[i]) + std::string(1,edgeLabels[j]) +
+          "-degree-overlap").c_str(), po::value<double>(),
+         ("degree overlap between " + std::string(1,edgeLabels[i]) + "- and " +
+          std::string(1,edgeLabels[j]) + "-edges").c_str());
     }
   }
 
-  for (std::vector<Label>::const_iterator it =
-         model->getVertexStates().begin();
-       it != model->getVertexStates().end(); it++) {
-    graph_options.add_options()
-      (it->getText().c_str(), po::value<unsigned int>()->default_value(0),
-       ("number of randomly chosen " + it->getText()).c_str());
-  }
-  
-  // generate topology-specifice options for each type of graph
+  // generate topology-specific options for each type of graph
   
   // lattice
   std::vector<po::options_description*> lattice_options;
-  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
-       it != model->getEdgeTypes().end(); it++) {
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     std::stringstream s;
-    s << it->getText() << "-Lattice options";
+    s << edgeLabels[i] << "-Lattice options";
     po::options_description* lo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << it->getText() << "-dim";
+    s << edgeLabels[i] << "-dim";
     lo->add_options()
       (s.str().c_str(),  po::value<unsigned int>()->default_value(2),
        "number of dimensions");
     s.str("");
-    s << it->getText() << "-pb";
+    s << edgeLabels[i] << "-pb";
     lo->add_options()
       (s.str().c_str(), "periodic boundary conditions");
     lattice_options.push_back(lo);
@@ -337,40 +263,38 @@ int main(int argc, char* argv[])
 
   // random graph
   std::vector<po::options_description*> rg_options;
-  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
-       it != model->getEdgeTypes().end(); it++) {
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     std::stringstream s;
-    s << it->getText() << "-RandomGraph options";
+    s << edgeLabels[i] << "-RandomGraph options";
     po::options_description* ro
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << it->getText() << "-edges";
+    s << edgeLabels[i] << "-edges";
     ro->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "number of edges");
     s.str("");
-    s << it->getText() << "-degree";
+    s << edgeLabels[i] << "-degree";
     ro->add_options()
-      (s.str().c_str(), po::value<unsigned int>(),
+      (s.str().c_str(), po::value<double>(),
        "average degree");
     rg_options.push_back(ro);
   }
 
   // random regular graph
   std::vector<po::options_description*> rrg_options;
-  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
-       it != model->getEdgeTypes().end(); it++) {
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     std::stringstream s;
-    s << it->getText() << "-RandomRegularGraph options";
+    s << edgeLabels[i] << "-RandomRegularGraph options";
     po::options_description* rrgo
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << it->getText() << "-degree";
+    s << edgeLabels[i] << "-degree";
     rrgo->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "degree of the graph G(n,d)");
     s.str("");
-    s << it->getText() << "-joint-degree";
+    s << edgeLabels[i] << "-joint-degree";
     rrgo->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "degree of the joint core of two random regular graphs. If not given, the overlapping is random.");
@@ -379,41 +303,33 @@ int main(int argc, char* argv[])
   
   // small-world graph
   std::vector<po::options_description*> sw_options;
-  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
-       it != model->getEdgeTypes().end(); it++) {
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     std::stringstream s;
-    s << it->getText() << "-SmallWorld options";
+    s << edgeLabels[i] << "-SmallWorld options";
     po::options_description* swo
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << it->getText() << "-degree";
+    s << edgeLabels[i] << "-degree";
     swo->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "degree of each node");
-    // obsolete rewiring option as this can be done generally using "-rewire"
-    s.str("");
-    s << it->getText() << "-rewiring-prob";
-    swo->add_options()
-      (s.str().c_str(), po::value<double>()->default_value(0.),
-       "rewiring probability");
     sw_options.push_back(swo);
   }
 
   // plod graph
   std::vector<po::options_description*> plod_options;
-  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
-       it != model->getEdgeTypes().end(); it++) {
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     std::stringstream s;
-    s << it->getText() << "-Power-Law-Out-Degree options";
+    s << edgeLabels[i] << "-Power-Law-Out-Degree options";
     po::options_description* plodo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << it->getText() << "-alpha";
+    s << edgeLabels[i] << "-alpha";
     plodo->add_options()
       (s.str().c_str(), po::value<double>(),
        "alpha (index of power law)");
     s.str("");
-    s << it->getText() << "-beta";
+    s << edgeLabels[i] << "-beta";
     plodo->add_options()
       (s.str().c_str(), po::value<double>(),
        "beta (multiplicative factor of power law)");
@@ -422,14 +338,13 @@ int main(int argc, char* argv[])
 
   // Albert-Barabasi graph
   std::vector<po::options_description*> ab_options;
-  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
-       it != model->getEdgeTypes().end(); it++) {
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     std::stringstream s;
-    s << it->getText() << "-Albert-Barabasi options";
+    s << edgeLabels[i] << "-Albert-Barabasi options";
     po::options_description* abo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << it->getText() << "-newedges";
+    s << edgeLabels[i] << "-newedges";
     abo->add_options()
       (s.str().c_str(), po::value<unsigned int>()->default_value(1),
        "number of edges to add per vertex");
@@ -438,69 +353,72 @@ int main(int argc, char* argv[])
 
   // read graph
   std::vector<po::options_description*> readFile_options;
-  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
-       it != model->getEdgeTypes().end(); it++) {
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     std::stringstream s;
-    s << it->getText() << "-Read options";
+    s << edgeLabels[i] << "-Read options";
     po::options_description* rfo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << it->getText() << "-file";
+    s << edgeLabels[i] << "-file";
     rfo->add_options()
       (s.str().c_str(), po::value<std::string>(),
        "name of graph file to read");
     s.str("");
-    s << it->getText() << "-getstates";
-    rfo->add_options()
-      (s.str().c_str(), 
-       "get vertex states as well (and do not randomize initial conditions)");
     readFile_options.push_back(rfo);
   }
 
   // rewiring options
   po::options_description rewiring_options("Rewiring options");
   
-  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
-       it != model->getEdgeTypes().end(); it++) {
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     std::stringstream s;
-    s << it->getText() << "-rewire";
+    s << edgeLabels[i] << "-rewire";
     rewiring_options.add_options()
       (s.str().c_str(), po::value<double>()->default_value(0.),
        "fraction of edges to rewire");
     s.str("");
-    s << it->getText() << "-rewire-clustered";
+    s << edgeLabels[i] << "-rewire-clustered";
     rewiring_options.add_options()
       (s.str().c_str(), po::value<double>()->default_value(0.),
-       "fraction of edges to rewire");
+       "fraction of edges to rewire and cluster");
     s.str("");
-    s << it->getText() << "-remove";
+    s << edgeLabels[i] << "-remove";
     rewiring_options.add_options()
       (s.str().c_str(), po::value<double>()->default_value(0.),
        "fraction of edges to remove");
     s.str("");
-    s << it->getText() << "-add";
+    s << edgeLabels[i] << "-add";
     rewiring_options.add_options()
       (s.str().c_str(), po::value<double>()->default_value(0.),
        "fraction of edges to add");
   }
 
-  po::options_description model_options = model->getOptions();
+  // rewiring options
+  po::options_description additional_options("Additional options");
+  
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+    std::stringstream s;
+    s << edgeLabels[i] << "-randomise";
+    additional_options.add_options()
+      (s.str().c_str(), 
+       ("randomise vertices before adding "+std::string(1,edgeLabels[i])+
+        "-edges").c_str());
+  }
 
   // read options from command line
   po::options_description all_options;
-  all_options.add(command_line_options).add(sim_options).
-    add(graph_options).add(rewiring_options).add(statistics_options).
-    add(assortativity_options).add(model_options);
+  all_options.add(main_options).add(edgetype_options).add(output_options).
+    add(graph_options).add(rewiring_options).add(additional_options).
+    add(assortativity_options).add(statistics_options);
                                    
-  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
-       it != model->getEdgeTypes().end(); it++) {
-    all_options.add(*(lattice_options[it->getId()]));
-    all_options.add(*(rg_options[it->getId()]));
-    all_options.add(*(rrg_options[it->getId()]));
-    all_options.add(*(sw_options[it->getId()]));
-    all_options.add(*(plod_options[it->getId()]));
-    all_options.add(*(ab_options[it->getId()]));
-    all_options.add(*(readFile_options[it->getId()]));
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+    all_options.add(*(lattice_options[i]));
+    all_options.add(*(rg_options[i]));
+    all_options.add(*(rrg_options[i]));
+    all_options.add(*(sw_options[i]));
+    all_options.add(*(plod_options[i]));
+    all_options.add(*(ab_options[i]));
+    all_options.add(*(readFile_options[i]));
   }
 
   std::vector<std::string> unregistered;
@@ -524,8 +442,6 @@ int main(int argc, char* argv[])
     std::cerr << "WARNING: ignoring unknown option " << *it << std::endl;
   }
   
-  
- 
   if (vm.count("longhelp")) {
     std::cout << all_options << std::endl;
     return 0;
@@ -542,18 +458,7 @@ int main(int argc, char* argv[])
     }
   }
 
-  if (vm.count("model-file")) {
-    std::ifstream ifs(vm["model-file"].as<std::string>().c_str());
-    try {
-      po::store(po::parse_config_file(ifs, all_options), vm);
-    }
-    catch (std::exception& e) {
-      std::cerr << "Error parsing model file: " << e.what() << std::endl;
-      return 1;
-    }
-  }
-  
-  po::notify(vm);
+  po::notify(vm); 
 
   if (vm.count("vertices")) {
     N = vm["vertices"].as<unsigned int>();
@@ -572,9 +477,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // create graph variable
   /******************************************************************/
-  dualtype_graph graph, saved_graph;
-  void (*draw_function)(const dualtype_graph&, const Model&,
-                        std::string, double) = 0;
+  multitype_graph graph, saved_graph;
             
   /******************************************************************/
   // read graph from file or generate it
@@ -587,34 +490,35 @@ int main(int argc, char* argv[])
   // generate edges
   /******************************************************************/
 
-  std::vector<Label> edgeTypes = model->getEdgeTypes();
+  std::vector<unsigned int> edgeTypes;
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) edgeTypes.push_back(i);
   
-  for (unsigned int i = 0; i < edgeTypes.size(); i++) {
+  for (unsigned int i = 0; i < edgeTypes.size(); ++i) {
 
     onetype_graph temp_graph;
     boost::add_vertices(temp_graph, N);
+
+    std::string currentEdgeLabel = std::string(1, edgeLabels[edgeTypes[i]]);
     
     std::stringstream s;
-    s << edgeTypes[i].getText() << "-topology";
+    s << edgeLabels[i] << "-topology";
     if (vm.count(s.str())) {
       topology = vm[s.str()].as<std::string>();
     } else {
       std::cerr << "ERROR: no " << s.str() << " specified" << std::endl;
-      std::cerr << command_line_options << graph_options << std::endl;
+      std::cerr << main_options << graph_options << std::endl;
       return 1;
     }
     
     if (topology == "lattice") {
 
-      draw_function = &draw_lattice;
-      
       /******************************************************************/
       // read lattice specific parameters
       /******************************************************************/
       
       latticeOptions opt;
       s.str("");
-      s << edgeTypes[i].getText() << "-dim";
+      s << edgeLabels[i] << "-dim";
       opt.dimensions = vm[s.str()].as<unsigned int>();
       
       opt.sideLength = static_cast<int>(pow(N, 1.0/opt.dimensions));
@@ -624,7 +528,7 @@ int main(int argc, char* argv[])
         return 1;
       }
       s.str("");
-      s << edgeTypes[i].getText() << "-pb";
+      s << edgeLabels[i] << "-pb";
       if (vm.count(s.str())) {
         opt.periodicBoundary = true;
       } else {
@@ -639,11 +543,9 @@ int main(int argc, char* argv[])
       lattice_iterator li(opt.sideLength,opt.dimensions,opt.periodicBoundary);
       lattice_iterator li_end;
       
-      boost::add_edge_structure(temp_graph, li, li_end, Edge(edgeTypes[i].getId()));
+      boost::add_edge_structure(temp_graph, li, li_end, Edge(i));
       
     } else if (topology == "tri-lattice") {
-      
-      draw_function = &draw_lattice;
       
       /******************************************************************/
       // read tri-lattice specific parameters
@@ -659,7 +561,7 @@ int main(int argc, char* argv[])
         return 1;
       }
       
-      s << edgeTypes[i].getText() << "-pb";
+      s << edgeLabels[i] << "-pb";
       if (vm.count(s.str())) {
         opt.periodicBoundary = true;
       } else {
@@ -674,7 +576,7 @@ int main(int argc, char* argv[])
       tri_lattice_iterator tli(opt.sideLength,opt.periodicBoundary);
       tri_lattice_iterator tli_end;
       
-      boost::add_edge_structure(temp_graph, tli, tli_end, Edge(edgeTypes[i].getId()));
+      boost::add_edge_structure(temp_graph, tli, tli_end, Edge(i));
       
     } else if (topology == "random") {
 
@@ -685,9 +587,9 @@ int main(int argc, char* argv[])
       rgOptions opt;
 
       s.str("");
-      s << edgeTypes[i].getText() << "-edges";
+      s << edgeLabels[i] << "-edges";
       std::stringstream t;
-      t << edgeTypes[i].getText() << "-degree";
+      t << edgeLabels[i] << "-degree";
       if (vm.count(s.str())) {
         opt.edges = vm[s.str()].as<unsigned int>();
         if (vm.count(t.str())) {
@@ -697,11 +599,12 @@ int main(int argc, char* argv[])
         }
       } else {
         if (vm.count(t.str())) {
-          opt.edges = vm[s.str()].as<unsigned int>() * N / 2;
+          opt.edges =
+            static_cast<unsigned int>(vm[t.str()].as<double>() * N / 2.);
         } else {
           std::cerr << "ERROR: neither " << s.str() << " nor "
                     << t.str() << " specified." << std::endl;
-          std::cerr << *rg_options[edgeTypes[i].getId()] << std::endl;
+          std::cerr << *rg_options[i] << std::endl;
           return 1;
         }
       }
@@ -722,7 +625,7 @@ int main(int argc, char* argv[])
       rg_iterator ri(gen, N, p);
       rg_iterator ri_end;
       
-      boost::add_edge_structure(temp_graph, ri, ri_end, Edge(edgeTypes[i].getId()));
+      boost::add_edge_structure(temp_graph, ri, ri_end, Edge(i));
 
     } else if (topology == "random-regular") {
       
@@ -733,16 +636,16 @@ int main(int argc, char* argv[])
       rrgOptions opt;
       
       s.str("");
-      s << edgeTypes[i].getText() << "-degree";
+      s << edgeLabels[i] << "-degree";
       if (vm.count(s.str())) {
         opt.degree = vm[s.str()].as<unsigned int>();
       } else {
         std::cerr << "ERROR: Graph degree not spcified" << std::endl;
-        std::cerr << *rrg_options[edgeTypes[i].getId()] << std::endl;
+        std::cerr << *rrg_options[i] << std::endl;
         return 1;
       }
       s.str("");
-      s << edgeTypes[i].getText() << "-joint-degree";
+      s << edgeLabels[i] << "-joint-degree";
       if (vm.count(s.str())) {
         opt.jointDegree = vm[s.str()].as<unsigned int>();
       } 
@@ -751,17 +654,6 @@ int main(int argc, char* argv[])
       // generate random regular graph with desired properties
       /******************************************************************/
       
-
-
-
-
-
-
-
-
-
-
-
       bool success = false;
       unsigned int count = 0;
 
@@ -781,7 +673,7 @@ int main(int argc, char* argv[])
             for (GraphEdges::iterator it = rrg_edges.begin();
                  it != rrg_edges.end(); ++it){
               boost::add_edge((*it).first, (*it).second,
-                              Edge(edgeTypes[i].getId()), temp_graph);
+                              Edge(i), temp_graph);
             }
           }
         }
@@ -793,7 +685,7 @@ int main(int argc, char* argv[])
 
         // copy graph to all edgetypes
         for (unsigned int j = 0; j < edgeTypes.size(); j++) {
-          boost::copy_graph(temp_graph, graph, Edge(edgeTypes[j].getId()));
+          boost::copy_edges(temp_graph, graph, Edge(j));
         }
         temp_graph.clear();
       }
@@ -810,19 +702,19 @@ int main(int argc, char* argv[])
             for (GraphEdges::iterator it = rrg_edges.begin();
                  it != rrg_edges.end(); ++it){
               boost::add_edge((*it).first, (*it).second,
-                              Edge(edgeTypes[i].getId()), temp_graph);
+                              Edge(i), temp_graph);
             }
           }
         }
         
-        if (verbose) std::cout << "Random regular graph of degree " << opt.degree
-                               << " was generated in " << count << " trials\n";
+        if (verbose) {
+          std::cout << "Random regular graph of degree " << opt.degree
+                    << " was generated in " << count << " trials\n";
+        }
       }
       
     } else if (topology == "small-world") {
       
-      draw_function = &draw_ring;
-
       /******************************************************************/
       // read small-world graph specific parameters
       /******************************************************************/
@@ -830,12 +722,12 @@ int main(int argc, char* argv[])
       swOptions opt;
       
       s.str("");
-      s << edgeTypes[i].getText() << "-degree";
+      s << edgeLabels[i] << "-degree";
       if (vm.count(s.str())) {
         opt.degree = vm[s.str()].as<unsigned int>();
       } else {
         std::cerr << "ERROR: no degree specified" << std::endl;
-        std::cerr << *sw_options[edgeTypes[i].getId()] << std::endl;
+        std::cerr << *sw_options[i] << std::endl;
         return 1;
       }
       
@@ -848,7 +740,7 @@ int main(int argc, char* argv[])
       sw_iterator swi(gen,N,opt.degree,0);
       sw_iterator swi_end;
       
-      boost::add_edge_structure(temp_graph, swi, swi_end, Edge(edgeTypes[i].getId()));
+      boost::add_edge_structure(temp_graph, swi, swi_end, Edge(i));
       
     } else if (topology == "plod") {
       
@@ -859,21 +751,21 @@ int main(int argc, char* argv[])
       plodOptions opt;
       
       s.str("");
-      s << edgeTypes[i].getText() << "-alpha";
+      s << edgeLabels[i] << "-alpha";
       if (vm.count(s.str())) {
         opt.alpha = vm[s.str()].as<double>();
       } else {
         std::cerr << "ERROR: no alpha specified" << std::endl;
-        std::cerr << *plod_options[edgeTypes[i].getId()] << std::endl;
+        std::cerr << *plod_options[i] << std::endl;
         return 1;
       }
       s.str("");
-      s << edgeTypes[i].getText() << "-beta";
+      s << edgeLabels[i] << "-beta";
       if (vm.count(s.str())) {
         opt.beta = vm[s.str()].as<double>();
       } else {
         std::cerr << "ERROR: no beta specified" << std::endl;
-        std::cerr << *plod_options[edgeTypes[i].getId()] << std::endl;
+        std::cerr << *plod_options[i] << std::endl;
         return 1;
       }
       
@@ -886,7 +778,7 @@ int main(int argc, char* argv[])
       plod_iterator plodi(gen,N,opt.alpha,opt.beta);
       plod_iterator plodi_end;
       
-      boost::add_edge_structure(temp_graph, plodi, plodi_end, Edge(edgeTypes[i].getId()));
+      boost::add_edge_structure(temp_graph, plodi, plodi_end, Edge(i));
 
     } else if (topology == "albert-barabasi") {
       
@@ -897,12 +789,13 @@ int main(int argc, char* argv[])
       abOptions opt;
       
       s.str("");
-      s << edgeTypes[i].getText() << "-newedges";
+      s << edgeLabels[i] << "-newedges";
       if (vm.count(s.str())) {
         opt.new_edges = vm[s.str()].as<unsigned int>();
       } else {
-        std::cerr << "ERROR: no number of edges to add per vertex specified" << std::endl;
-        std::cerr << *ab_options[edgeTypes[i].getId()] << std::endl;
+        std::cerr << "ERROR: no number of edges to add per vertex specified"
+                  << std::endl;
+        std::cerr << *ab_options[i] << std::endl;
         return 1;
       }
       
@@ -915,15 +808,15 @@ int main(int argc, char* argv[])
       albert_barabasi_iterator ab(gen,N,opt.new_edges);
       albert_barabasi_iterator ab_end;
       
-      boost::add_edge_structure(temp_graph, ab, ab_end, Edge(edgeTypes[i].getId()));
+      boost::add_edge_structure(temp_graph, ab, ab_end, Edge(i));
 
     } else if (topology == "complete") {
 
-      boost::graph_traits<dualtype_graph>::vertex_iterator vi, vi_end;
+      boost::graph_traits<multitype_graph>::vertex_iterator vi, vi_end;
       for (tie(vi, vi_end) = vertices(graph); vi != vi_end; vi++) {
-        boost::graph_traits<dualtype_graph>::vertex_iterator vi2;
+        boost::graph_traits<multitype_graph>::vertex_iterator vi2;
         for (vi2 = vi+1; vi2 != vi_end; vi2++) {
-          add_edge(*vi, *vi2, Edge(edgeTypes[i].getId()), temp_graph);
+          add_edge(*vi, *vi2, Edge(i), temp_graph);
         }
       }
       
@@ -934,14 +827,14 @@ int main(int argc, char* argv[])
       /******************************************************************/
 
       if (num_edges(graph) > 0) {
-        boost::copy_graph(graph, temp_graph, Edge(edgeTypes[i].getId()));
+        boost::copy_edges(graph, temp_graph, Edge(i));
       } else {
         // push back for later
         edgeTypes.push_back(edgeTypes[i]);
-        if (edgeTypes.size() == 2*model->getEdgeTypes().size()) {
+        if (edgeTypes.size() == 2*nEdgeTypes) {
           std::cerr << "ERROR: no edges to copy from, " << edgeTypes[i]
                     << "-graph to remain empty" << std::endl;
-          std::cerr << command_line_options << graph_options << std::endl;
+          std::cerr << main_options << graph_options << std::endl;
           return 1;
         }
       }
@@ -954,7 +847,7 @@ int main(int argc, char* argv[])
       readFileOptions opt;
 
       s.str("");
-      s << edgeTypes[i].getText() << "-file";
+      s << edgeLabels[i] << "-file";
       if (vm.count(s.str())) {
         if (readGraph.size() == 0) {
           readGraph = vm[s.str()].as<std::string>();
@@ -963,25 +856,15 @@ int main(int argc, char* argv[])
       } else {
         if (readGraph.size() == 0) {
           std::cerr << "ERROR: no file name specified" << std::endl;
-          std::cerr << *readFile_options[edgeTypes[i].getId()] << std::endl;
+          std::cerr << *readFile_options[i] << std::endl;
           return 1;
         } else {
           opt.fileName = readGraph;
         }
       }
 
-      s.str("");
-      s << edgeTypes[i].getText() << "-getstates";
-      if (vm.count(s.str()) && generateIC == true) {
-        opt.getStates = true;
-        generateIC = false;
-      } else {
-        opt.getStates = false;
-      }
-      
       // reading graph structure and initial state from file
-      if (read_graph(temp_graph, *model, opt.fileName, edgeTypes[i].getId(),
-                     opt.getStates, verbose) == 0) {
+      if (read_graph(temp_graph, opt.fileName, i, verbose) == 0) {
         
         // update number of vertices
         N = num_vertices(graph);
@@ -996,19 +879,23 @@ int main(int argc, char* argv[])
     } else if (topology != "null") {
       std::cerr << "ERROR: unknown " << s.str() << ": " << topology
                 << std::endl;
-      std::cerr << command_line_options << graph_options << std::endl;
+      std::cerr << main_options << graph_options << std::endl;
       return 1;
     }
 
     // do graph modifications if desired
-    if (num_edges(graph) > 0 && vm.count(edgeTypes[i].getText()+"-remove")) {
-      double removeFraction = vm[edgeTypes[i].getText()+"-remove"].as<double>();
+    if (num_edges(graph) > 0 &&
+        vm.count(currentEdgeLabel+"-remove")) {
+      double removeFraction =
+        vm[currentEdgeLabel+"-remove"].as<double>();
       if (removeFraction > 0) {
         boost::removeEdges(temp_graph, gen, removeFraction);
       }
     }
-    if (num_edges(graph) > 0 && vm.count(edgeTypes[i].getText()+"-rewire")) {
-      double rewireFraction = vm[edgeTypes[i].getText()+"-rewire"].as<double>();
+    if (num_edges(graph) > 0 &&
+        vm.count(currentEdgeLabel+"-rewire")) {
+      double rewireFraction =
+        vm[currentEdgeLabel+"-rewire"].as<double>();
       if (rewireFraction > 0) {
         int rewire_result = -1;
         unsigned int count = 0;
@@ -1026,9 +913,9 @@ int main(int argc, char* argv[])
       }
     }
     if (num_edges(graph) > 0 &&
-        vm.count(edgeTypes[i].getText()+"-rewire-clustered")) {
+        vm.count(currentEdgeLabel+"-rewire-clustered")) {
       double clusteredRewireFraction =
-        vm[edgeTypes[i].getText()+"-rewire-clustered"].as<double>();
+        vm[currentEdgeLabel+"-rewire-clustered"].as<double>();
       if (clusteredRewireFraction > 0) {
         boost::rewireClustered(graph, temp_graph, gen,
                                clusteredRewireFraction, verbose);
@@ -1037,48 +924,41 @@ int main(int argc, char* argv[])
         }
       }
     }
-    if (num_edges(graph) > 0 && vm.count(edgeTypes[i].getText()+"-add")) {
-      double addFraction = vm[edgeTypes[i].getText()+"-add"].as<double>();
+    if (num_edges(graph) > 0 && vm.count(currentEdgeLabel+"-add")) {
+      double addFraction = vm[currentEdgeLabel+"-add"].as<double>();
       boost::addEdges(temp_graph, gen, addFraction);
     }
     
+    if (vm.count(std::string(1,edgeLabels[i])+"-randomise")) {
+      randomise_vertices(temp_graph, gen);
+    }
+
     // copy edges to main graph
-    boost::graph_traits<dualtype_graph>::edge_iterator ei, ei_end;
-    for (tie(ei, ei_end) = edges(temp_graph); ei != ei_end; ei++) {
-      add_edge(source(*ei, temp_graph), target(*ei, temp_graph),
-               temp_graph[*ei], graph);
-    }         
+    boost::copy_edges(temp_graph, graph);
   }
   
   // checking graph  
-                                   if (num_vertices(graph) == 0) {
+  if (num_vertices(graph) == 0) {
     std::cerr << "ERROR: no vertices" << std::endl;
-    std::cerr << command_line_options << graph_options << std::endl;
+    std::cerr << main_options << graph_options << std::endl;
     return 1;
   }
-
-  if (draw_function == 0) draw_function = &write_graph;
 
   /******************************************************************/
   // create given assortativity if desired
   /******************************************************************/
-  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
-       it != model->getEdgeTypes().end(); it++) {
-    for (std::vector<Label>::const_iterator it2 = model->getEdgeTypes().begin();
-         it2 != model->getEdgeTypes().end(); it2++) {
-      for (std::vector<Label>::const_iterator it3 = it2;
-           it3 != model->getEdgeTypes().end(); it3++) {
-        std::string s =
-          it->getText()+"-"+it2->getText()+it3->getText()+"-assortativity";
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+    for (unsigned int j = 0; j < nEdgeTypes; ++j) {
+      for (unsigned int k = j; k < nEdgeTypes; ++k) {
+        std::string s = std::string(1,edgeLabels[i]) + "-" +
+          std::string(1,edgeLabels[j]) + std::string(1,edgeLabels[k]) +
+          "-assortativity";
         if (vm.count(s.c_str())) {
           double ass = (vm[s.c_str()].as<double>());
-          rewire_assortatively(graph, gen, ass, it->getId(), it2->getId(),
-                               it3->getId(), verbose);
+          rewire_assortatively(graph, gen, ass, i, j, k, verbose);
         }
         if (verbose >=1) {
-          std::cout << s << ": "
-                    << boost::assortativity(graph, it->getId(),
-                                            it2->getId(), it3->getId())
+          std::cout << s << ": " << boost::assortativity(graph, i, j, k)
                     << std::endl;
         }
       }
@@ -1089,20 +969,16 @@ int main(int argc, char* argv[])
   // create given degree overlap if desired
   /******************************************************************/
 
-  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
-       it != model->getEdgeTypes().end(); it++) {
-    for (std::vector<Label>::const_iterator it2 = it+1;
-         it2 != model->getEdgeTypes().end(); it2++) {
-      std::string s =
-        it->getText()+it2->getText()+"-degree-overlap";
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+    for (unsigned int j = i+1; j < nEdgeTypes; ++j) {
+      std::string s = std::string(1,edgeLabels[i]) +
+        std::string(1,edgeLabels[j]) + "-degree-overlap";
       if (vm.count(s.c_str())) {
         double deg_overlap = (vm[s.c_str()].as<double>());
-        rewire_degree_overlap(graph, gen, deg_overlap, it->getId(), 
-                              it2->getId(), verbose);
+        rewire_degree_overlap(graph, gen, deg_overlap, i, j, verbose);
       }
       if (verbose >=1) {
-        std::cout << s << ": "
-                  << boost::degree_overlap(graph, it->getId(), it2->getId())
+        std::cout << s << ": " << boost::degree_overlap(graph, i, j)
                   << std::endl;
       }
     }
@@ -1112,73 +988,58 @@ int main(int argc, char* argv[])
   // calculate average path lengths
   /******************************************************************/
   if (vm.count("path-length")) {
-    std::cout << "Average shortest path lengths: " << std::endl;
-    std::cout << "  on d-edges: "
-              << boost::avg_shortest_path_length(graph, Edge(0)) << std::endl;
-    std::cout << "  on i-edges: "
-              << boost::avg_shortest_path_length(graph, Edge(1)) << std::endl;
-    std::cout << "  d-neighbours on i-edges: "
-              << boost::avg_nb_shortest_path_length(graph, Edge(0), Edge(1))
-              << std::endl;
-    std::cout << "  i-neighbours on d-edges: "
-              << boost::avg_nb_shortest_path_length(graph, Edge(1), Edge(0))
-              << std::endl;
-  }
-  
-
-  // consider pairs
-  if (vm.count("pairs")) {
-    pairs = true;
-  }
-  // consider triples
-  if (vm.count("triples")) {
-    triples = true;
-  }
-
-  /******************************************************************/
-  // mark parallel edges
-  /******************************************************************/
-
-  if (pairs) {
-    // mark parallel edges
-    unsigned int parallel_edges = mark_parallel_edges(graph);
-    if (verbose) std::cout << "No. of parallel edges is: " << parallel_edges
-                           << std::endl;
-  }
-
-  // timesteps after which to write graphviz output
-  if (vm.count("graphviz")) {
-    outputGraphviz = vm["graphviz"].as<int>();
+    std::cout << "\nAverage shortest path lengths: " << std::endl;
+    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+      std::cout << "  on " << std::string(1,edgeLabels[i]) << "-edges: "
+              << boost::avg_shortest_path_length(graph, Edge(i)) << std::endl;
+      for (unsigned int j = 0; j < nEdgeTypes; ++j) {
+        if (i != j) {
+          std::cout << "  " << std::string(1,edgeLabels[j]) << "-neighbours on "
+                    << std::string(1,edgeLabels[i]) << "-edges: "
+                    << boost::avg_nb_shortest_path_length(graph, Edge(j),
+                                                          Edge(i))
+                    << std::endl;
+        }
+      }
+    }
   }
 
   // set base file name
   std::string baseFileName;
   if (vm.count("write-file")) {
     baseFileName = vm["write-file"].as<std::string>();
+    std::string ext = ".graph";
     
-    if (outputGraphviz >=0) {
-      
+    if (vm.count("split")) {
+      // split graph into several files
+      onetype_graph split_graph;
+      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+        split_graph.clear();
+        copy_edges_type(graph, split_graph, Edge(i));
+        std::string outputGraphName = baseFileName + "_" +
+          std::string(1, edgeLabels[i]) + ext;
+        write_graph(split_graph, outputGraphName, false);
+      }
+    } else {
+      // write whole graph in one file
       std::string outputGraphName =
         baseFileName+".graph";
-      
-      // write graph
-      write_graph(graph, *model, outputGraphName, -1);
+      write_graph(graph, outputGraphName, true);
     }
     
     // calculate degree distribution
     if (vm.count("degree-dist")) {
       std::string degreeFileName = baseFileName+".degree";
-      bool status = write_degree(graph, *model, degreeFileName);
+      bool status = write_degree(graph, nEdgeTypes, degreeFileName);
       if (verbose) {
         if (!status) {
           std::cout << "degree file " << degreeFileName << " was written ok\n";
-        } else {
+          } else {
           std::cout << "ERROR: something wrong in writing degree file "
                     << degreeFileName << std::endl;
         }
       }
     }
-    
 
     // create sparse adjacency matrices and clustering coefficients
     if (vm.count("cluster-coeff")) {
@@ -1197,361 +1058,76 @@ int main(int argc, char* argv[])
   }
 
   if (vm.count("local-cluster-coeff")) {
-    local_cluster_coeffs(graph, *model);
+    boost::multi_array<double, 3> lcc =
+      local_cluster_coeffs(graph, nEdgeTypes);
+
+    std::cout << "\nLocal clustering coeffients:" << std::endl;
+    for (unsigned int i = 0; i< nEdgeTypes; ++i) {
+      for (unsigned int j = i; j< nEdgeTypes; ++j) {
+        for (unsigned int k = 0; k< nEdgeTypes; ++k) {
+          std::cout << "  C" << edgeLabels[i] << edgeLabels[j]
+                    << edgeLabels[k] << " = " << lcc[i][j][k] << std::endl;
+        }
+      }
+    }
   }
   if (vm.count("global-cluster-coeff")) {
-    global_cluster_coeffs(graph, *model);
-  }
-  
-  if (verbose >= 2) {
-    print_degrees(graph, *model);
-//     print_corr_matrices(graph);
-  }
+    boost::multi_array<double, 3> gcc =
+      global_cluster_coeffs(graph, nEdgeTypes);
 
-  numSims = vm["nsims"].as<unsigned int>();
-  
-  unsigned int extLength = 0;
-  
-  if (numSims > 1) {
-    std::stringstream ext;
-    ext << numSims;
-    extLength = ext.str().length();
-    std::cout << "Running " << numSims << " simulations" << std::endl;
-  }
-
-  for (unsigned int nSim = 1; nSim <= numSims; nSim++) {
-
-    if (printStats) {
-      std::cout << "----- " << "run #" << nSim << std::endl;
-    } else if (numSims > 0) {
-      std::cout << ".";
-      std::cout.flush();
-    }
-    
-    std::stringstream fileName;
-    fileName << baseFileName << std::setfill('0') << std::setw(extLength)
-             << nSim;
-
-    stopTime = vm["tmax"].as<double>();
-
-    /******************************************************************/
-    // generate new initial state
-    /******************************************************************/
-   
-    if (generateIC) { // generate new initial state
-      
-      /******************************************************************/
-      // set initial vertex states
-      /******************************************************************/
-
-      init.clear();
-      // how many random vertices of each state are to be initialized
-      // over the background of the base state
-      for (unsigned int i = 0; i < model->getVertexStates().size(); i++) {
-        std::stringstream ss;
-        ss << model->getVertexStates()[i].getText();
-        std::string s(ss.str());
-        unsigned int random = 0;
-        if (vm.count(s.c_str())) {
-          random = vm[s.c_str()].as<unsigned int>();
+    std::cout << "\nGlobal clustering coeffients:" << std::endl;
+    for (unsigned int i = 0; i< nEdgeTypes; ++i) {
+      for (unsigned int j = i; j< nEdgeTypes; ++j) {
+        for (unsigned int k = 0; k< nEdgeTypes; ++k) {
+          std::cout << "  C" << edgeLabels[i] << edgeLabels[j]
+                    << edgeLabels[k] << " = " << gcc[i][j][k] << std::endl;
         }
-        init.push_back(random);
       }
-      
-      
-      std::string baseString = vm["base"].as<std::string>();
-      unsigned int baseState = 0;
-      
-      // assign baseState
-      while (baseState < model->getVertexStates().size() &&
-             (model->getVertexStates()[baseState].getText() != baseString)) {
-        baseState++;
-      }
-      
-      // set random vertices of baseState to zero
-      if (baseState < model->getVertexStates().size()) {
-        init[baseState] = 0;
-      } else {
-        std::cerr << "ERROR: no unknown base state: " << baseString << std::endl;
-        std::cerr << command_line_options << sim_options << std::endl;
-        return 1;
-      }              
-      
-      /******************************************************************/
-      // generate vertices' state
-      /******************************************************************/
-      
-      // add N vertices in state baseState to graph
-      boost::graph_traits<dualtype_graph>::vertex_iterator vi, vi_end;      
-      for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi)
-        graph[*vi].state = baseState;
-      
-      // sum over vector init to make sure the sum is less than N
-      unsigned int initSum = 0;
-      for (std::vector<unsigned int>::iterator it = init.begin();
-           it != init.end(); it++) {
-        initSum += (*it);
-      }   
-      if (initSum > N) {
-        std::cerr << "Error: number of vertices to select randomly (" << initSum
-                  << ") higher than number of total vertices (" << N << ")"
+    }
+  }
+
+  if (verbose) {
+    std::cout << "\nGraph created with " << num_vertices(graph)
+              << " vertices." << std::endl;
+  }
+
+  // consider pairs
+  if (vm.count("pairs")) {
+    std::cout << "\nPair count:" << std::endl;
+    std::vector<unsigned int> pairs = count_pairs(graph, nEdgeTypes);
+    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+        std::cout << "  " << edgeLabels[i] << "-pairs: " << pairs[i]
                   << std::endl;
-      }
-      
-      // inserting init[i] vertices of type i
-      boost::graph_traits<dualtype_graph>::vertex_descriptor v;
-      for (unsigned int i=0; i<model->getVertexStates().size(); i++) {
-        for (unsigned int j=0; j<init[i]; j++) {
-          bool inserted = false;
-          while (!inserted) {
-            v = boost::random_vertex(graph, gen);
-            if (graph[v].state == baseState) {
-              graph[v].state = i;
-              inserted = true;
-            }
-          }
-          if (verbose >= 2) {
-            std::cout << "Vertex #" << v << " is assigned state " 
-                      << model->getVertexStates()[i] << std::endl;
-          }
-        }
-      }
-      
-    } else { // if generateIC is not set
-      if (nSim == 1) {
-        // save graph states
-        saved_graph = graph;
-      } else {
-        // recover graph states
-        graph = saved_graph;
+    }
+  }
+  
+  // consider triples
+  if (vm.count("triples")) {
+    std::cout << "\nTriple count:" << std::endl;
+    boost::multi_array<unsigned int, 2> triples =
+      count_triples(graph, nEdgeTypes);
+    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+      for (unsigned int j = i; j < nEdgeTypes; ++j) {
+        std::cout << "  " << edgeLabels[i] << edgeLabels[j] << "-triples: "
+                  << triples[i][j] << std::endl;
       }
     }
-    
-    /******************************************************************/
-    // initialize model
-    /******************************************************************/
-    
-    model->Init(vm);
-    if (verbose >=1) model->Print();
-    
-    /******************************************************************/
-    // create simulator
-    /******************************************************************/
-    
-    Simulator* sim;
-    
-    if (vm.count("sim")) {
-      std::string simType = vm["sim"].as<std::string>();
-      if (simType == "Gillespie") {
-        sim = new Simulators::GillespieSimulator<boost::mt19937, dualtype_graph>
-          (gen, graph, *model, verbose);
-      } else if (simType == "Chris") {
-        sim = new Simulators::ChrisSimulator<boost::mt19937, dualtype_graph>
-          (gen, graph, *model, verbose);
-      } else {
-        std::cerr << "Error: unknown simulator: " << simType << std::endl;
-        return 1;
-      }
-    } else {
-      std::cerr << "Error: no simulator specified" << std::endl;
-      return 1;
-    }
-    
-    /******************************************************************/
-    // read simulation paramters
-    /******************************************************************/
-    
-    stopRecoveries = vm["rmax"].as<unsigned int>();
-    stopInfections = vm["imax"].as<unsigned int>();
-    stopInformations = vm["pmax"].as<unsigned int>();
-    outputData = vm["output"].as<double>();
-        
-    bool doSim = !(stopTime == 0 && stopInfections == 0 &&
-                   stopRecoveries == 0 && stopInformations == 0);
-    
-    // graph directory
-    if (vm.count("graph-dir")) {
-      graphDir = vm["graph-dir"].as<std::string>();
-    }
-    std::stringstream graphDirName(graphDir, std::ios::in | std::ios::out |
-                                   std::ios::ate);
-    graphDirName << "/run" << std::setfill('0') << std::setw(extLength) << nSim;
-    
-    /******************************************************************/
-    // open output file
-    /******************************************************************/
-    if (vm.count("write-file") && doSim) {
-      outputFileName = fileName.str()+".sim.dat";
-      
-      try {
-        outputFile = new std::ofstream();
-        outputFile->open(outputFileName.c_str(), std::ios::out);
-      }
-      catch (std::exception &e) {
-        std::cerr << "Unable to open output file: " << e.what() << std::endl;
-      }
-    }
-    
-    /******************************************************************/
-    // initialize Simulator
-    /******************************************************************/
-    sim->initialize();
-    
-    // print time
-    if (verbose)
-      std::cout << "time elapsed: " << sim->getTime() << std::endl;
-    
-    // GraphViz output
-    if (outputGraphviz >= 0) {
-      // create graph directories
-      if (nSim == 1) mkdir(graphDir.c_str(), 0755);
-      mkdir(graphDirName.str().c_str(), 0755);
-      draw_function(graph, *model, (graphDirName.str() + "/frame000"), -1);
-    }
-    
-    // prints data to outputFile
-    std::string lastLine = "";
-    if (outputFile) {
-      lastLine = write_graph_data(graph, *model, sim->getTime(), *outputFile,
-                                  pairs, triples);
-    }
-    if (verbose) print_graph_statistics(graph, *model, pairs, triples);
-    
-    /******************************************************************/
-    // run simulation
-    /******************************************************************/
-    double nextDataStep = outputData;
-    
-    unsigned int steps = 0;
-    unsigned int outputNum = 1;
-    
-    while ((stopTime == 0 || sim->getTime()<stopTime) &&
-           (stopInfections == 0 || (sim->getNumInfections() < stopInfections &&
-                                    sim->getNumInfections()+1 > sim->getNumRecoveries())) &&
-           (stopInformations == 0 || (sim->getNumInformations() < stopInformations && 
-                                      sim->getNumInformations()+1 > sim->getNumForgettings())) &&
-           doSim && sim->updateState()) {
-      
-      if (verbose >= 2) {
-        print_graph_statistics(graph, *model, pairs, triples);
-      }
-      
-      if (verbose && steps%100 == 0) {
-        std::cout << "time elapsed: " << sim->getTime() << std::endl;
-      }
-      
-      if ((outputGraphviz > 0) && (steps % outputGraphviz == 0)) {
-        draw_function(graph, *model,
-                      generateFileName((graphDirName.str() +"/frame"),
-                                       outputNum),
-                      sim->getTime());
-        ++outputNum;
-      }
-      if (outputFile && sim->getTime() > nextDataStep) {
-        lastLine = 
-          write_graph_data(graph, *model, sim->getTime(), *outputFile, pairs, triples);
-        if (outputData > 0) {
-          do {
-            nextDataStep += outputData;
-          } while (sim->getTime() > nextDataStep);
-        }
-      }
-      ++steps;
-    }
-    
-    if (stopTime == 0) stopTime = sim->getTime();
-    
-    if (verbose) std::cout << "Final status (" << sim->getTime() << "): " 
-                           << std::endl;
-    if (doSim && outputGraphviz >= 0) {
-      draw_function(graph, *model,
-                    generateFileName((graphDirName.str()+"/frame"),
-                                     outputNum),sim->getTime());
-    }
-    
-    if (outputFile) {
-      if (sim->getTime() < stopTime) {
-        lastLine = 
-          write_graph_data(graph, *model, sim->getTime(), *outputFile, pairs, triples);
-      }
-      *outputFile << stopTime << '\t' << lastLine;
-      outputFile->close();
-      delete outputFile;
-//       std::ofstream statsFile;
-//       std::string statsFileName = fileName.str()+".stats";
-//       statsFile.open(statsFileName.c_str(), std::ios::out);
-//       statsFile << "Cumulative number of infections: "
-//                 << sim->getNumInfections() << std::endl;
-//       statsFile.close();
-    }
-    
-    if (verbose || printStats) {
-      std::cout << "Cumulative number of infections: " << sim->getNumInfections() 
-                << std::endl;
-      std::cout << "Cumulative number of informations: " << sim->getNumInformations() 
-                << std::endl;
-      unsigned int infectedVertices = 0;
-      boost::graph_traits<dualtype_graph>::vertex_iterator vi, vi_end;
-      for (tie(vi, vi_end) = vertices(graph); vi != vi_end; vi++) {
-        if (graph[*vi].infected) ++infectedVertices;
-      }
-      std::cout << "Number of infected vertices: " << infectedVertices
-                << std::endl;
-    }
-    
-    if (verbose) print_graph_statistics(graph, *model, pairs, triples);
-    
-    // free memory
-    delete sim;
-    
   }
 
-  if (vm.count("write-file")) {
-
-    if (stopTime > 0) {
-      std::ofstream gpFile;
-      std::string gpFileName = baseFileName+".gp";
-      
-      try {
-        gpFile.open(gpFileName.c_str(), std::ios::out);
-      }
-      catch (std::exception &e) {
-        std::cerr << "... unable to open gnuplot output file " 
-                  << gpFileName << std::endl;
-        std::cerr << "... Standard exception: " << e.what() << std::endl;      
-        return 1; 
-      }
-      
-      gpFile << "### model parameters generated by simulate" << std::endl;
-      gpFile << "N=" << num_vertices(graph) << std::endl;
-      gpFile << "Tmax=" << stopTime << std::endl;
-      gpFile << "### end of model parameters" << std::endl;
-      
-      try {
-        gpFile.close();
-      }
-      catch (std::exception &e) {
-        std::cerr << "... unable to close gnuplot output file " 
-                  << gpFileName << std::endl;
-        std::cerr << "... Standard exception: " << e.what() << std::endl;      
-        return 1; 
-      }
-    }
+  if (vm.count("print-degrees")) {
+    print_degrees(graph, nEdgeTypes);
   }
   
   // free memory
-  for (std::vector<Label>::const_iterator it = model->getEdgeTypes().begin();
-       it != model->getEdgeTypes().end(); it++) {
-    delete lattice_options[it->getId()];
-    delete rg_options[it->getId()];
-    delete rrg_options[it->getId()];
-    delete sw_options[it->getId()];
-    delete plod_options[it->getId()];
-    delete ab_options[it->getId()];
-    delete readFile_options[it->getId()];
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+    delete lattice_options[i];
+    delete rg_options[i];
+    delete rrg_options[i];
+    delete sw_options[i];
+    delete plod_options[i];
+    delete ab_options[i];
+    delete readFile_options[i];
   }
-  
-  delete model;
   
   std::cout << std::endl;
   

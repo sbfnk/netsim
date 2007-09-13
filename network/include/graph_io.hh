@@ -1,9 +1,9 @@
-/*! \file visualise_graph.hh
-  \brief Functions for the visualisation of graphs.
+/*! \file graph_io.hh
+  \brief Functions for reading and writing graphs.
 */
 
-#ifndef VISUALISE_GRAPH_HH
-#define VISUALISE_GRAPH_HH
+#ifndef GRAPH_IO_HH
+#define GRAPH_IO_HH
 
 #include <boost/graph/graphviz.hpp>
 
@@ -11,13 +11,7 @@
 #include <string>
 #include <sstream>
 
-#define NO_FREETYPE // don't include freetype fonts
-#include <pngwriter.h>
-
-#include <math.h>
-
-#include "Model.hh"
-#include "Vertex.hh"
+#include "Edge.hh"
 
 //! \addtogroup graph_visualisation Graph visualisation
 //! \addtogroup helper_functions Helper functions
@@ -27,7 +21,6 @@
   
 \ingroup graph_visualisation
 */
-template<class StateProperty>
 class vertex_writer {
       
 public:
@@ -39,21 +32,14 @@ public:
   \param[in] newModel The model to be used for getting the graphviz option
   corresponding to a vertex state
   */
-  vertex_writer(StateProperty newState, const Model& newModel)
-    : state(newState), model(newModel) {}
+  vertex_writer() {}
 
   //! Operator for writing vertex entries to a graphviz files
-  template <class VertexType>
-  void operator()(std::ostream& out, const VertexType& v) const
+  template<typename VertexProperty>
+  void operator()(std::ostream& out, VertexProperty v) const
   {
-    out << "[" << model.getVertexStates()[state[v]].getDrawOption()
-        << " label=\"\"]";
+    out << "[label=\"\"]";
   }
-  
-private:
-
-  StateProperty state; //!< The state of the vertex 
-  const Model& model; //!< The model used for determining graphviz options
   
 };
 
@@ -64,10 +50,9 @@ private:
 \param[in] m The model to be passed to the vertex_writer
 \ingroup graph_visualisation
 */
-template <class VertexProperty>
-inline vertex_writer<VertexProperty>
-make_vertex_writer(VertexProperty v, const Model& m) {
-  return vertex_writer<VertexProperty>(v, m);
+inline vertex_writer
+make_vertex_writer() {
+  return vertex_writer();
 }
 
 //----------------------------------------------------------
@@ -87,21 +72,23 @@ public:
   \param[in] newModel The model to be used for getting the graphviz option
   corresponding to an edge type
   */
-  edge_writer(EdgeProperty newEdge, const Model& newModel)
-    : edge(newEdge), model(newModel) {}
+  edge_writer(EdgeProperty newEdge, bool s)
+    : edge(newEdge), saveType(s)
+  {}
 
   //! Operator for edge entries in graphviz files
   template <class EdgeType>
   void operator()(std::ostream& out, const EdgeType& e) const
   {
-    out << "[" << model.getEdgeTypes()[edge[e]].getDrawOption()
-        << " len=0.1 color=white" << "]";
+    out << "[";
+    if (saveType) out << "type=" << edge[e] << " ";
+    out << "len=0.1 color=white" << "]";
   }
 
 private:
 
   EdgeProperty edge; //!< The type of the edge
-  const Model& model; //!< The model used for determining graphviz options
+  bool saveType; //!< Whether to save the edge type into the file or not
 
 };
 
@@ -114,8 +101,8 @@ private:
 */
 template <class EdgeProperty>
 inline edge_writer<EdgeProperty>
-make_edge_writer(EdgeProperty e, const Model& m) {
-  return edge_writer<EdgeProperty>(e, m);
+make_edge_writer(EdgeProperty e, bool s) {
+  return edge_writer<EdgeProperty>(e, s);
 }
 
 //----------------------------------------------------------
@@ -128,14 +115,12 @@ struct graph_writer {
     \param[in] t The title of the graph which is to be written to a graphviz
     file
   */
-  graph_writer(std::string t="") : title(t) {;}
+  graph_writer() {;}
   
   //! Operator for the graph entry in graphviz files
   void operator()(std::ostream& out) const {
     // graph options
     out << "graph [overlap=scalexy bgcolor=black outputorder=edgesfirst";
-    // graph title
-    if (title.size() > 0) out << " label=\"" << title << "\" labelloc=\"t\"";
     // more graph options
     out << " fontcolor=white normalize=true]" << std::endl;
     // default node options
@@ -143,7 +128,6 @@ struct graph_writer {
         << "fixedsize=true]" << std::endl;
   }
 
-  std::string title; //!< The title of the graph
 };
 
 //----------------------------------------------------------
@@ -160,23 +144,18 @@ corresponding to a time
 \ingroup graph_visualisation
 */
 template <typename Graph>
-void write_graph(const Graph& g, const Model& m,
-                 std::string fileName, double timeLabel=0.)
+void write_graph(const Graph& g, std::string fileName, bool saveType = true)
 {
-  typedef typename boost::vertex_property_type<Graph>::type::value_type
-    vertex_property_type;
   typedef typename boost::edge_property_type<Graph>::type::value_type
     edge_property_type;
   
   std::ofstream out(fileName.c_str());
   std::stringstream s;
-  if (timeLabel > 0) s << "Time: " << timeLabel;
-  if (timeLabel < 0) s << "Time: start";
 
   write_graphviz(out, g,
-                 make_vertex_writer(get(&vertex_property_type::state, g), m),
-                 make_edge_writer(get(&edge_property_type::type, g), m),
-                 graph_writer(s.str()));
+                 make_vertex_writer(),
+                 make_edge_writer(get(&edge_property_type::type, g), saveType),
+                 graph_writer());
 }
 
 //----------------------------------------------------------
@@ -226,26 +205,28 @@ OutType cast_stream(const InValue& t)
 //----------------------------------------------------------
 /*! \brief Read graph from a graphviz file
   
-Reads a graph from a graphviz file by going through the file line-by-line and
-matching the options to the options given by the model. If there are already
-vertices in the graph, it only connects them according to the edges given in
-the file. If not, it creates the vertices and, if desired, reads in their
-states. 
+Reads a graph from a graphviz file by going through the file line-by-line.
+If there are already vertices in the graph, it only connects them according to
+the edges given in the file. If not, it creates the vertices and, if desired,
+reads in their states. 
 
 \param[out] g The graph to read into
-\param[in] m The model to be used to determine the graphviz options
-corresponding to vertex and edge properties
 \param[in] graphFileName The name of the file to be read
 \param[in] edgeType The edge type to be assigned to the read file
-\param[in] readState Read in the state of vertices
 \param[in] verbose Add verbosity
 \return 0 if successful, >0 if failed
 \ingroup graph_visualisation
 */
 template <typename Graph>
-int read_graph(Graph& g, Model& m, const std::string graphFileName,
-               unsigned int edgeType, bool readState = false, bool verbose = false)
+int read_graph(Graph& g, const std::string graphFileName,
+               unsigned int edgeType, unsigned int verbose = 0)
 {
+
+  std::vector<std::string> edgeStyles;
+  edgeStyles.push_back("solid");
+  edgeStyles.push_back("dashed");
+  edgeStyles.push_back("dotted");
+  
   // open file
   std::ifstream file;
   try {      
@@ -256,26 +237,14 @@ int read_graph(Graph& g, Model& m, const std::string graphFileName,
               << std::endl;            
   }
   
-  // maps
-  typedef std::map<std::string, unsigned int> ColorToState;
-  ColorToState color2state;
-  
+  // map
   typedef std::map<std::string, unsigned int> StyleToType;
   StyleToType style2type;
   
-  // initialize color2state vertex map
-  for (unsigned int i = 0; i < m.getVertexStates().size(); i++) {
-    std::string color =
-      extractDrawOption("fillcolor",
-                        m.getVertexStates()[i].getDrawOption());
-    color2state.insert(std::make_pair(color,i));
-  }
-  
   // initialize style2type edge map
-  for (unsigned int i = 0; i < m.getEdgeTypes().size(); i++) {
+  for (unsigned int i = 0; i < edgeStyles.size(); i++) {
     std::string style =
-      extractDrawOption("style",
-                        m.getEdgeTypes()[i].getDrawOption());
+      extractDrawOption("style",edgeStyles[i]);
     style2type.insert(std::make_pair(style,i));
   }
 
@@ -303,7 +272,7 @@ int read_graph(Graph& g, Model& m, const std::string graphFileName,
         std::string::size_type lpos = line.find("--");
         std::string::size_type bpos = line.find("[");
         std::string s, t;
-        unsigned int type, state, src, trg;
+        unsigned int type, src, trg;
         
         // if edge
         if (lpos != std::string::npos) {
@@ -315,7 +284,15 @@ int read_graph(Graph& g, Model& m, const std::string graphFileName,
           t = line.substr(lpos+2, bpos-lpos-3);
           
           // extract type
-          type = style2type[extractDrawOption("style", line)];
+          if (line.find("style") != std::string::npos) {
+            type = style2type[extractDrawOption("style", line)];
+          } else if (line.find("type") != std::string::npos) {
+            std::istringstream typeStream(extractDrawOption("type", line));
+            typeStream >> type;
+          } else {
+            // no type is given, so we automatically add
+            type = edgeType;
+          }
           
           // typecasting string to int
           src = cast_stream<unsigned int>(s);
@@ -335,31 +312,7 @@ int read_graph(Graph& g, Model& m, const std::string graphFileName,
           
         } else { // if vertex
 
-          if (readState) { // read out vertex state?
-          
-            // extract vertex index
-            s = line.substr(0, bpos);
-            
-            // extract state
-            state = color2state[extractDrawOption("fillcolor", line)];
-          
-            // typecasting string to int
-            src = cast_stream<unsigned int>(s);
-            
-            if (addVertices) {
-              add_vertex(Vertex(state), g);
-              state_count[state]++;
-            } else {
-              if (src < num_vertices(g)) {
-                // update state
-                //std::cout << src << ":" << state << std::endl;
-                g[src].state = state;
-                
-                // count
-                state_count[state]++;
-              }
-            }
-          } else if (addVertices) {
+          if (addVertices) {
             add_vertex(g);
           }
         }
@@ -376,17 +329,6 @@ int read_graph(Graph& g, Model& m, const std::string graphFileName,
       
       unsigned int tmpSum = 0;
         
-      for (unsigned int i = 0; i < m.getVertexStates().size(); i++) 
-        if (state_count[i] > 0) {
-          std::cout << "# of vertices in state "
-                    << m.getVertexStates()[i] << " : "
-                    << state_count[i] << std::endl;
-          tmpSum += state_count[i];
-        }         
-
-      // ADD CHECK VS. N
-      
-      tmpSum = 0;
       for (it = edge_count.begin(); it != edge_count.end(); ++it) {         
         std::cout << "# of edges of type " << it->first << " read: "
                   << it->second << std::endl;
@@ -420,15 +362,12 @@ distribution to
 \ingroup graph_visualisation
 */
 template <typename Graph>
-unsigned int write_degree(const Graph& g, const Model& m,
+unsigned int write_degree(const Graph& g, unsigned int nEdgeTypes,
                           const std::string degreeFileName)
 {
   typename boost::graph_traits<Graph>::vertex_iterator vi, vi_end;
   typename boost::graph_traits<Graph>::out_edge_iterator ei, ei_end;   
 
-  // number of edge types (not including parallel)
-  unsigned int nEdgeTypes = m.getEdgeTypes().size();
-   
   // counters
   typedef std::map<unsigned int, unsigned int> degree_map;
   std::vector<degree_map*> degree(nEdgeTypes+1); // including parallel
@@ -505,146 +444,6 @@ unsigned int write_degree(const Graph& g, const Model& m,
    
 }
 
-//----------------------------------------------------------
-/*! \brief Get the RGB colour code corresponding to an ASCII colour
-  
-\param[in] colour The ASCII colour code
-\return A vector of size three, corresponding to red, green and blue colour
-intensity 
-\ingroup helper_functions
-*/
-std::vector<double> getColourCode(std::string colour)
-{
-  std::vector<double> code(3, 0.0);
-  if (colour == "00;32") {
-    // dark blue
-    code[2]=0.3;
-  } else if (colour == "00;31") {
-    // dark red
-    code[0]=0.3;
-  } else if (colour == "00;34") {
-    // dark green
-    code[1]=0.3;
-  } else if (colour == "01;32") {
-    // light blue
-    code[2]=1.0;
-  } else if (colour == "01;31") {
-    // light red
-    code[0]=1.0;
-  } else if (colour == "01;34") {
-    // light green
-    code[1]=1.0;
-  }
-  return code;
-}
-
-
-//----------------------------------------------------------
-/*! \brief Paint lattice to a png file
-  
-\param[in] g The graph to write to the file
-\param[in] m The model to be used to determine the vertex colours
-corresponding to their states
-\param[in] fileName The name of the file to be written (without extension .png)
-\param[in] timeLabel Optional number to be written to the graph as title,
-corresponding to a time
-\ingroup graph_visualisation
-*/
-template <typename Graph>
-void draw_lattice(const Graph& g, const Model& m, std::string fileName,
-                  double timeLabel = 0.)
-{
-  typedef typename boost::graph_traits<Graph>::vertex_iterator
-    vertex_iterator;
-
-  unsigned int sideLength = static_cast<unsigned int>(sqrt(num_vertices(g)));
-
-  // create canvas
-  pngwriter lattice_image(sideLength, sideLength, 0.0,
-                          (fileName+".png").c_str());
-  unsigned x = 1;
-  unsigned y = 1;
-  vertex_iterator vi, vi_end;
-  for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi) {
-    unsigned int state = g[*vi].state;
-    // get colour code corresponding to the state of the current vertex
-    std::vector<double> colourCode =
-      getColourCode(m.getVertexStates()[state].getColour());
-    lattice_image.plot(x,y,colourCode[0], colourCode[1], colourCode[2]);
-    ++x;
-    if (x > sideLength) {
-      // go to next row 
-      x = 1;
-      ++y;
-    }
-  }
-  lattice_image.close();
-}
-
-//----------------------------------------------------------
-/*! \brief Paint ring to a png file
-  
-Currently, this prints only a bar which folds up to the ring.
-
-\param[in] g The graph to write to the file
-\param[in] m The model to be used to determine the vertex colours
-corresponding to their states
-\param[in] fileName The name of the file to be written (without extension .png)
-\param[in] timeLabel Optional number to be written to the graph as title,
-corresponding to a time
-\ingroup graph_visualisation
-*/
-
-template <typename Graph>
-void draw_ring(const Graph& g, const Model& m, std::string fileName,
-               double timeLabel = 0.)
-{
-  typedef typename boost::graph_traits<Graph>::vertex_iterator
-    vertex_iterator;
-  typename boost::property_map<Graph, boost::vertex_index_t>::type 
-    id = get(boost::vertex_index, g);
-
-  double vertices_per_column = static_cast<double>(num_vertices(g)) / 200.;
-  
-  pngwriter ring_image(200, 20, 0.0, (fileName+".png").c_str());
-
-  unsigned int column = 1;
-
-  vertex_iterator vi, vi_end;
-  tie(vi, vi_end) = vertices(g);
-
-  while (vi != vi_end) {
-
-    std::vector<unsigned int> count(m.getVertexStates().size(), 0);
-    std::vector<double> colourCodes(3, 0.);
-
-    unsigned int i = 0;
-
-    while (id[*vi] < column * vertices_per_column) {
-      unsigned int state = g[*vi].state;
-      std::vector<double> vertexColour =
-        getColourCode(m.getVertexStates()[state].getColour());
-      for (unsigned int j = 0; j < colourCodes.size(); j++) {
-        colourCodes[j] += vertexColour[j];
-      }
-      ++i;
-      ++vi;
-    }
-
-    // normalize colours
-    for (std::vector<double>::iterator it = colourCodes.begin();
-         it != colourCodes.end(); it++) {
-      (*it) /= i;
-    }
-
-    ring_image.line(column,1,column,200, colourCodes[0],
-                    colourCodes[1], colourCodes[2]);
-
-    ++column;
-  }
-  
-  ring_image.close();
-}
 
 //----------------------------------------------------------
 

@@ -13,9 +13,6 @@
 #include <boost/graph/graph_utility.hpp>
 #include <boost/graph/graph_traits.hpp>
 
-#include "Model.hh"
-#include "Vertex.hh"
-
 /*! \brief Sparse matrix routines.
   \ingroup helper_functions
 */

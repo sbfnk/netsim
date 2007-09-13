@@ -11,7 +11,6 @@
 #include <boost/random.hpp>
 #include <vector>
 #include <iostream>
-#include <sys/time.h>
 
 #include "graph_statistics.hh"
 
@@ -118,10 +117,10 @@ namespace boost {
 
   template <typename Graph>
   bool suitable(Graph& g,
-                std::vector<typename boost::graph_traits<Graph>::vertex_descriptor>& stubs,
+                std::vector<typename graph_traits<Graph>::vertex_descriptor>& stubs,
                 std::vector<std::vector<bool> >& seen_edges)
   {
-    typedef typename std::vector<typename boost::graph_traits<Graph>::vertex_descriptor>::iterator iter;
+    typedef typename std::vector<typename graph_traits<Graph>::vertex_descriptor>::iterator iter;
     
     for (iter s = stubs.begin(); s != stubs.end(); s++) 
       for (iter t = s + 1; t != stubs.end(); t++) 
@@ -133,27 +132,51 @@ namespace boost {
   //----------------------------------------------------------
   /*! \brief Copy all edges from one graph to another
     
-  Loops over all edges in a graph and copy them to antoher graph, optionally
-  with different properties.
+  Loops over all edges in a graph and copy them to antoher graph.
   
   \param[in] source_graph The graph to copy the edges from.
   \param[out] target_graph The graph to copy the egges to.
-  \param[in] et Properties to assign to the newly created edges in
+  \ingroup graph_structure
+  */
+  template <typename Graph1, typename Graph2>
+  void copy_edges(Graph1& source_graph, Graph2& target_graph)
+  {
+    typedef typename graph_traits<Graph1>::edge_iterator
+      edge_iterator;
+    
+    edge_iterator ei, ei_end;
+    // loop over all edges in source graph and add to target_graph with
+    // property et
+    for (tie(ei, ei_end) = edges(source_graph); ei != ei_end; ei++) {
+      add_edge(source(*ei, source_graph), target(*ei, source_graph),
+               source_graph[*ei], target_graph);
+    }
+  }
+  
+  //----------------------------------------------------------
+  /*! \brief Copy all edges from one graph to another, assigning them a given
+    edge property
+    
+  Loops over all edges in a graph and copy them to another graph, assigning them
+  a given edge property
+  
+  \param[in] source_graph The graph to copy the edges from.
+  \param[out] target_graph The graph to copy the egges to.
+  \param[in] et Property to assign to the newly created edges in
   target_graph.
   \ingroup graph_structure
   */
   template <typename Graph1, typename Graph2>
-  void copy_graph(Graph1& source_graph, Graph2& target_graph,
-                 typename edge_property_type<Graph2>::type et =
-                 edge_property_type<Graph2>::type())
+  void copy_edges(Graph1& source_graph, Graph2& target_graph,
+                 typename edge_property_type<Graph2>::type et)
 
   {
-    typedef typename boost::graph_traits<Graph1>::edge_iterator
+    typedef typename graph_traits<Graph1>::edge_iterator
       edge_iterator;
     
     edge_iterator ei, ei_end;
-    // loop over all edges in source graph and add to target_graph with property
-    // et
+    // loop over all edges in source graph and add to target_graph with
+    // property et
     for (tie(ei, ei_end) = edges(source_graph); ei != ei_end; ei++) {
       add_edge(source(*ei, source_graph), target(*ei, source_graph),
                et, target_graph);
@@ -161,58 +184,36 @@ namespace boost {
   }
   
   //----------------------------------------------------------
-  /*! \brief Mark all parallel edges in a graph
+  /*! \brief Copy all edges with a given property from one graph to another.
     
-  Loops over all edges in a graph and sets the parallel_edges flag for all
-  edges for which there exists an additional edge between the two vertices
-  connected by it. Neede by count_parallel_edges.
+  Loops over all edges in a graph and copy them to another graph if they possess
+  a given edge property
   
-  \param[in] g The graph to mark the parallel edges in.
-  \return The number double edges in the graph.
-  \ingroup helper_functions
+  \param[in] source_graph The graph to copy the edges from.
+  \param[out] target_graph The graph to copy the egges to.
+  \param[in] et Property to assign to the newly created edges in
+  target_graph.
+  \ingroup graph_structure
   */
-  template <typename Graph>
-  unsigned int mark_parallel_edges(Graph& g)
+  template <typename Graph1, typename Graph2>
+  void copy_edges_type(Graph1& source_graph, Graph2& target_graph,
+                       typename edge_property_type<Graph1>::type::value_type et)
+
   {
-    typename graph_traits<Graph>::edge_iterator ei, ei_end;
-    typename graph_traits<Graph>::out_edge_iterator oi, oi_end;
-    typename Graph::vertex_descriptor s, t;
-
-    // counter
-    unsigned int parallel_edges = 0;      
-      
-    // loop over all edges
-    for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
-      // setting source and target vertices
-      s = source(*ei, g);
-      t = target(*ei, g);
-         
-      // check if more than one edge is going to the same target
-      // from the edge's source
-       
-      unsigned int parallel_outgoing = 0;
-         
-      for (tie(oi, oi_end) = out_edges(s, g); oi != oi_end; oi++) {
-        if (target(*oi, g) == t) parallel_outgoing++;            
+    typedef typename graph_traits<Graph1>::edge_iterator
+      edge_iterator;
+    
+    edge_iterator ei, ei_end;
+    // loop over all edges in source graph and add to target_graph if 
+    // they have property et
+    for (tie(ei, ei_end) = edges(source_graph); ei != ei_end; ei++) {
+      if (source_graph[*ei] == et) {
+        add_edge(source(*ei, source_graph), target(*ei, source_graph),
+                 et, target_graph);
       }
-         
-      if (parallel_outgoing > 1) {
-            
-        // count parallel edges
-        parallel_edges++;
-            
-        // mark both parallel edges
-        g[*ei].parallel = true;
-      }      
     }
-      
-    // since we looped over all edges, we have counted parallels twice
-    parallel_edges = parallel_edges / 2;
-      
-    return parallel_edges;
-      
   }
-
+  
   //----------------------------------------------------------
   /*! \brief Create a random regular graph.
     
@@ -237,9 +238,9 @@ namespace boost {
                             DistributionType& uni_gen
                             )
   {
-    typedef typename boost::graph_traits<Graph>::vertex_descriptor
+    typedef typename graph_traits<Graph>::vertex_descriptor
       vertex_descriptor;
-    typedef typename boost::graph_traits<Graph>::edge_iterator
+    typedef typename graph_traits<Graph>::edge_iterator
       edge_iterator;
 
     // define seen_edges NxN zero matrix
@@ -317,11 +318,11 @@ namespace boost {
   int rewireEdges(Graph& g, RandomGenerator& r, double rewireFraction, 
                   unsigned int verbose)
   {
-    typedef typename boost::graph_traits<Graph>::edge_descriptor
+    typedef typename graph_traits<Graph>::edge_descriptor
       edge_descriptor;
-    typedef typename boost::graph_traits<Graph>::vertex_descriptor
+    typedef typename graph_traits<Graph>::vertex_descriptor
       vertex_descriptor;
-    typedef typename boost::graph_traits<Graph>::edge_iterator
+    typedef typename graph_traits<Graph>::edge_iterator
       edge_iterator;
     typedef typename edge_property_type<Graph>::type
       edge_property_type;
@@ -421,17 +422,17 @@ namespace boost {
   int rewireClustered(const ClusterGraph& cg, Graph& g, RandomGenerator& r,
                       double rewireFraction, unsigned int verbose)
   {
-    typedef typename boost::graph_traits<Graph>::edge_iterator
+    typedef typename graph_traits<Graph>::edge_iterator
       g_edge_iterator;
-    typedef typename boost::graph_traits<Graph>::edge_descriptor
+    typedef typename graph_traits<Graph>::edge_descriptor
       g_edge_descriptor;
-    typedef typename boost::graph_traits<Graph>::out_edge_iterator
+    typedef typename graph_traits<Graph>::out_edge_iterator
       g_out_edge_iterator;
     typedef typename edge_property_type<Graph>::type
       g_edge_property_type;
-    typedef typename boost::graph_traits<ClusterGraph>::out_edge_iterator
+    typedef typename graph_traits<ClusterGraph>::out_edge_iterator
       cg_out_edge_iterator;
-    typedef typename boost::graph_traits<ClusterGraph>::vertex_descriptor
+    typedef typename graph_traits<ClusterGraph>::vertex_descriptor
       cg_vertex_descriptor;
 
     // put all edges into a vector for speed reasons...
@@ -603,7 +604,7 @@ namespace boost {
   template <typename Graph, typename RandomGenerator>
   void removeEdges(Graph& g, RandomGenerator& r, double removeFraction)
   {
-    typedef typename boost::graph_traits<Graph>::edge_descriptor
+    typedef typename graph_traits<Graph>::edge_descriptor
       edge_descriptor;
 
     unsigned int N = num_edges(g);
@@ -636,13 +637,13 @@ namespace boost {
   template <typename Graph, typename RandomGenerator>
   void addEdges(Graph& g, RandomGenerator& r, double addFraction)
   {
-    typedef typename boost::graph_traits<Graph>::vertex_descriptor
+    typedef typename graph_traits<Graph>::vertex_descriptor
       vertex_descriptor;
-    typedef typename boost::graph_traits<Graph>::edge_descriptor
+    typedef typename graph_traits<Graph>::edge_descriptor
       edge_descriptor;
     typedef typename edge_property_type<Graph>::type
       edge_property_type;
-    typedef typename boost::graph_traits<Graph>::edge_iterator
+    typedef typename graph_traits<Graph>::edge_iterator
       edge_iterator;
     
     edge_iterator ei, ei_end;
@@ -730,6 +731,54 @@ namespace boost {
       }
     } else
       return *edges(g).first;
+  }
+
+  //----------------------------------------------------------
+  /*! \brief Randomise the vertices in a graph
+    
+  \param[in, out] g The graph to randomise the vertices in.
+  \param[in] r The random generator to use.
+  \ingroup graph_structure
+  */
+  template <typename Graph, typename RandomGenerator>
+  void randomise_vertices(Graph& g, RandomGenerator& r)
+  {
+    typedef typename graph_traits<Graph>::vertex_descriptor
+      vertex_descriptor;
+    typedef typename graph_traits<Graph>::vertex_iterator
+      vertex_iterator;
+    typedef typename graph_traits<Graph>::edge_iterator
+      edge_iterator;
+
+    Graph temp_graph;
+    // add vertices to temp_graph
+    boost::add_vertices(temp_graph, num_vertices(g));
+    // randomise vertices and store in vector
+    std::vector<vertex_descriptor> original_vertices, randomised_vertices;
+    vertex_iterator vi, vi_end;
+    for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+      original_vertices.push_back(*vi);
+    }
+
+    boost::uniform_01<boost::mt19937, double> uni_gen(r);
+    while (original_vertices.size() > 0) {
+      vertex_descriptor rand_no =
+        static_cast<unsigned int>(uni_gen() * original_vertices.size());
+      randomised_vertices.push_back(original_vertices[rand_no]);
+      original_vertices.erase(original_vertices.begin()+rand_no);
+    }
+
+    // add edges according to randomisation
+    edge_iterator ei, ei_end;
+    for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
+      add_edge(randomised_vertices[source(*ei, g)],
+               randomised_vertices[target(*ei, g)],
+               g[*ei], temp_graph);
+    }
+
+    g = temp_graph;
+    
+    return;
   }
 
 } // namespace boost

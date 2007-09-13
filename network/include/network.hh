@@ -1,7 +1,7 @@
-/*! \file simulate.hh
+/*! \file network.hh
   \brief Empty include file.
 */
-#ifndef SIMULATE_HH
-#define SIMULATE_HH
+#ifndef NETWORK_HH
+#define NETWORK_HH
 
 #endif
