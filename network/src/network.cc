@@ -864,7 +864,7 @@ int main(int argc, char* argv[])
       }
 
       // reading graph structure and initial state from file
-      if (read_graph(temp_graph, opt.fileName, i, verbose) == 0) {
+      if (read_graph(temp_graph, opt.fileName, i) == 0) {
         
         // update number of vertices
         N = num_vertices(graph);
