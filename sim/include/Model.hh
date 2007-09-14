@@ -21,7 +21,7 @@ namespace po = boost::program_options;
 \ingroup models
 \ingroup gillespie_simulator
 */
-struct event
+struct Event
 {
   /*! \brief Constructor.
   \param[in] r rate initialiser
@@ -29,7 +29,7 @@ struct event
   \param[in] n nb initialiser
   \param[in] e et initialiser
   */
-  event(double r=0, int s=0, unsigned int n=0, unsigned int e=0) :
+  Event(double r=0, int s=0, unsigned int n=0, unsigned int e=0) :
     rate(r), newState(s), nb(n), et(e){}
   
   //! The rate at which an event occurs (depends on model parameters)
@@ -42,7 +42,7 @@ struct event
   unsigned int et; 
 };
 
-typedef std::vector<event> eventList;
+typedef std::vector<Event> eventList;
 
 //----------------------------------------------------------
 /*!

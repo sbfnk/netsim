@@ -36,12 +36,6 @@
 
 namespace po = boost::program_options;
 
-//! Classes and functions of the boost libraries.
-namespace boost {
-//! Special classes and functions of the boost libraries.
-  namespace detail {}
-}
-
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
                               Vertex, Edge> multitype_graph;
 typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,

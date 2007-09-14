@@ -136,7 +136,7 @@ namespace Simulators {
       vertex_descriptor v = vertex(*eventVertex, graph);
 
       // find event corresponding to randNo
-      std::vector<event>::iterator it = graph[v].events.begin();
+      std::vector<Event>::iterator it = graph[v].events.begin();
       while (it != graph[v].events.end() && tempSum < randNo) {
         tempSum += (*it).rate;
         it++;

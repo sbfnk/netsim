@@ -3,7 +3,7 @@
 #---------------------------------------------------------------------------
 # Project related configuration options
 #---------------------------------------------------------------------------
-PROJECT_NAME           = sim
+PROJECT_NAME           = Simulation
 PROJECT_NUMBER         = 
 OUTPUT_DIRECTORY       = doc/
 CREATE_SUBDIRS         = NO
@@ -76,7 +76,7 @@ INPUT                  = src/ \
                          include/
 FILE_PATTERNS          = 
 RECURSIVE              = NO
-EXCLUDE                = 
+EXCLUDE                = include/ChrisSimulator.hh
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = 
 EXAMPLE_PATH           = 
