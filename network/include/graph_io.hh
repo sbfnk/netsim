@@ -13,14 +13,15 @@
 
 #include "Edge.hh"
 
-//! \addtogroup graph_visualisation Graph visualisation
+//! \addtogroup graph_io Graph I/O
+//! \addtogroup graph_statistics Graph statistic
 //! \addtogroup helper_functions Helper functions
 
 namespace boost {
   
   //----------------------------------------------------------
   /*! \brief Vertex writer class which does not write vertex properties.
-    \ingroup graph_visualisation
+    \ingroup graph_io
   */
   class vertex_writer {
       
@@ -43,7 +44,7 @@ namespace boost {
   //----------------------------------------------------------
   /*! \brief Vertex writer class for graphviz output which colours vertices
     according to a model providing getVertexStates().
-    \ingroup graph_visualisation
+    \ingroup graph_io
   */
   template <typename VertexProperty, typename Model>
   class vertex_state_writer {
@@ -78,7 +79,7 @@ namespace boost {
 
   //----------------------------------------------------------
   /*! \brief Wrapper function for the generation of a vertex_writer
-    \ingroup graph_visualisation
+    \ingroup graph_io
   */
   inline vertex_writer
   make_vertex_writer() {
@@ -90,7 +91,7 @@ namespace boost {
   
   \param[in] v The state to be passed to the vertex_writer
   \param[in] m The model to be passed to the vertex_writer
-  \ingroup graph_visualisation
+  \ingroup graph_io
   */
   template<class VertexProperty, class Model>
   inline vertex_state_writer<VertexProperty, Model>
@@ -101,7 +102,7 @@ namespace boost {
   //----------------------------------------------------------
   /*! \brief Edge writer class for graphviz output.
   
-  \ingroup graph_visualisation
+  \ingroup graph_io
   */
   template <class EdgeProperty>
   class edge_writer {
@@ -112,8 +113,7 @@ namespace boost {
     
     \param[in] newEdge The type of the edge which is to be written to a
     graphviz file
-    \param[in] newModel The model to be used for getting the graphviz option
-    corresponding to an edge type
+    \param[in] s Whether the edge type should be written or not.
     */
     edge_writer(EdgeProperty newEdge, bool s)
       : edge(newEdge), saveType(s)
@@ -139,7 +139,7 @@ namespace boost {
   /*! \brief Edge writer class for graphviz output which writes edges according to
     the types given by a model providing getEdgeTypes.
   
-    \ingroup graph_visualisation
+    \ingroup graph_io
   */
   template <class EdgeProperty, class Model>
   class edge_type_writer {
@@ -175,7 +175,7 @@ namespace boost {
   
   \param[in] e The edge type to be passed to the edge_writer
   \param[in] s Whether to put the type into the file or not
-  \ingroup graph_visualisation
+  \ingroup graph_io
   */
   template <class EdgeProperty>
   inline edge_writer<EdgeProperty>
@@ -188,7 +188,7 @@ namespace boost {
   
   \param[in] e The type to be passed to the edge_type_writer
   \param[in] m The model to be passed to the edge_type_writer
-  \ingroup graph_visualisation
+  \ingroup graph_io
   */
   template <class EdgeProperty, class Model>
   inline edge_type_writer<EdgeProperty, Model>
@@ -199,7 +199,7 @@ namespace boost {
   //----------------------------------------------------------
   /*! \brief The graph writer class for graphviz output
   
-  \ingroup graph_visualisation
+  \ingroup graph_io
   */
   struct graph_writer {
     /*! Constructor
@@ -232,7 +232,7 @@ namespace boost {
   \param[in] g The graph to write to the file
   \param[in] fileName The name of the file to be written
   \param[in] saveType Whether the edge type should be saved in the file.
-  \ingroup graph_visualisation
+  \ingroup graph_io
   */
   template <typename Graph>
   void write_graph(const Graph& g, std::string fileName, bool saveType = true)
@@ -260,7 +260,7 @@ namespace boost {
   \param[in] fileName The name of the file to be written
   \param[in] timeLabel Optional number to be written to the graph as title,
   corresponding to a time
-  \ingroup graph_visualisation
+  \ingroup graph_io
   */
   template <typename Graph, typename Model>
   void write_graph(const Graph& g, std::string fileName,
@@ -338,9 +338,8 @@ namespace boost {
   \param[out] g The graph to read into
   \param[in] graphFileName The name of the file to be read
   \param[in] edgeType The edge type to be assigned to the read file
-  \param[in] verbose Add verbosity
   \return The number of edges which have been read.
-  \ingroup graph_visualisation
+  \ingroup graph_io
   */
   template <typename Graph>
   int read_graph(Graph& g, const std::string graphFileName,
@@ -457,10 +456,9 @@ namespace boost {
   
   \param[out] g The graph to read into
   \param[in] graphFileName The name of the file to be read
-  \param[in] edgeType The edge type to be assigned to the read file
-  \param[in] verbose Add verbosity
+  \param[in] m The model to be used to assign vertex colours to states.
   \return The number of edges which have been read.
-  \ingroup graph_visualisation
+  \ingroup graph_io
   */
   template <typename Graph, typename Model>
   int read_initial_graph(Graph& g, const std::string graphFileName,
@@ -527,101 +525,6 @@ namespace boost {
   
   }
 
-  //----------------------------------------------------------
-  /*! \brief Write the degree distribution to a file
-  
-  Loops over all vertices and records both total degree distribution and degree
-  distribution for each edge type. 
-
-  \param[in] g The graph to calculate the degree distribution for
-  \param[in] m The model to be used to determine edge types
-  \param[in] degreeFileName The name of the file to write the degree
-  distribution to
-  \return 0 if successful, <0 if failed
-  \ingroup graph_visualisation
-  */
-  template <typename Graph>
-  unsigned int write_degree(const Graph& g, unsigned int nEdgeTypes,
-                            const std::string degreeFileName)
-  {
-    typename boost::graph_traits<Graph>::vertex_iterator vi, vi_end;
-    typename boost::graph_traits<Graph>::out_edge_iterator ei, ei_end;   
-
-    // counters
-    typedef std::map<unsigned int, unsigned int> degree_map;
-    std::vector<degree_map*> degree(nEdgeTypes+1); // including parallel
-   
-    for (unsigned int i = 0; i < degree.size(); i++)
-      degree[i] = new degree_map;
-   
-    // open file
-    std::ofstream file;
-    try {      
-      file.open(degreeFileName.c_str(), std::ios::out);
-    }
-    catch (std::exception &e) {
-      std::cerr << "Unable to open degree file: " << e.what()
-                << std::endl;
-      return -1;
-    }
-   
-    // loop over all vertices
-    for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
-      
-      // tmp sums
-      unsigned int vertex_deg[nEdgeTypes+1];
-      for (unsigned int i = 0; i < nEdgeTypes+1; i++) 
-        vertex_deg[i] = 0;
-      
-      // loop over the vertex out edges
-      for (tie(ei, ei_end) = out_edges(*vi, g); ei != ei_end; ei++) {
-         
-        // count all edges including parallel
-        vertex_deg[nEdgeTypes] += 1;
-         
-        // count all other edges (whether they are parallel or not)
-        vertex_deg[g[*ei].type] += 1;
-      }
-
-      // update global degree
-      for (unsigned int i = 0; i < degree.size(); i++)
-        (*degree[i])[vertex_deg[i]] += 1;
-    }
-
-    // printing
-    degree_map::const_iterator it;      
-   
-    // setting max_degree
-    unsigned int max_degree = 0;
-    for (unsigned int i =0; i < degree.size(); ++i) {
-      it = (*degree[i]).end();
-      --it;
-      if ((*it).first > max_degree)
-        max_degree = (*it).first;
-    }
-
-    file << "# max_degree = " << max_degree << std::endl;
-    file << "# degree | d-edges | i-edges | total-edges\n";
-    file << "# ------ | ------- | ------- | -----------\n";
-   
-    // enumerate over all degrees and all maps
-    for (unsigned int i = 0; i <= max_degree; i++) {
-      file << i;
-      for (unsigned int j = 0; j < degree.size(); j++)
-        file << " " << (*degree[j])[i];
-      file << std::endl;
-    }    
-   
-    // close file
-    file.close();
-   
-    // delete
-    for (unsigned int i = 0; i <= nEdgeTypes; i++) 
-      delete degree[i];
-   
-    return 0;
-   
-  }
 }
 
 //----------------------------------------------------------

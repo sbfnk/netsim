@@ -408,7 +408,7 @@ namespace boost {
   Removes a given fraction of edges from a graph and randomly rewires them,
   preserving the degree distribution and clustering them in another graph.
   
-  \param[out] g The graph to cluster.
+  \param[out] cg The graph to cluster.
   \param[in, out] g The graph to rewire the edges in.
   \param[in] r The random generator to use for selecting the edges to rewire.
   \param[in] rewireFraction The fraction of edges to rewire.

@@ -494,6 +494,101 @@ namespace boost {
     }
   }
 
+  //----------------------------------------------------------
+  /*! \brief Write the degree distribution to a file
+  
+  Loops over all vertices and records both total degree distribution and degree
+  distribution for each edge type. 
+
+  \param[in] g The graph to calculate the degree distribution for.
+  \param[in] nEdgeTypes The number of edge types.
+  \param[in] degreeFileName The name of the file to write the degree
+  distribution to.
+  \return 0 if successful, <0 if failed
+  \ingroup graph_statistics
+  */
+  template <typename Graph>
+  unsigned int write_degree(const Graph& g, unsigned int nEdgeTypes,
+                            const std::string degreeFileName)
+  {
+    typename boost::graph_traits<Graph>::vertex_iterator vi, vi_end;
+    typename boost::graph_traits<Graph>::out_edge_iterator ei, ei_end;   
+
+    // counters
+    typedef std::map<unsigned int, unsigned int> degree_map;
+    std::vector<degree_map*> degree(nEdgeTypes+1); // including parallel
+   
+    for (unsigned int i = 0; i < degree.size(); i++)
+      degree[i] = new degree_map;
+   
+    // open file
+    std::ofstream file;
+    try {      
+      file.open(degreeFileName.c_str(), std::ios::out);
+    }
+    catch (std::exception &e) {
+      std::cerr << "Unable to open degree file: " << e.what()
+                << std::endl;
+      return -1;
+    }
+   
+    // loop over all vertices
+    for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+      
+      // tmp sums
+      unsigned int vertex_deg[nEdgeTypes+1];
+      for (unsigned int i = 0; i < nEdgeTypes+1; i++) 
+        vertex_deg[i] = 0;
+      
+      // loop over the vertex out edges
+      for (tie(ei, ei_end) = out_edges(*vi, g); ei != ei_end; ei++) {
+         
+        // count all edges including parallel
+        vertex_deg[nEdgeTypes] += 1;
+         
+        // count all other edges (whether they are parallel or not)
+        vertex_deg[g[*ei].type] += 1;
+      }
+
+      // update global degree
+      for (unsigned int i = 0; i < degree.size(); i++)
+        (*degree[i])[vertex_deg[i]] += 1;
+    }
+
+    // printing
+    degree_map::const_iterator it;      
+   
+    // setting max_degree
+    unsigned int max_degree = 0;
+    for (unsigned int i =0; i < degree.size(); ++i) {
+      it = (*degree[i]).end();
+      --it;
+      if ((*it).first > max_degree)
+        max_degree = (*it).first;
+    }
+
+    file << "# max_degree = " << max_degree << std::endl;
+    file << "# degree | d-edges | i-edges | total-edges\n";
+    file << "# ------ | ------- | ------- | -----------\n";
+   
+    // enumerate over all degrees and all maps
+    for (unsigned int i = 0; i <= max_degree; i++) {
+      file << i;
+      for (unsigned int j = 0; j < degree.size(); j++)
+        file << " " << (*degree[j])[i];
+      file << std::endl;
+    }    
+   
+    // close file
+    file.close();
+   
+    // delete
+    for (unsigned int i = 0; i <= nEdgeTypes; i++) 
+      delete degree[i];
+   
+    return 0;
+   
+  }
 } // namespace boost
 
 //----------------------------------------------------------

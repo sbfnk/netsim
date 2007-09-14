@@ -3,7 +3,7 @@
 #---------------------------------------------------------------------------
 # Project related configuration options
 #---------------------------------------------------------------------------
-PROJECT_NAME           = network
+PROJECT_NAME           = Network
 PROJECT_NUMBER         = 
 OUTPUT_DIRECTORY       = doc/
 CREATE_SUBDIRS         = NO

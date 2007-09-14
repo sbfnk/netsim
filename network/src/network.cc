@@ -1030,7 +1030,7 @@ int main(int argc, char* argv[])
     // calculate degree distribution
     if (vm.count("degree-dist")) {
       std::string degreeFileName = baseFileName+".degree";
-      bool status = write_degree(graph, nEdgeTypes, degreeFileName);
+      bool status = boost::write_degree(graph, nEdgeTypes, degreeFileName);
       if (verbose) {
         if (!status) {
           std::cout << "degree file " << degreeFileName << " was written ok\n";
