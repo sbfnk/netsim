@@ -347,6 +347,8 @@ well as the number of parallel edges connecting such vertices.
 \param[in] ofile A stream to the output file
 \param[in] pairs Whether pairs should be counted as well (intensive on
 computation) or not 
+\param[in] triples Whether triples should be counted as well (intensive on
+computation) or not 
 \ingroup sim_statistics
 */
 template<typename Graph>
