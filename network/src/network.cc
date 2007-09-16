@@ -123,10 +123,21 @@ int main(int argc, char* argv[])
      "labels of the edge types")
     ;
 
+  po::options_description output_options
+    ("\nOutput options");
+  
+  output_options.add_options()
+    ("write-file,f", po::value<std::string>(),
+     "output graph to file (.graph will be appended)")
+    ("split,s", 
+     "split graph output input")
+    ;
+  
   po::variables_map vm;
   try {
     po::store(po::command_line_parser(argc, argv).options(main_options).
-              options(edgetype_options).allow_unregistered().run(), vm);
+              options(edgetype_options).options(output_options).
+              allow_unregistered().run(), vm);
   }
   catch (std::exception& e) {
     std::cerr << "Error parsing command line parameters: " << e.what()
@@ -164,16 +175,6 @@ int main(int argc, char* argv[])
     }
   } 
 
-  po::options_description output_options
-    ("\nOutput options");
-  
-  output_options.add_options()
-    ("write-file,f", po::value<std::string>(),
-     "output graph to file (.graph will be appended)")
-    ("split,s", 
-     "split graph output input")
-    ;
-  
   po::options_description statistics_options
     ("\nGraph statistics");
   
