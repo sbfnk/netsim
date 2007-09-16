@@ -127,7 +127,7 @@ int main(int argc, char* argv[])
     ("\nOutput options");
   
   output_options.add_options()
-    ("write-file,f", po::value<std::string>(),
+    ("file,f", po::value<std::string>(),
      "output graph to file (.graph will be appended)")
     ("split,s", 
      "split graph output input")
@@ -1011,8 +1011,8 @@ int main(int argc, char* argv[])
 
   // set base file name
   std::string baseFileName;
-  if (vm.count("write-file")) {
-    baseFileName = vm["write-file"].as<std::string>();
+  if (vm.count("file")) {
+    baseFileName = vm["file"].as<std::string>();
     std::string ext = ".graph";
     
     if (vm.count("split")) {
