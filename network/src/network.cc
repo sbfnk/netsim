@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
     ;
 
   po::options_description edgetype_options
-    ("anEdge types");
+    ("\nEdge types");
 
   edgetype_options.add_options()
     ("ntypes,n",po::value<unsigned int>()->default_value(nEdgeTypes),
@@ -123,10 +123,22 @@ int main(int argc, char* argv[])
      "labels of the edge types")
     ;
 
+  po::options_description output_options
+    ("\nOutput options");
+  
+  output_options.add_options()
+    ("write-file,f", po::value<std::string>(),
+     "output graph to file (.graph will be appended)")
+    ("split,s", 
+     "split graph output input")
+    ;
+
+  po::options_description temp_options;
+  temp_options.add(main_options).add(edgetype_options).add(output_options);
   po::variables_map vm;
   try {
-    po::store(po::command_line_parser(argc, argv).options(main_options).
-              options(edgetype_options).allow_unregistered().run(), vm);
+    po::store(po::command_line_parser(argc, argv).options(temp_options).
+              allow_unregistered().run(), vm);
   }
   catch (std::exception& e) {
     std::cerr << "Error parsing command line parameters: " << e.what()
@@ -164,16 +176,6 @@ int main(int argc, char* argv[])
     }
   } 
 
-  po::options_description output_options
-    ("\nOutput options");
-  
-  output_options.add_options()
-    ("write-file,f", po::value<std::string>(),
-     "output graph to file (.graph will be appended)")
-    ("split,s", 
-     "split graph output input")
-    ;
-  
   po::options_description statistics_options
     ("\nGraph statistics");
   
@@ -291,7 +293,7 @@ int main(int argc, char* argv[])
     s.str("");
     s << edgeLabels[i] << "-degree";
     rrgo->add_options()
-      (s.str().c_str(), po::value<unsigned int>(),
+      (s.str().c_str(), po::value<double>(),
        "degree of the graph G(n,d)");
     s.str("");
     s << edgeLabels[i] << "-joint-degree";
@@ -311,7 +313,7 @@ int main(int argc, char* argv[])
     s.str("");
     s << edgeLabels[i] << "-degree";
     swo->add_options()
-      (s.str().c_str(), po::value<unsigned int>(),
+      (s.str().c_str(), po::value<double>(),
        "degree of each node");
     sw_options.push_back(swo);
   }
@@ -638,7 +640,7 @@ int main(int argc, char* argv[])
       s.str("");
       s << edgeLabels[i] << "-degree";
       if (vm.count(s.str())) {
-        opt.degree = vm[s.str()].as<unsigned int>();
+        opt.degree = static_cast<unsigned int>(vm[s.str()].as<double>());
       } else {
         std::cerr << "ERROR: Graph degree not spcified" << std::endl;
         std::cerr << *rrg_options[i] << std::endl;
@@ -724,7 +726,7 @@ int main(int argc, char* argv[])
       s.str("");
       s << edgeLabels[i] << "-degree";
       if (vm.count(s.str())) {
-        opt.degree = vm[s.str()].as<unsigned int>();
+        opt.degree = static_cast<unsigned int>(vm[s.str()].as<double>());
       } else {
         std::cerr << "ERROR: no degree specified" << std::endl;
         std::cerr << *sw_options[i] << std::endl;
