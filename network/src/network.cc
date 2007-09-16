@@ -641,16 +641,19 @@ int main(int argc, char* argv[])
       s << edgeLabels[i] << "-degree";
       if (vm.count(s.str())) {
         opt.degree = static_cast<unsigned int>(vm[s.str()].as<double>());
-      } else {
-        std::cerr << "ERROR: Graph degree not spcified" << std::endl;
-        std::cerr << *rrg_options[i] << std::endl;
-        return 1;
-      }
+      } 
       s.str("");
       s << edgeLabels[i] << "-joint-degree";
       if (vm.count(s.str())) {
         opt.jointDegree = vm[s.str()].as<unsigned int>();
-      } 
+      }
+      if (opt.degree + opt.jointDegree == 0) {
+        std::cerr << "WARNING: Neither degree nor joint-degree specified, "
+                  << " for random-regular " << edgeLabels[i] << "-graph."
+                  << std::endl;
+        std::cerr << *rrg_options[i] << std::endl;
+        return 1;
+      }
       
       /******************************************************************/
       // generate random regular graph with desired properties
