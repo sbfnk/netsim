@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
   std::string edgeLabels = "di";
 
   po::options_description main_options
-    ("\nUsage: network -p params_file [options]... \n\nMain options");
+    ("Usage: network -p params_file [options]... \n\nMain options");
 
   main_options.add_options()
     ("help,h",
@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
     ;
 
   po::options_description edgetype_options
-    ("\nEdge types");
+    ("Edge types");
 
   edgetype_options.add_options()
     ("ntypes,n",po::value<unsigned int>()->default_value(nEdgeTypes),
@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
     ;
 
   po::options_description output_options
-    ("\nOutput options");
+    ("Output options");
   
   output_options.add_options()
     ("file,f", po::value<std::string>(),
@@ -178,7 +178,7 @@ int main(int argc, char* argv[])
   } 
 
   po::options_description statistics_options
-    ("\nGraph statistics");
+    ("Graph statistics");
   
   statistics_options.add_options()
     ("degree-dist",
@@ -202,7 +202,7 @@ int main(int argc, char* argv[])
     ;
   
   po::options_description graph_options
-    ("\nGraph options");
+    ("Graph options");
   
   graph_options.add_options()
     ("vertices,N", po::value<unsigned int>(),
@@ -217,7 +217,7 @@ int main(int argc, char* argv[])
   }
   
   po::options_description assortativity_options
-    ("\nAssortativity options");
+    ("Assortativity options");
   
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     for (unsigned int j = 0; j < nEdgeTypes; ++j) {
@@ -996,7 +996,7 @@ int main(int argc, char* argv[])
   // calculate average path lengths
   /******************************************************************/
   if (vm.count("path-length")) {
-    std::cout << "\nAverage shortest path lengths: " << std::endl;
+    std::cout << "nAverage shortest path lengths: " << std::endl;
     for (unsigned int i = 0; i < nEdgeTypes; ++i) {
       std::cout << "  on " << std::string(1,edgeLabels[i]) << "-edges: "
               << boost::avg_shortest_path_length(graph, Edge(i)) << std::endl;
