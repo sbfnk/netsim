@@ -162,6 +162,7 @@ int main(int argc, char* argv[])
   if (vm.count("ntypes")) {
     nEdgeTypes = vm["ntypes"].as<unsigned int>();
   }
+  unsigned int nNonNullEdgeTypes = nEdgeTypes;
 
   if (vm.count("labels")) {
     edgeLabels = vm["labels"].as<std::string>();
@@ -881,7 +882,9 @@ int main(int argc, char* argv[])
                   << readGraph << std::endl;
         return 1;
       }
-    } else if (topology != "null") {
+    } else if (topology == "null") {
+      --nNonNullEdgeTypes;
+    } else {
       std::cerr << "ERROR: unknown " << s.str() << ": " << topology
                 << std::endl;
       std::cerr << main_options << graph_options << std::endl;
@@ -1029,7 +1032,7 @@ int main(int argc, char* argv[])
       // write whole graph in one file
       std::string outputGraphName =
         baseFileName+".graph";
-      write_graph(graph, outputGraphName, true);
+      write_graph(graph, outputGraphName, (nNonNullEdgeTypes > 1));
     }
     
     // calculate degree distribution
