@@ -647,6 +647,7 @@ int main(int argc, char* argv[])
       s << edgeLabels[i] << "-joint-degree";
       if (vm.count(s.str())) {
         opt.jointDegree = vm[s.str()].as<unsigned int>();
+        nNonNullEdgeTypes += nEdgeTypes - 1;
       }
       if (opt.degree + opt.jointDegree == 0) {
         std::cerr << "WARNING: Neither degree nor joint-degree specified, "
