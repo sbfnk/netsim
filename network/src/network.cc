@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <string>
 #include <map>
+#include <algorithm>
 
 #include <sys/time.h>
 #include <sys/stat.h>
@@ -702,6 +703,7 @@ int main(int argc, char* argv[])
         success = 0;
         count = 0;
         rrg_edges.clear();
+        ++count;
         while (!success) {
           success = boost::random_regular_graph(graph, rrg_edges,
                                                 opt.degree, N, uni_gen);
@@ -993,27 +995,24 @@ int main(int argc, char* argv[])
     }
   }
 
-  /******************************************************************/
-  // calculate average path lengths
-  /******************************************************************/
-  if (vm.count("path-length")) {
-    std::cout << "nAverage shortest path lengths: " << std::endl;
-    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-      std::cout << "  on " << std::string(1,edgeLabels[i]) << "-edges: "
-              << boost::avg_shortest_path_length(graph, Edge(i)) << std::endl;
-      for (unsigned int j = 0; j < nEdgeTypes; ++j) {
-        if (i != j) {
-          std::cout << "  " << std::string(1,edgeLabels[j]) << "-neighbours on "
-                    << std::string(1,edgeLabels[i]) << "-edges: "
-                    << boost::avg_nb_shortest_path_length(graph, Edge(j),
-                                                          Edge(i))
-                    << std::endl;
-        }
-      }
-    }
+  /********* graph creation done **********************************/
+
+  if (verbose) {
+    std::cout << "\nGraph created." << std::endl;
   }
 
-  // set base file name
+  /******************************************************************/
+  // Mark parallel edges
+  /******************************************************************/
+  unsigned int parallel_edges = mark_parallel_edges(graph);
+  if (verbose) {
+    std::cout << "No. of parallel edges is: " << parallel_edges
+              << std::endl;
+  }
+
+  /******************************************************************/
+  // Write graph files
+  /******************************************************************/
   std::string baseFileName;
   if (vm.count("file")) {
     baseFileName = vm["file"].as<std::string>();
@@ -1036,20 +1035,6 @@ int main(int argc, char* argv[])
       write_graph(graph, outputGraphName, (nNonNullEdgeTypes > 1));
     }
     
-    // calculate degree distribution
-    if (vm.count("degree-dist")) {
-      std::string degreeFileName = baseFileName+".degree";
-      bool status = boost::write_degree(graph, nEdgeTypes, degreeFileName);
-      if (verbose) {
-        if (!status) {
-          std::cout << "degree file " << degreeFileName << " was written ok\n";
-          } else {
-          std::cout << "ERROR: something wrong in writing degree file "
-                    << degreeFileName << std::endl;
-        }
-      }
-    }
-
     // create sparse adjacency matrices and clustering coefficients
     if (vm.count("cluster-coeff")) {
       bool writeJs = false;
@@ -1066,68 +1051,202 @@ int main(int argc, char* argv[])
     }
   }
 
-  if (vm.count("local-cluster-coeff")) {
-    boost::multi_array<double, 3> lcc =
-      local_cluster_coeffs(graph, nEdgeTypes);
-
-    std::cout << "\nLocal clustering coeffients:" << std::endl;
-    for (unsigned int i = 0; i< nEdgeTypes; ++i) {
-      for (unsigned int j = i; j< nEdgeTypes; ++j) {
-        for (unsigned int k = 0; k< nEdgeTypes; ++k) {
-          std::cout << "  C" << edgeLabels[i] << edgeLabels[j]
-                    << edgeLabels[k] << " = " << lcc[i][j][k] << std::endl;
-        }
-      }
-    }
+  /******************************************************************/
+  // count vertices
+  /******************************************************************/
+  std::string countFileName = baseFileName+".counts";
+  if (baseFileName.length() == 0 || verbose) {
+    std::cout << "\nVertex count:" << std::endl;
+    std::cout << "  N: " << num_vertices(graph) << std::endl;;
   }
-  if (vm.count("global-cluster-coeff")) {
-    boost::multi_array<double, 3> gcc =
-      global_cluster_coeffs(graph, nEdgeTypes);
-
-    std::cout << "\nGlobal clustering coeffients:" << std::endl;
-    for (unsigned int i = 0; i< nEdgeTypes; ++i) {
-      for (unsigned int j = i; j< nEdgeTypes; ++j) {
-        for (unsigned int k = 0; k< nEdgeTypes; ++k) {
-          std::cout << "  C" << edgeLabels[i] << edgeLabels[j]
-                    << edgeLabels[k] << " = " << gcc[i][j][k] << std::endl;
-        }
-      }
-    }
+  if (baseFileName.length() > 0) {
+    std::ofstream countFile(countFileName.c_str(), std::ios::out);
+    countFile << "  N: " << num_vertices(graph) << std::endl;;
+    countFile.close();
   }
-
-  if (verbose) {
-    std::cout << "\nGraph created with " << num_vertices(graph)
-              << " vertices." << std::endl;
-  }
-
-  // consider pairs
+  
+  /******************************************************************/
+  // count pairs
+  /******************************************************************/
   if (vm.count("pairs")) {
-    std::cout << "\nPair count:" << std::endl;
+    std::stringstream output;
+
     std::vector<unsigned int> pairs = count_pairs(graph, nEdgeTypes);
     for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-        std::cout << "  " << edgeLabels[i] << "-pairs: " << pairs[i]
-                  << std::endl;
+      output << "  " << edgeLabels[i] << "-pairs: " << pairs[i]
+             << std::endl;
+    }
+
+    if (baseFileName.length() == 0 || verbose) {
+      std::cout << "\nPair count:" << std::endl;
+      std::cout << output.str();
+    }
+    if (baseFileName.length() > 0) {
+      std::ofstream countFile(countFileName.c_str(), std::ios::app);
+      countFile << output.str();
+      countFile.close();
     }
   }
   
-  // consider triples
+  /******************************************************************/
+  // count triples
+  /******************************************************************/
   if (vm.count("triples")) {
-    std::cout << "\nTriple count:" << std::endl;
+    std::stringstream output;
+    
     boost::multi_array<unsigned int, 2> triples =
       count_triples(graph, nEdgeTypes);
     for (unsigned int i = 0; i < nEdgeTypes; ++i) {
       for (unsigned int j = i; j < nEdgeTypes; ++j) {
-        std::cout << "  " << edgeLabels[i] << edgeLabels[j] << "-triples: "
-                  << triples[i][j] << std::endl;
+        output << "  " << edgeLabels[i] << edgeLabels[j] << "-triples: "
+               << triples[i][j] << std::endl;
+      }
+    }
+    
+    if (baseFileName.length() == 0 || verbose) {
+      std::cout << "\nTriple count:" << std::endl;
+      std::cout << output.str();
+    }
+    if (baseFileName.length() > 0) {
+      std::ofstream countFile(countFileName.c_str(), std::ios::app);
+      countFile << output.str();
+      countFile.close();
+    }
+  }
+
+  /******************************************************************/
+  // calculate degree distribution
+  /******************************************************************/
+  if (vm.count("degree-dist")) {
+    std::stringstream output;
+
+    boost::multi_array<unsigned int, 2> dd;
+    unsigned int max_degree = degree_dist(graph, nEdgeTypes, dd);
+
+    std::stringstream s;
+    s << num_vertices(graph);
+    int len = std::max(6, static_cast<int>(s.str().length()));
+
+    output << "# " << "degree" << "\t";
+    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+      output << edgeLabels[i] << " only" << "\t";
+    }
+    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+      output << edgeLabels[i] << " all " << "\t";
+    }
+    output << "parall" << "\t" << " all  " << std::endl;
+    
+    for (unsigned int i = 0; i < max_degree+1; ++i) {
+
+      output << "  " << std::setw(len) << i << "\t";
+      for (unsigned int j = 0; j < nEdgeTypes*2+2; ++j) {
+        output << std::setw(len) << dd[j][i] << "\t";
+      }
+      output << std::endl;
+    }
+
+    if (baseFileName.length() == 0 || verbose) {
+      std::cout << "\nDegree distribution:" << std::endl;
+      std::cout << output.str();
+    }
+    if (baseFileName.length() > 0) {
+      std::string degreeFileName = baseFileName+".degree";
+      std::ofstream degreeFile(degreeFileName.c_str(), std::ios::out);
+      degreeFile << output.str();
+      degreeFile.close();
+    }
+  }
+
+  /******************************************************************/
+  // calculate local clustering coefficients
+  /******************************************************************/
+  if (vm.count("local-cluster-coeff")) {
+    std::stringstream output;
+    
+    boost::multi_array<double, 3> lcc =
+      local_cluster_coeffs(graph, nEdgeTypes);
+
+    for (unsigned int i = 0; i< nEdgeTypes; ++i) {
+      for (unsigned int j = i; j< nEdgeTypes; ++j) {
+        for (unsigned int k = 0; k< nEdgeTypes; ++k) {
+          output << "  C" << edgeLabels[i] << edgeLabels[j]
+                 << edgeLabels[k] << " = " << lcc[i][j][k] << std::endl;
+        }
+      }
+    }
+
+    if (baseFileName.length() == 0 || verbose) {
+      std::cout << "\nLocal clustering coeffients:" << std::endl;
+      std::cout << output.str();
+    }
+    if (baseFileName.length() > 0) {
+      std::string lccFileName = baseFileName + ".lcc";
+      std::ofstream lccFile(lccFileName.c_str(), std::ios::out);
+      lccFile << output.str();
+      lccFile.close();
+    }
+  }
+
+  /******************************************************************/
+  // calculate global clustering coefficients
+  /******************************************************************/
+  if (vm.count("global-cluster-coeff")) {
+    std::stringstream output;
+    
+    boost::multi_array<double, 3> gcc =
+      global_cluster_coeffs(graph, nEdgeTypes);
+
+    for (unsigned int i = 0; i< nEdgeTypes; ++i) {
+      for (unsigned int j = i; j< nEdgeTypes; ++j) {
+        for (unsigned int k = 0; k< nEdgeTypes; ++k) {
+          output << "  C" << edgeLabels[i] << edgeLabels[j]
+                 << edgeLabels[k] << " = " << gcc[i][j][k] << std::endl;
+        }
+      }
+    }
+
+    if (baseFileName.length() == 0 || verbose) {
+      std::cout << "\nGlobal clustering coeffients:" << std::endl;
+      std::cout << output.str();
+    }
+    if (baseFileName.length() > 0) {
+      std::string gccFileName = baseFileName + ".gcc";
+      std::ofstream gccFile(gccFileName.c_str(), std::ios::out);
+      gccFile << output.str();
+      gccFile.close();
+    }
+  }
+
+  /******************************************************************/
+  // calculate average path lengths
+  /******************************************************************/
+  if (vm.count("path-length")) {
+    std::cout << "nAverage shortest path lengths: " << std::endl;
+    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+      std::cout << "  on " << std::string(1,edgeLabels[i]) << "-edges: "
+              << boost::avg_shortest_path_length(graph, Edge(i)) << std::endl;
+      for (unsigned int j = 0; j < nEdgeTypes; ++j) {
+        if (i != j) {
+          std::cout << "  " << std::string(1,edgeLabels[j]) << "-neighbours on "
+                    << std::string(1,edgeLabels[i]) << "-edges: "
+                    << boost::avg_nb_shortest_path_length(graph, Edge(j),
+                                                          Edge(i))
+                    << std::endl;
+        }
       }
     }
   }
 
+  /******************************************************************/
+  // print vertex degrees
+  /******************************************************************/
   if (vm.count("print-degrees")) {
     print_degrees(graph, nEdgeTypes);
   }
   
+  /******************************************************************/
   // free memory
+  /******************************************************************/
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     delete lattice_options[i];
     delete rg_options[i];
