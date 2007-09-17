@@ -183,17 +183,21 @@ int main(int argc, char* argv[])
   
   statistics_options.add_options()
     ("degree-dist",
-     "write degree distribution to baseName.degree file")
+     "compute degree distribution")
     ("pairs",
      "count pairs")
     ("triples",
      "count triples")
     ("local-cluster-coeff",
-     "print averaged local clustering coefficients")
+     "compute averaged local clustering coefficients")
     ("global-cluster-coeff",
-     "print global clustering coefficients (from network)")
+     "compute global clustering coefficients (from network)")
+    ("assortativity",
+     "compute assortativities")
+    ("degree overlap",
+     "compute degree overlap")
     ("path-length",
-     "calculate shortest path lengths")
+     "compute shortest path lengths")
     ("print-degrees",
      "print the degrees of vertices")
     ("cluster-coeff",
@@ -968,10 +972,6 @@ int main(int argc, char* argv[])
           double ass = (vm[s.c_str()].as<double>());
           rewire_assortatively(graph, gen, ass, i, j, k, verbose);
         }
-        if (verbose >=1) {
-          std::cout << s << ": " << boost::assortativity(graph, i, j, k)
-                    << std::endl;
-        }
       }
     }
   }
@@ -987,10 +987,6 @@ int main(int argc, char* argv[])
       if (vm.count(s.c_str())) {
         double deg_overlap = (vm[s.c_str()].as<double>());
         rewire_degree_overlap(graph, gen, deg_overlap, i, j, verbose);
-      }
-      if (verbose >=1) {
-        std::cout << s << ": " << boost::degree_overlap(graph, i, j)
-                  << std::endl;
       }
     }
   }
@@ -1221,19 +1217,88 @@ int main(int argc, char* argv[])
   // calculate average path lengths
   /******************************************************************/
   if (vm.count("path-length")) {
-    std::cout << "nAverage shortest path lengths: " << std::endl;
+    std::stringstream output;
+    
     for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-      std::cout << "  on " << std::string(1,edgeLabels[i]) << "-edges: "
-              << boost::avg_shortest_path_length(graph, Edge(i)) << std::endl;
+      output << "  on " << std::string(1,edgeLabels[i]) << "-edges: "
+             << boost::avg_shortest_path_length(graph, Edge(i)) << std::endl;
       for (unsigned int j = 0; j < nEdgeTypes; ++j) {
         if (i != j) {
-          std::cout << "  " << std::string(1,edgeLabels[j]) << "-neighbours on "
-                    << std::string(1,edgeLabels[i]) << "-edges: "
-                    << boost::avg_nb_shortest_path_length(graph, Edge(j),
-                                                          Edge(i))
-                    << std::endl;
+          output << "  " << std::string(1,edgeLabels[j]) << "-neighbours on "
+                 << std::string(1,edgeLabels[i]) << "-edges: "
+                 << boost::avg_nb_shortest_path_length(graph, Edge(j), Edge(i))
+                 << std::endl;
         }
       }
+    }
+
+    if (baseFileName.length() == 0 || verbose) {
+      std::cout << "nAverage shortest path lengths: " << std::endl;
+      std::cout << output.str();
+    }
+    if (baseFileName.length() > 0) {
+      std::string splFileName = baseFileName + ".spl";
+      std::ofstream splFile(splFileName.c_str(), std::ios::out);
+      splFile << output.str();
+      splFile.close();
+    }
+  }
+
+  /******************************************************************/
+  // calculate assortativities 
+  /******************************************************************/
+  if (vm.count("assortativity")) {
+    std::stringstream output;
+    
+    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+      for (unsigned int j = 0; j < nEdgeTypes; ++j) {
+        for (unsigned int k = j; k < nEdgeTypes; ++k) {
+          output << "  " << std::string(1,edgeLabels[i]) << "-"
+                 << std::string(1,edgeLabels[j])
+                 << std::string(1,edgeLabels[k])
+                 << "-assortativity: "
+                 << boost::assortativity(graph, i, j, k)
+                 << std::endl;
+        }
+      }
+    }
+    if (baseFileName.length() == 0 || verbose) {
+      std::cout << "\nAssortatitivies: " << std::endl;
+      std::cout << output.str();
+    }
+    if (baseFileName.length() > 0) {
+      std::string assFileName = baseFileName + ".ass";
+      std::ofstream assFile(assFileName.c_str(), std::ios::out);
+      assFile << output.str();
+      assFile.close();
+    }
+  }
+
+  /******************************************************************/
+  // calculate degree overlaps 
+  /******************************************************************/
+  if (vm.count("degree-overlap")) {
+    std::stringstream output;
+    
+    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+      for (unsigned int j = i+1; j < nEdgeTypes; ++j) {
+        output << "  " << std::string(1,edgeLabels[i])
+               << std::string(1,edgeLabels[j])
+               << "-degree-overlap: "
+               << boost::degree_overlap(graph, i, j)
+               << std::endl;
+      }
+    }
+
+    if (baseFileName.length() == 0 || verbose) {
+      std::cout << "\nDegree overlap: " << std::endl;
+      std::cout << output.str();
+    }
+    if (baseFileName.length() > 0) {
+      std::string dolFileName = baseFileName + ".dol";
+      std::ofstream dolFile(dolFileName.c_str(), std::ios::out);
+      dolFile << output.str();
+      dolFile.close();
     }
   }
 
