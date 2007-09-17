@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
   bool triples = false;
 
   po::options_description command_line_options
-    ("\nUsage: simulate -p params_file [options]... \n\nMain options");
+    ("\nUsage: simulate [options]... \n\nMain options");
 
   command_line_options.add_options()
     ("help,h",
@@ -219,7 +219,8 @@ int main(int argc, char* argv[])
   // read options from command line
   po::options_description all_options;
   all_options.add(command_line_options).add(sim_options).
-    add(ic_options).add(statistics_options).add(model_options);
+    add(ic_options).add(graph_options).add(statistics_options).
+    add(model_options);
                                    
   std::vector<std::string> unregistered;
   
