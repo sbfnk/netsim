@@ -20,6 +20,7 @@
 #include <boost/graph/erdos_renyi_generator.hpp>
 #include <math.h>
 
+#include "network/include/graph_structure.hh"
 #include "network/include/graph_io.hh"
 #include "network/include/Edge.hh"
 
@@ -299,6 +300,8 @@ int main(int argc, char* argv[])
       s << edgeTypes[i].getText() << "-file";
       if (vm.count(s.str())) {
         fileNames[i] = vm[s.str()].as<std::string>();
+      } else {
+        fileNames[i] = "";
       }
     }
   }
@@ -317,7 +320,10 @@ int main(int argc, char* argv[])
           std::cout << "Read  " << edgesRead << " from graph file "
                     << readGraph << std::endl;
         }
-        N = num_vertices(graph);
+        if (num_vertices(temp_graph) > num_vertices(graph)) {
+          boost::add_vertices(graph,
+                              num_vertices(temp_graph) - num_vertices(graph));
+        };
       } else if (edgesRead == 0) {
         std::cerr << "WARNING: no " << model->getEdgeTypes()[i] << "-edges read"
                   << "from " << readGraph << std::endl;
