@@ -187,59 +187,6 @@ count_state_triples(Graph& g, unsigned int nVertexStates,
 }
 
 //----------------------------------------------------------
-/*! \brief Mark all parallel edges in a graph
-    
-Loops over all edges in a graph and sets the parallel_edges flag for all
-edges for which there exists an additional edge between the two vertices
-connected by it. Neede by count_parallel_edges.
-  
-\param[in] g The graph to mark the parallel edges in.
-\return The number double edges in the graph.
-\ingroup helper_functions
-*/
-template <typename Graph>
-unsigned int mark_parallel_edges(Graph& g)
-{
-  typename boost::graph_traits<Graph>::edge_iterator ei, ei_end;
-  typename boost::graph_traits<Graph>::out_edge_iterator oi, oi_end;
-  typename Graph::vertex_descriptor s, t;
-
-  // counter
-  unsigned int parallel_edges = 0;      
-      
-  // loop over all edges
-  for (boost::tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
-    // setting source and target vertices
-    s = source(*ei, g);
-    t = target(*ei, g);
-         
-    // check if more than one edge is going to the same target
-    // from the edge's source
-       
-    unsigned int parallel_outgoing = 0;
-         
-    for (boost::tie(oi, oi_end) = out_edges(s, g); oi != oi_end; oi++) {
-      if (target(*oi, g) == t) parallel_outgoing++;            
-    }
-         
-    if (parallel_outgoing > 1) {
-            
-      // count parallel edges
-      parallel_edges++;
-            
-      // mark both parallel edges
-      g[*ei].parallel = true;
-    }      
-  }
-      
-  // since we looped over all edges, we have counted parallels twice
-  parallel_edges = parallel_edges / 2;
-      
-  return parallel_edges;
-      
-}
-
-//----------------------------------------------------------
 /*! \brief Print simulation status.
   
 Prints the number of vertices in all possible states and, if desired, the
