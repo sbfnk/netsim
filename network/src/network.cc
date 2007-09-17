@@ -25,6 +25,7 @@
 #include "graph_structure.hh"
 #include "graph_statistics.hh"
 #include "lattice_generator.hh"
+#include "tree_generator.hh"
 #include "erdos_renyi_generator2.hh"
 #include "albert_barabasi_generator.hh"
 #include "cluster_coeffs.hh"
@@ -50,6 +51,10 @@ struct latticeOptions {
   unsigned int sideLength;
   unsigned int dimensions;
   bool periodicBoundary;
+};
+
+struct treeOptions {
+  unsigned int branches;
 };
 
 struct rgOptions {
@@ -217,7 +222,7 @@ int main(int argc, char* argv[])
       ((std::string(1,edgeLabels[i]) + "-topology").c_str(),
        po::value<std::string>(),
        (std::string(1,edgeLabels[i]) + "-network topology\n((tri-)lattice, "+
-        "random, random-regular, small-world, plod, albert-barabasi, "+
+        "tree, random, random-regular, small-world, plod, albert-barabasi, "+
         "complete, read, null)").c_str());
   }
   
@@ -267,6 +272,21 @@ int main(int argc, char* argv[])
     lo->add_options()
       (s.str().c_str(), "periodic boundary conditions");
     lattice_options.push_back(lo);
+  }
+
+  // tree
+  std::vector<po::options_description*> tree_options;
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+    std::stringstream s;
+    s << edgeLabels[i] << "-Tree options";
+    po::options_description* to =
+      new po::options_description(s.str().c_str());
+    s.str("");
+    s << edgeLabels[i] << "-branches";
+    to->add_options()
+      (s.str().c_str(),  po::value<unsigned int>(),
+       "number of branches to create per vertex");
+    tree_options.push_back(to);
   }
 
   // random graph
@@ -421,6 +441,7 @@ int main(int argc, char* argv[])
                                    
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     all_options.add(*(lattice_options[i]));
+    all_options.add(*(tree_options[i]));
     all_options.add(*(rg_options[i]));
     all_options.add(*(rrg_options[i]));
     all_options.add(*(sw_options[i]));
@@ -585,6 +606,35 @@ int main(int argc, char* argv[])
       tri_lattice_iterator tli_end;
       
       boost::add_edge_structure(temp_graph, tli, tli_end, Edge(i));
+      
+    } else if (topology == "tree") {
+      
+      /******************************************************************/
+      // read tree specific parameters
+      /******************************************************************/
+      
+      treeOptions opt;
+      s.str("");
+      
+      s.str("");
+      s << edgeLabels[i] << "-branches";
+      if (vm.count(s.str())) {
+        opt.branches = vm[s.str()].as<unsigned int>();
+      } else {
+        std::cerr << "ERROR: number of branches not specified" << std::endl;
+        std::cerr << *tree_options[i] << std::endl;
+        return 1;
+      }
+      
+      /******************************************************************/
+      // generate tree with desired properties
+      /******************************************************************/
+      typedef boost::tree_iterator<onetype_graph> tree_iterator;
+      
+      tree_iterator ti(N, opt.branches);
+      tree_iterator ti_end;
+      
+      boost::add_edge_structure(temp_graph, ti, ti_end, Edge(i));
       
     } else if (topology == "random") {
 
