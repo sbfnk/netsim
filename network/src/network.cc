@@ -1100,61 +1100,53 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // count vertices
   /******************************************************************/
-  std::string countFileName = baseFileName+".counts";
-  if (baseFileName.length() == 0 || verbose) {
-    std::cout << "\nVertex count:" << std::endl;
-    std::cout << "  N: " << num_vertices(graph) << std::endl;;
-  }
-  if (baseFileName.length() > 0) {
-    std::ofstream countFile(countFileName.c_str(), std::ios::out);
-    countFile << "  N: " << num_vertices(graph) << std::endl;;
-    countFile.close();
-  }
-  
-  /******************************************************************/
-  // count pairs
-  /******************************************************************/
-  if (vm.count("pairs")) {
+  if (vm.count("pairs") || vm.count("triples")) {
     std::stringstream output;
-
-    std::vector<unsigned int> pairs = count_pairs(graph, nEdgeTypes);
-    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-      output << "  " << edgeLabels[i] << "-pairs: " << pairs[i]
-             << std::endl;
-    }
-
     if (baseFileName.length() == 0 || verbose) {
-      std::cout << "\nPair count:" << std::endl;
-      std::cout << output.str();
+      output << "\nVertex count:" << std::endl;
     }
-    if (baseFileName.length() > 0) {
-      std::ofstream countFile(countFileName.c_str(), std::ios::app);
-      countFile << output.str();
-      countFile.close();
-    }
-  }
-  
-  /******************************************************************/
-  // count triples
-  /******************************************************************/
-  if (vm.count("triples")) {
-    std::stringstream output;
+    output << "  N: " << num_vertices(graph) << std::endl;;
     
-    boost::multi_array<unsigned int, 2> triples =
-      count_triples(graph, nEdgeTypes);
-    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-      for (unsigned int j = i; j < nEdgeTypes; ++j) {
-        output << "  " << edgeLabels[i] << edgeLabels[j] << "-triples: "
-               << triples[i][j] << std::endl;
+    /******************************************************************/
+    // count pairs
+    /******************************************************************/
+    if (vm.count("pairs")) {
+      
+      if (baseFileName.length() == 0 || verbose) {
+        output << "\nPair count:" << std::endl;
+      }
+      std::vector<unsigned int> pairs = count_pairs(graph, nEdgeTypes);
+      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+        output << "  " << edgeLabels[i] << "-pairs: " << pairs[i]
+               << std::endl;
       }
     }
     
-    if (baseFileName.length() == 0 || verbose) {
-      std::cout << "\nTriple count:" << std::endl;
-      std::cout << output.str();
+    /******************************************************************/
+    // count triples
+    /******************************************************************/
+    if (vm.count("triples")) {
+      
+      if (baseFileName.length() == 0 || verbose) {
+        output << "\nTriple count:" << std::endl;
+      }
+      boost::multi_array<unsigned int, 2> triples =
+        count_triples(graph, nEdgeTypes);
+      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+        for (unsigned int j = i; j < nEdgeTypes; ++j) {
+          output << "  " << edgeLabels[i] << edgeLabels[j] << "-triples: "
+                 << triples[i][j] << std::endl;
+        }
+      }
+      
+      if (baseFileName.length() == 0 || verbose) {
+        std::cout << output.str();
+      }
     }
+
     if (baseFileName.length() > 0) {
-      std::ofstream countFile(countFileName.c_str(), std::ios::app);
+      std::string countFileName = baseFileName+".counts";
+      std::ofstream countFile(countFileName.c_str(), std::ios::out);
       countFile << output.str();
       countFile.close();
     }
