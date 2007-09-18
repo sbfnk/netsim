@@ -435,6 +435,9 @@ int main(int argc, char* argv[])
       std::cout << "Read " << verticesRead << " initial states from "
                 << icFileName << std::endl;
     }
+    if (verbose >= 1) { 
+      print_sim_status(graph, *model, pairs, triples);
+    }
     generateIC = false;
   } else if (vm.count("same-ic")) {
     keepIC = true;
