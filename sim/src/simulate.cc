@@ -61,11 +61,8 @@ int main(int argc, char* argv[])
   /******************************************************************/
   unsigned int N = 0;
   double stopTime = 0;
-  unsigned int stopRecoveries;
   unsigned int stopInfections;
   unsigned int stopInformations;
-
-  bool doSim;
 
   double outputData = 0.;
   int outputGraphviz = -1;
@@ -112,15 +109,13 @@ int main(int argc, char* argv[])
     ("usemodel", po::value<std::string>()->default_value("InfoSIRS"),
      "model to use (InfoSIRS, ProtectiveSIRS)")
     ("tmax", po::value<double>()->default_value(stopTime),
-     "time after which to stop\n(use tmax=0 to just generate graph and exit)")
-    ("rmax", po::value<unsigned int>()->default_value(0),
-     "number of recoveries after which to stop (if >0)")
+     "time after which to stop\n(use tmax=0 to run until extinction)")
     ("imax", po::value<unsigned int>()->default_value(0),
      "number of infections after which to stop (if >0)")
     ("pmax", po::value<unsigned int>()->default_value(0),
      "number of informations after which to stop (if >0)")
     ("output", po::value<double>()->default_value(0.),
-     "write output data at arg timesteps")
+     "write output data at arg timesteps (0 for no data output)")
     ("graphviz,g", po::value<int>()->default_value(outputGraphviz),
      "create graphviz output in the images directory at arg timesteps")
     ("nsims", po::value<unsigned int>()->default_value(1),
@@ -479,14 +474,10 @@ int main(int argc, char* argv[])
     /******************************************************************/
     
     stopTime = vm["tmax"].as<double>();
-    stopRecoveries = vm["rmax"].as<unsigned int>();
     stopInfections = vm["imax"].as<unsigned int>();
     stopInformations = vm["pmax"].as<unsigned int>();
     outputData = vm["output"].as<double>();
         
-    doSim = !(stopTime == 0 && stopInfections == 0 &&
-              stopRecoveries == 0 && stopInformations == 0);
-    
     // graph directory
     if (vm.count("graph-dir")) {
       graphDir = vm["graph-dir"].as<std::string>();
@@ -594,7 +585,7 @@ int main(int argc, char* argv[])
     /******************************************************************/
     // open output file
     /******************************************************************/
-    if (vm.count("write-file") && doSim) {
+    if (vm.count("write-file")) {
       outputFileName = fileName.str()+".sim.dat";
       
       try {
@@ -644,7 +635,7 @@ int main(int argc, char* argv[])
                                     sim->getNumInfections()+1 > sim->getNumRecoveries())) &&
            (stopInformations == 0 || (sim->getNumInformations() < stopInformations && 
                                       sim->getNumInformations()+1 > sim->getNumForgettings())) &&
-           doSim && sim->updateState()) {
+            sim->updateState()) {
       
       if (verbose >= 2) {
         print_sim_status(graph, *model, pairs, triples);
@@ -676,7 +667,7 @@ int main(int argc, char* argv[])
     
     if (verbose) std::cout << "Final status (" << sim->getTime() << "): " 
                            << std::endl;
-    if (doSim && outputGraphviz >= 0) {
+    if (outputGraphviz >= 0) {
       graph_function(graph,
                      generateFileName((graphDirName.str()+"/frame"),
                                       outputNum),
