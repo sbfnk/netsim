@@ -51,8 +51,9 @@ std::string generateFileName(std::string nameBase, unsigned int id)
 
 int main(int argc, char* argv[])
 {
-  Model* model;
-  
+  Model* model = 0;
+  Simulator* sim = 0;
+
   std::vector <unsigned int> init;
   
   /******************************************************************/
@@ -63,6 +64,8 @@ int main(int argc, char* argv[])
   unsigned int stopRecoveries;
   unsigned int stopInfections;
   unsigned int stopInformations;
+
+  bool doSim;
 
   double outputData = 0.;
   int outputGraphviz = -1;
@@ -198,7 +201,7 @@ int main(int argc, char* argv[])
     ("\nInitial conditions");
 
   ic_options.add_options()
-    ("ic-file,i", po::value<std::string>(),
+    ("init,i", po::value<std::string>(),
      "graphviz file to get initial conditions from")
     ("same-ic", po::value<std::string>(),
      "start with the same initial conditions for each run")
@@ -264,7 +267,7 @@ int main(int argc, char* argv[])
 
 
   /******************************************************************/
-  // initialize random generator
+  // initialise random generator
   /******************************************************************/
 
   unsigned int seed;
@@ -416,9 +419,9 @@ int main(int argc, char* argv[])
     baseState = 0;
   }              
 
-  if (vm.count("ic-file")) { // read initial state from file
+  if (vm.count("init")) { // read initial state from file
     
-    std::string icFileName = vm["ic-file"].as<std::string>();
+    std::string icFileName = vm["init"].as<std::string>();
     int verticesRead = read_initial_graph(graph, icFileName, *model);
     if (verticesRead < 0) {
       std::cerr << "ERROR: could not read from file " << icFileName
@@ -437,12 +440,54 @@ int main(int argc, char* argv[])
     keepIC = true;
   }
     
-  /******************************************************************/
-  // initialize model
-  /******************************************************************/
   if (numSims > 0) {
-    model->Init(vm);
-    if (verbose >=1) model->Print();
+
+    /******************************************************************/
+    // initialise model
+    /******************************************************************/
+    if (numSims > 0) {
+      model->Init(vm);
+      if (verbose >=1) model->Print();
+    }
+    
+    /******************************************************************/
+    // create simulator
+    /******************************************************************/
+    
+    if (vm.count("sim")) {
+      std::string simType = vm["sim"].as<std::string>();
+      if (simType == "Gillespie") {
+        sim = new Simulators::GillespieSimulator<boost::mt19937, multitype_graph>
+          (gen, graph, *model, verbose);
+      } else if (simType == "Chris") {
+        sim = new Simulators::ChrisSimulator<boost::mt19937, multitype_graph>
+          (gen, graph, *model, verbose);
+      } else {
+        std::cerr << "Error: unknown simulator: " << simType << std::endl;
+        return 1;
+      }
+    } else {
+      std::cerr << "Error: no simulator specified" << std::endl;
+      return 1;
+    }
+
+    /******************************************************************/
+    // read simulation paramters
+    /******************************************************************/
+    
+    stopTime = vm["tmax"].as<double>();
+    stopRecoveries = vm["rmax"].as<unsigned int>();
+    stopInfections = vm["imax"].as<unsigned int>();
+    stopInformations = vm["pmax"].as<unsigned int>();
+    outputData = vm["output"].as<double>();
+        
+    doSim = !(stopTime == 0 && stopInfections == 0 &&
+              stopRecoveries == 0 && stopInformations == 0);
+    
+    // graph directory
+    if (vm.count("graph-dir")) {
+      graphDir = vm["graph-dir"].as<std::string>();
+    }
   }
   
   for (unsigned int nSim = 1; nSim <= numSims; nSim++) {
@@ -458,8 +503,6 @@ int main(int argc, char* argv[])
     fileName << baseFileName << std::setfill('0') << std::setw(extLength)
              << nSim;
 
-    stopTime = vm["tmax"].as<double>();
-
     /******************************************************************/
     // generate new initial state
     /******************************************************************/
@@ -471,7 +514,7 @@ int main(int argc, char* argv[])
       /******************************************************************/
 
       init.clear();
-      // how many random vertices of each state are to be initialized
+      // how many random vertices of each state are to be initialised
       // over the background of the base state
       for (unsigned int i = 0; i < model->getVertexStates().size(); i++) {
         std::stringstream ss;
@@ -541,45 +584,6 @@ int main(int argc, char* argv[])
       }
     }
     
-    /******************************************************************/
-    // create simulator
-    /******************************************************************/
-    
-    Simulator* sim;
-    
-    if (vm.count("sim")) {
-      std::string simType = vm["sim"].as<std::string>();
-      if (simType == "Gillespie") {
-        sim = new Simulators::GillespieSimulator<boost::mt19937, multitype_graph>
-          (gen, graph, *model, verbose);
-      } else if (simType == "Chris") {
-        sim = new Simulators::ChrisSimulator<boost::mt19937, multitype_graph>
-          (gen, graph, *model, verbose);
-      } else {
-        std::cerr << "Error: unknown simulator: " << simType << std::endl;
-        return 1;
-      }
-    } else {
-      std::cerr << "Error: no simulator specified" << std::endl;
-      return 1;
-    }
-    
-    /******************************************************************/
-    // read simulation paramters
-    /******************************************************************/
-    
-    stopRecoveries = vm["rmax"].as<unsigned int>();
-    stopInfections = vm["imax"].as<unsigned int>();
-    stopInformations = vm["pmax"].as<unsigned int>();
-    outputData = vm["output"].as<double>();
-        
-    bool doSim = !(stopTime == 0 && stopInfections == 0 &&
-                   stopRecoveries == 0 && stopInformations == 0);
-    
-    // graph directory
-    if (vm.count("graph-dir")) {
-      graphDir = vm["graph-dir"].as<std::string>();
-    }
     std::stringstream graphDirName(graphDir, std::ios::in | std::ios::out |
                                    std::ios::ate);
     graphDirName << "/run" << std::setfill('0') << std::setw(extLength) << nSim;
@@ -600,9 +604,9 @@ int main(int argc, char* argv[])
     }
     
     /******************************************************************/
-    // initialize Simulator
+    // initialise Simulator
     /******************************************************************/
-    sim->initialize();
+    sim->initialise();
     
     // print time
     if (verbose)
@@ -667,8 +671,6 @@ int main(int argc, char* argv[])
       ++steps;
     }
     
-    if (stopTime == 0) stopTime = sim->getTime();
-    
     if (verbose) std::cout << "Final status (" << sim->getTime() << "): " 
                            << std::endl;
     if (doSim && outputGraphviz >= 0) {
@@ -720,9 +722,6 @@ int main(int argc, char* argv[])
     
     if (verbose) print_sim_status(graph, *model, pairs, triples);
     
-    // free memory
-    delete sim;
-    
   }
 
   if (vm.count("write-file")) {
@@ -757,10 +756,10 @@ int main(int argc, char* argv[])
       }
     }
   }
-  
+
+  // free memory
+  delete sim;
   delete model;
-  
-  std::cout << std::endl;
   
   return 0;
   

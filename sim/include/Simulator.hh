@@ -35,7 +35,10 @@ public:
   virtual ~Simulator() {;}
 
   //! Initialise the simulation. Implemented by derived classes.
-  virtual void initialize() {;}
+  virtual void initialise()
+  {
+    numInfections = numInformations = numRecoveries = numForgettings = 0;
+  }
   
   //! Perform an update. Implemented by derived classes.
   virtual bool updateState() = 0;
