@@ -228,7 +228,7 @@ void print_sim_status(Graph& g, const Model& m,
     boost::multi_array<unsigned int, 3> pairCount =
       count_state_pairs(g, nVertexStates, nEdgeTypes);
     for (unsigned int i=0; i < nEdgeTypes; i++) {
-      std::cout << i << "-type: " << std::endl;
+      std::cout << m.getEdgeTypes()[i] << "-type: " << std::endl;
       for (unsigned int j=0; j < nVertexStates; j++) {
         for (unsigned int k=j; k < nVertexStates; k++) {
           if (pairCount[i][j][k] > 0) {
@@ -264,7 +264,8 @@ void print_sim_status(Graph& g, const Model& m,
 
     for (unsigned int i=0; i < nEdgeTypes; i++) {
       for (unsigned int j=i; j < nEdgeTypes; j++) {
-        std::cout << i << j << "-triples: " << std::endl;
+        std::cout << m.getEdgeTypes()[i] << m.getEdgeTypes()[j] << "-triples: "
+                  << std::endl;
         for (unsigned int k=0; k < nVertexStates; k++) {
           for (unsigned int l=0; l < nVertexStates; l++) {
             for (unsigned int n=l; n < nVertexStates; n++) {
