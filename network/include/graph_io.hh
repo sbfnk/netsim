@@ -296,17 +296,21 @@ namespace boost {
     // find option position
     std::string::size_type optionPos = line.find(option+"=");
 
-    // put whatever comes after option= in optionString
-    std::string optionString = line.substr(optionPos+option.size()+1);
-
-    // find first blank after option value
-    std::string::size_type endPos = optionString.find(" ");
-
-    // return option value
-    if (endPos == std::string::npos) {
-      return optionString;
+    if (optionPos == std::string::npos) {
+      return "";
     } else {
-      return optionString.substr(0, endPos);
+      // put whatever comes after option= in optionString
+      std::string optionString = line.substr(optionPos+option.size()+1);
+      
+      // find first blank after option value
+      std::string::size_type endPos = optionString.find_first_of(" ]");
+      
+      // return option value
+      if (endPos == std::string::npos) {
+        return optionString;
+      } else {
+        return optionString.substr(0, endPos);
+      }
     }
   }
 
@@ -462,7 +466,7 @@ namespace boost {
   */
   template <typename Graph, typename Model>
   int read_initial_graph(Graph& g, const std::string graphFileName,
-                         const Model& m)
+                         const Model& m, unsigned int defaultState = 0)
   {
 
     // open file
@@ -473,7 +477,7 @@ namespace boost {
     catch (std::exception &e) {
       return -1;
     }
-  
+
     int vertexCount = 0;
     std::string line = "";
 
@@ -487,6 +491,8 @@ namespace boost {
                           m.getVertexStates()[i].getDrawOption());
       color2state.insert(std::make_pair(color,i));
     }
+    // set default if no drawoption is given
+    color2state.insert(std::make_pair("", defaultState));
     
     if (file.is_open()) {
       while(!file.eof()) {
@@ -504,7 +510,7 @@ namespace boost {
             // extract state
             unsigned int state =
               color2state[extractDrawOption("fillcolor", line)];
-            
+
             // typecasting string to int
             unsigned int src = cast_stream<unsigned int>(s);
             
