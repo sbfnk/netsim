@@ -317,12 +317,13 @@ int main(int argc, char* argv[])
         
         // update number of vertices
         if (verbose) {
-          std::cout << "Read  " << edgesRead << " from graph file "
+          std::cout << "Read " << edgesRead << " edges from graph file "
                     << readGraph << std::endl;
         }
         if (num_vertices(temp_graph) > num_vertices(graph)) {
           boost::add_vertices(graph,
                               num_vertices(temp_graph) - num_vertices(graph));
+	  N = num_vertices(graph);
         };
       } else if (edgesRead == 0) {
         std::cerr << "WARNING: no " << model->getEdgeTypes()[i] << "-edges read"
@@ -490,9 +491,9 @@ int main(int argc, char* argv[])
         initSum += (*it);
       }   
       if (initSum > N) {
-        std::cerr << "Error: number of vertices to select randomly (" << initSum
-                  << ") higher than number of total vertices (" << N << ")"
-                  << std::endl;
+        std::cerr << "WARNING: number of vertices to select randomly (" 
+		  << initSum << ") higher than number of total vertices (" 
+		  << N << ")" << std::endl;
       }
       
       // inserting init[i] vertices of type i
