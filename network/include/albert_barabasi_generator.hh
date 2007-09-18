@@ -8,7 +8,8 @@
 
 #include <iterator>
 #include <boost/random/uniform_int.hpp>
-#include <boost/random/uniform_01.hpp>
+#include <boost/random/uniform_real.hpp>
+#include <boost/random/variate_generator.hpp>
 #include <boost/graph/graph_traits.hpp>
 
 namespace boost {
@@ -29,6 +30,8 @@ namespace boost {
     vertices_size_type;
     typedef typename graph_traits<Graph>::edges_size_type
     edges_size_type;
+    typedef typename boost::variate_generator
+    <RandomGenerator&, boost::uniform_real<> > uniform_gen;
 
   public:
     typedef std::input_iterator_tag iterator_category;
@@ -49,8 +52,9 @@ namespace boost {
     */
     albert_barabasi_iterator(RandomGenerator& gen, vertices_size_type n, 
                           edges_size_type m = 1)
-      : gen(&gen), n(n), m(m), nodes(), targets(),
-        source(m), target(0), current(source, target)
+      : gen(new uniform_gen(gen, boost::uniform_real<> (0,1))),
+        n(n), m(m), nodes(), targets(), source(m), target(0),
+        current(source, target)
          
     {
       if (n<1) {
@@ -88,10 +92,8 @@ namespace boost {
         // choose random vertex
         double x;
         do {
-          uniform_01<RandomGenerator, double> rand01(*gen);
-          x = rand01();
+          x = (*gen)();
           target = nodes[static_cast<unsigned int>(x*nodes.size())];
-          *gen = rand01.base();
           // choose as target only if it is not a target yet
         } while (targets.insert(target).second == false);
 
@@ -126,7 +128,7 @@ namespace boost {
     
   private:
         
-    RandomGenerator* gen;
+    uniform_gen* gen;
     unsigned int n;
     edges_size_type m;
     std::vector<vertices_size_type> nodes;

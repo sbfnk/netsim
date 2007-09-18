@@ -5,6 +5,8 @@
 #define ASSORTATIVITY_HH
 
 #include <boost/graph/graph_traits.hpp>
+#include <boost/random/uniform_real.hpp>
+#include <boost/random/variate_generator.hpp>
 #include <boost/graph/random.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/io.hpp>
@@ -92,10 +94,8 @@ namespace boost {
       edges_size_type;
     typedef typename edge_property_type<Graph>::type
       edge_property_type;
-    
-    unsigned int steps = 0;
 
-    boost::uniform_01<RandomGenerator, double> uni_gen(r);
+    unsigned int steps = 0;
 
     double current_assortativity =
       assortativity(g, et, deg_type1, deg_type2);
@@ -125,8 +125,10 @@ namespace boost {
 
     unsigned int nEdges = et_edges.size();
     
-    uniform_int<> dist(0, 2*nEdges-1);
-    variate_generator<RandomGenerator&, uniform_int<> > rand_gen(r, dist);
+    uniform_int<> int_dist(0, 2*nEdges-1);
+    variate_generator<RandomGenerator&, uniform_int<> > int_gen(r, int_dist);
+    uniform_real<> uni_dist(0, 1);
+    variate_generator<RandomGenerator&, uniform_real<> > uni_gen(r, uni_dist);
 
     for (unsigned int i = 0; !converged; i++) {
       // choose two random edges of type et which do not share a node for
@@ -139,7 +141,7 @@ namespace boost {
 
       
       // choose first random edge for swapping
-      n1 = rand_gen();
+      n1 = int_gen();
       if (n1 > nEdges-1) {
         n1 -= nEdges;
         edge1 = reverse_edge(et_edges[n1], g);
@@ -153,7 +155,7 @@ namespace boost {
       // choose second random edge for swapping
       bool valid_swap;
       do {
-        n2 = rand_gen();
+        n2 = int_gen();
         if (n2 > nEdges-1) {
           n2 -= nEdges;
           edge2 = reverse_edge(et_edges[n2], g);

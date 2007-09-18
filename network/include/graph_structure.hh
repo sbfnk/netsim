@@ -9,6 +9,8 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/random.hpp>
 #include <boost/random.hpp>
+#include <boost/random/uniform_real.hpp>
+#include <boost/random/variate_generator.hpp>
 #include <vector>
 #include <iostream>
 
@@ -230,18 +232,21 @@ namespace boost {
   without possible pairs of nodes before convergence to a full regular graph.
   \ingroup graph_generators
   */
-  template <typename Graph, typename DistributionType>
+  template <typename Graph, typename RandomGenerator>
   bool random_regular_graph(Graph& g,
                             std::vector<std::pair<unsigned int, unsigned int> >& rrg_edges,
                             const unsigned int d,
                             const unsigned int N,
-                            DistributionType& uni_gen
+                            RandomGenerator& r
                             )
   {
     typedef typename graph_traits<Graph>::vertex_descriptor
       vertex_descriptor;
     typedef typename graph_traits<Graph>::edge_iterator
       edge_iterator;
+    
+    uniform_real<> uni_dist(0, 1);
+    variate_generator<RandomGenerator&, uniform_real<> > uni_gen(r, uni_dist);
 
     // define seen_edges NxN zero matrix
     std::vector<std::vector<bool> >
@@ -344,7 +349,8 @@ namespace boost {
     unsigned int N = num_edges(g);
     
     if (rewireFraction > 0. && rewireFraction <= 1.) {
-      boost::uniform_01<boost::mt19937, double> uni_gen(r);
+      uniform_real<> uni_dist(0, 1);
+      variate_generator<RandomGenerator&, uniform_real<> > uni_gen(r, uni_dist);
       // calculate number of links to rewire
       unsigned int num_rewire =
         static_cast<unsigned int>(rewireFraction * N);
@@ -460,7 +466,8 @@ namespace boost {
 
     // initialize edge type from the first edge in the graph
     if (rewireFraction > 0. && rewireFraction <= 1.) {
-      boost::uniform_01<boost::mt19937, double> uni_gen(r);
+      uniform_real<> uni_dist(0, 1);
+      variate_generator<RandomGenerator&, uniform_real<> > uni_gen(r, uni_dist);
       // calculate number of links to rewire
       unsigned int num_rewire =
         static_cast<unsigned int>(rewireFraction * num_edges(g));
@@ -760,7 +767,8 @@ namespace boost {
       original_vertices.push_back(*vi);
     }
 
-    boost::uniform_01<boost::mt19937, double> uni_gen(r);
+    uniform_real<> uni_dist(0, 1);
+    variate_generator<RandomGenerator&, uniform_real<> > uni_gen(r, uni_dist);
     while (original_vertices.size() > 0) {
       vertex_descriptor rand_no =
         static_cast<unsigned int>(uni_gen() * original_vertices.size());

@@ -9,7 +9,8 @@
 #include <iterator>
 #include <utility>
 #include <boost/random/uniform_int.hpp>
-#include <boost/random/uniform_01.hpp>
+#include <boost/random/uniform_real.hpp>
+#include <boost/random/variate_generator.hpp>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/graphviz.hpp>
 #include <boost/type_traits/is_base_and_derived.hpp>
@@ -31,6 +32,8 @@ namespace boost {
     typedef typename graph_traits<Graph>::directed_category directed_category;
     typedef typename graph_traits<Graph>::vertices_size_type
     vertices_size_type;
+    typedef typename boost::variate_generator
+    <RandomGenerator&, boost::uniform_real<> > uniform_gen;
 
     BOOST_STATIC_CONSTANT
     (bool,
@@ -57,9 +60,10 @@ namespace boost {
     */
     erdos_renyi_iterator2(RandomGenerator& gen, vertices_size_type n, 
                           double prob = 0.0, bool allow_self_loops = false)
-       : gen(&gen), n(n), allow_self_loops(allow_self_loops), prob(prob),
-         source(0), target(allow_self_loops? -1 : 0),
-         current(0, allow_self_loops? -1 : 0)
+      : gen(new uniform_gen(gen, boost::uniform_real<> (0,1))),
+        n(n), allow_self_loops(allow_self_loops), prob(prob),
+        source(0), target(allow_self_loops? -1 : 0),
+        current(0, allow_self_loops? -1 : 0)
     {
       if (n < 1) {
         //immediately beecome past_the_edge iterator
@@ -79,9 +83,7 @@ namespace boost {
       double x;
       do {
         next();
-        uniform_01<RandomGenerator, double> rand01(*gen);
-        x = rand01();
-        *gen = rand01.base();
+        x = gen();
       } while ((x > prob) && (source < n - 1));
 
       current.first = source;
@@ -125,7 +127,7 @@ namespace boost {
       }
     }        
         
-    RandomGenerator* gen;
+    uniform_gen* gen;
     vertices_size_type n;
     bool allow_self_loops;
     double prob;

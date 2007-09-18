@@ -90,7 +90,8 @@ namespace boost {
     
     unsigned int steps = 0;
 
-    boost::uniform_01<boost::mt19937, double> uni_gen(r);
+    uniform_real<> uni_dist(0, 1);
+    variate_generator<RandomGenerator&, uniform_real<> > uni_gen(r, uni_dist);
 
     double current_degree_overlap =
       degree_overlap(g, deg_type1, deg_type2);

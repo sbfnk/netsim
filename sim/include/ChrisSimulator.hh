@@ -7,6 +7,8 @@
 
 #include <queue>
 #include <boost/random/exponential_distribution.hpp>
+#include <boost/random/uniform_real.hpp>
+#include <boost/random/variate_generator.hpp>
 
 #include "Tree.hh"
 #include "Simulator.hh"
@@ -38,8 +40,6 @@ namespace Simulators {
     typedef typename boost::vertex_property_type<Graph>::type::value_type
     vertex_property_type;
     
-    typedef typename boost::uniform_01<RandomGenerator, double> uniform_gen;
-    
   public:
     
     /*! \brief Constructor
@@ -49,7 +49,7 @@ namespace Simulators {
     \param[in] m model initialiser (in Simulator::Simulator)
     \param[in] v verbose initialiser (in Simulator::Simulator)
     */
-    ChrisSimulator(RandomGenerator r, Graph& g, Model& m,
+    ChrisSimulator(RandomGenerator& r, Graph& g, Model& m,
                    unsigned int v = 0) :
       Simulator(m, v), randGen(r), graph(g) {;}
     ~ChrisSimulator() {;}

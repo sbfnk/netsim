@@ -721,7 +721,6 @@ int main(int argc, char* argv[])
 
       typedef std::vector<std::pair<unsigned int, unsigned int> > GraphEdges;
       GraphEdges rrg_edges;
-      boost::uniform_01<boost::mt19937, double> uni_gen(gen);
 
       if (opt.jointDegree > 0) {
         // generate joint graph
@@ -730,7 +729,7 @@ int main(int argc, char* argv[])
         
         while (!success) {
           success = boost::random_regular_graph(graph, rrg_edges,
-                                                opt.jointDegree, N, uni_gen);
+                                                opt.jointDegree, N, gen);
           if (success) {            
             for (GraphEdges::iterator it = rrg_edges.begin();
                  it != rrg_edges.end(); ++it){
@@ -760,7 +759,7 @@ int main(int argc, char* argv[])
         ++count;
         while (!success) {
           success = boost::random_regular_graph(graph, rrg_edges,
-                                                opt.degree, N, uni_gen);
+                                                opt.degree, N, gen);
           if (success) {            
             for (GraphEdges::iterator it = rrg_edges.begin();
                  it != rrg_edges.end(); ++it){

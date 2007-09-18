@@ -8,6 +8,9 @@
 #include "Tree.hh"
 #include "Simulator.hh"
 
+#include <boost/random/uniform_real.hpp>
+#include <boost/random/variate_generator.hpp>
+
 //! \addtogroup gillespie_simulator Gillespie simulator
 
 namespace Simulators {
@@ -36,7 +39,8 @@ namespace Simulators {
     vertex_index_type;
     typedef typename boost::vertex_property_type<Graph>::type::value_type
     vertex_property_type;
-    typedef typename boost::uniform_01<RandomGenerator, double> uniform_gen;
+    typedef typename boost::variate_generator
+    <RandomGenerator&, boost::uniform_real<> > uniform_gen;
 
   public:
 
@@ -49,10 +53,11 @@ namespace Simulators {
     */
     GillespieSimulator(RandomGenerator& r, Graph& g, const Model& m,
                        unsigned int v = 0) :
-      Simulator(m, v), randGen(r), graph(g) {;}
+      Simulator(m, v), randGen(r, boost::uniform_real<> (0,1)), graph(g) {;}
+  
     ~GillespieSimulator() {;}
       
-    void initialize();
+    void initialise();
     bool updateState();
   
     void print();
@@ -72,8 +77,9 @@ namespace Simulators {
   the Tree using these rates.
   */
   template <typename RandomGenerator, typename Graph>
-  void GillespieSimulator<RandomGenerator, Graph>::initialize()
+  void GillespieSimulator<RandomGenerator, Graph>::initialise()
   {
+    Simulator::initialise();
     // get simulation variables
     const Model& model = this->getModel();
     unsigned int verbose = this->getVerbose();
