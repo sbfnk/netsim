@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
      "write output data at arg timesteps")
     ("graphviz,g", po::value<int>()->default_value(outputGraphviz),
      "create graphviz output in the images directory at arg timesteps")
-    ("nsims", po::value<unsigned int>()->default_value(0),
+    ("nsims", po::value<unsigned int>()->default_value(1),
      "number of simulation runs to produce (on a given graph)")
     ;
   
