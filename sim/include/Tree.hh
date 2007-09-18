@@ -36,7 +36,9 @@ namespace Tree {
     Deletes the top bin, which will in turn cause the whole tree to be deleted
     in a cascade of deletions.
     */
-    ~Tree() { delete topBin; }
+    ~Tree() { clear(); }
+    void clear()
+    { if (topBin) delete topBin; leaves.clear(); lastLeaf = 0; topBin = 0; }
     
     T* pickRandomElement(double& randNo);
 
@@ -165,6 +167,8 @@ namespace Tree {
   {
     typedef typename boost::graph_traits<Graph>::vertex_iterator
       vertex_iterator;
+
+    t.clear();
    
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(g);
