@@ -63,3 +63,5 @@ out/simulate.o: include/Vertex.hh include/Simulator.hh \
 	include/ChrisSimulator.hh include/Tree.hh include/Bin.hh \
 	include/InfoSIRS.hh include/Model.hh include/sim_statistics.hh \
 	include/ProtectiveSIRS.hh include/VaccinationSIRS.hh \
+	${CODEDIR}/network/include/graph_io.hh \
+	${CODEDIR}/network/include/Edge.hh
