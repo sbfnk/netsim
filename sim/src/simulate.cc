@@ -399,6 +399,23 @@ int main(int argc, char* argv[])
     std::cout << "Running " << numSims << " simulations" << std::endl;
   }
 
+  std::string baseString = vm["base"].as<std::string>();
+  unsigned int baseState = 0;
+  
+  // assign baseState
+  while (baseState < model->getVertexStates().size() &&
+         (model->getVertexStates()[baseState].getText() != baseString)) {
+    baseState++;
+  }
+  
+  // check if baseState known
+  if (baseState == model->getVertexStates().size()) {
+    std::cerr << "WARNING: unknown base state: " << baseString << std::endl;
+    std::cerr << "Setting base state to "
+              << model->getVertexStates()[0].getText() << std::endl;
+    baseState = 0;
+  }              
+
   if (vm.count("ic-file")) { // read initial state from file
     
     std::string icFileName = vm["ic-file"].as<std::string>();
@@ -411,14 +428,25 @@ int main(int argc, char* argv[])
       std::cerr << "ERROR: found only " << verticesRead << " vertex "
                 << "states in " << icFileName << std::endl;
       return 1;
+    } else if (verbose) {
+      std::cout << "Read " << verticesRead << " initial states from "
+                << icFileName << std::endl;
     }
     generateIC = false;
   } else if (vm.count("same-ic")) {
     keepIC = true;
   }
     
+  /******************************************************************/
+  // initialize model
+  /******************************************************************/
+  if (numSims > 0) {
+    model->Init(vm);
+    if (verbose >=1) model->Print();
+  }
+  
   for (unsigned int nSim = 1; nSim <= numSims; nSim++) {
-
+    
     if (printStats) {
       std::cout << "----- " << "run #" << nSim << std::endl;
     } else if (numSims > 0) {
@@ -456,24 +484,8 @@ int main(int argc, char* argv[])
         init.push_back(random);
       }
       
-      
-      std::string baseString = vm["base"].as<std::string>();
-      unsigned int baseState = 0;
-      
-      // assign baseState
-      while (baseState < model->getVertexStates().size() &&
-             (model->getVertexStates()[baseState].getText() != baseString)) {
-        baseState++;
-      }
-      
       // set random vertices of baseState to zero
-      if (baseState < model->getVertexStates().size()) {
-        init[baseState] = 0;
-      } else {
-        std::cerr << "ERROR: no unknown base state: " << baseString << std::endl;
-        std::cerr << command_line_options << sim_options << std::endl;
-        return 1;
-      }              
+      init[baseState] = 0;
       
       /******************************************************************/
       // generate vertices' state
@@ -528,13 +540,6 @@ int main(int argc, char* argv[])
         graph = saved_graph;
       }
     }
-    
-    /******************************************************************/
-    // initialize model
-    /******************************************************************/
-    
-    model->Init(vm);
-    if (verbose >=1) model->Print();
     
     /******************************************************************/
     // create simulator
