@@ -98,6 +98,8 @@ int main(int argc, char* argv[])
      "produce very verbose output")
     ("model-file,m",po::value<std::string>(),
      "file containing model parameters")
+    ("write-file,w",po::value<std::string>(),
+     "output file name")
     ;
 
   po::options_description sim_options
@@ -198,7 +200,7 @@ int main(int argc, char* argv[])
   ic_options.add_options()
     ("init,i", po::value<std::string>(),
      "graphviz file to get initial conditions from")
-    ("same-ic", po::value<std::string>(),
+    ("same-ic", 
      "start with the same initial conditions for each run")
     ("base,b", po::value<std::string>()->default_value
      (model->getVertexStates().begin()->getText()),
