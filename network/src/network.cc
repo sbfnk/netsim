@@ -96,8 +96,6 @@ int main(int argc, char* argv[])
   
   unsigned int N = 0;
 
-  std::string outputFileName = "";
-
   unsigned int verbose = 0;
 
   std::string readGraph = ""; // default is to generate graph.
@@ -197,7 +195,7 @@ int main(int argc, char* argv[])
      "compute global clustering coefficients (from network)")
     ("assortativity",
      "compute assortativities")
-    ("degree overlap",
+    ("degree-overlap",
      "compute degree overlap")
     ("path-length",
      "compute shortest path lengths")
@@ -1115,6 +1113,7 @@ int main(int argc, char* argv[])
         output << "  " << edgeLabels[i] << "-pairs: " << pairs[i]
                << std::endl;
       }
+      output << " " << "parallel: " << parallel_edges << std::endl;
     }
     
     /******************************************************************/
@@ -1133,12 +1132,11 @@ int main(int argc, char* argv[])
                  << triples[i][j] << std::endl;
         }
       }
-      
-      if (baseFileName.length() == 0 || verbose) {
-        std::cout << output.str();
-      }
     }
 
+    if (baseFileName.length() == 0 || verbose) {
+      std::cout << output.str();
+    }
     if (baseFileName.length() > 0) {
       std::string countFileName = baseFileName+".counts";
       std::ofstream countFile(countFileName.c_str(), std::ios::out);
@@ -1270,7 +1268,7 @@ int main(int argc, char* argv[])
     }
 
     if (baseFileName.length() == 0 || verbose) {
-      std::cout << "nAverage shortest path lengths: " << std::endl;
+      std::cout << "\nAverage shortest path lengths: " << std::endl;
       std::cout << output.str();
     }
     if (baseFileName.length() > 0) {
