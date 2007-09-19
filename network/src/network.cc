@@ -168,8 +168,6 @@ int main(int argc, char* argv[])
   if (vm.count("ntypes")) {
     nEdgeTypes = vm["ntypes"].as<unsigned int>();
   }
-  unsigned int nNonNullEdgeTypes = nEdgeTypes;
-
   if (vm.count("labels")) {
     edgeLabels = vm["labels"].as<std::string>();
   }
@@ -702,7 +700,6 @@ int main(int argc, char* argv[])
       s << edgeLabels[i] << "-joint-degree";
       if (vm.count(s.str())) {
         opt.jointDegree = vm[s.str()].as<unsigned int>();
-        nNonNullEdgeTypes += nEdgeTypes - 1;
       }
       if (opt.degree + opt.jointDegree == 0) {
         std::cerr << "WARNING: Neither degree nor joint-degree specified, "
@@ -939,7 +936,6 @@ int main(int argc, char* argv[])
         return 1;
       }
     } else if (topology == "null") {
-      --nNonNullEdgeTypes;
     } else {
       std::cerr << "ERROR: unknown " << s.str() << ": " << topology
                 << std::endl;
@@ -1077,7 +1073,7 @@ int main(int argc, char* argv[])
       // write whole graph in one file
       std::string outputGraphName =
         baseFileName+".graph";
-      write_graph(graph, outputGraphName, (nNonNullEdgeTypes > 1));
+      write_graph(graph, outputGraphName, true);
     }
     
     // create sparse adjacency matrices and clustering coefficients
