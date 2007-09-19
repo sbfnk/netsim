@@ -407,16 +407,13 @@ namespace boost {
             // extract target
             std::string t = line.substr(lpos+2, bpos-lpos-3);
 
-            // extract type
-            unsigned int type;
+            // set default if no edge type is given 
+            unsigned int type = edgeType;
             if (line.find("style") != std::string::npos) {
               type = style2type[extractDrawOption("style", line)];
             } else if (line.find("type") != std::string::npos) {
               type = cast_stream<unsigned int>(extractDrawOption("type", line));
-            } else {
-              // no type is given, so we automatically add
-              type = edgeType;
-            }
+            } 
           
             // typecasting string to int
             unsigned int src = cast_stream<unsigned int>(s);
@@ -491,8 +488,6 @@ namespace boost {
                           m.getVertexStates()[i].getDrawOption());
       color2state.insert(std::make_pair(color,i));
     }
-    // set default if no drawoption is given
-    color2state.insert(std::make_pair("", defaultState));
     
     if (file.is_open()) {
       while(!file.eof()) {
@@ -507,10 +502,15 @@ namespace boost {
             // extract vertex index
             std::string s = line.substr(0, bpos);
             
-            // extract state
-            unsigned int state =
-              color2state[extractDrawOption("fillcolor", line)];
-
+            // set default if no drawoption is given
+            unsigned int state = defaultState;
+            if (line.find("fillcolor") != std::string::npos) {
+              state = color2state[extractDrawOption("fillcolor", line)];
+            } else if (line.find("state") != std::string::npos) {
+              state =
+                cast_stream<unsigned int>(extractDrawOption("state", line));
+            }
+              
             // typecasting string to int
             unsigned int src = cast_stream<unsigned int>(s);
             
