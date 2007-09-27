@@ -120,6 +120,8 @@ int main(int argc, char* argv[])
      "write output data at arg timesteps (0 for no data output)")
     ("graphviz,g", po::value<int>()->default_value(outputGraphviz),
      "create graphviz output in the images directory at arg timesteps")
+    ("graph-dir",po::value<std::string>()->default_value(graphDir),
+     "output directory for graph output")
     ("nsims", po::value<unsigned int>()->default_value(1),
      "number of simulation runs to produce (on a given graph)")
     ;
@@ -632,7 +634,7 @@ int main(int argc, char* argv[])
     unsigned int steps = 0;
     unsigned int outputNum = 1;
     
-    while ((stopTime == 0 || sim->getTime()<stopTime) &&
+    while ((stopTime >= 0 || sim->getTime()<stopTime) &&
            (stopInfections == 0 || (sim->getNumInfections() < stopInfections &&
                                     sim->getNumInfections()+1 > sim->getNumRecoveries())) &&
            (stopInformations == 0 || (sim->getNumInformations() < stopInformations && 
@@ -722,6 +724,7 @@ int main(int argc, char* argv[])
 
   if (vm.count("write-file")) {
 
+    if (stopTime == 0) stopTime = sim->getTime();
     if (stopTime > 0) {
       std::ofstream gpFile;
       std::string gpFileName = baseFileName+".gp";
