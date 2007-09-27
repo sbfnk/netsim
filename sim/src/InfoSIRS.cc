@@ -110,7 +110,7 @@ double Models::InfoSIRS::getNodeEvents(eventList& events,
 
    if (getDisease(state) == Recovered) {
      // loss of immunity
-      event immunityLoss;
+      Event immunityLoss;
       immunityLoss.rate = delta[getInfo(state)];
       immunityLoss.newState = getState(Susceptible, getInfo(state));
       immunityLoss.nb = nb;
@@ -125,7 +125,7 @@ double Models::InfoSIRS::getNodeEvents(eventList& events,
    } else
    if (getDisease(state) == Infected) {
       // recovery
-      event recovery;
+      Event recovery;
       recovery.rate = gamma[getInfo(state)];
       recovery.newState = getState(Recovered, getInfo(state));
       recovery.nb = nb;
@@ -139,7 +139,7 @@ double Models::InfoSIRS::getNodeEvents(eventList& events,
       }
       if (getInfo(state) == Uninformed) {
         // local information generation
-        event localInfo;
+        Event localInfo;
         localInfo.rate = omega;
         localInfo.newState = getState(getDisease(state), Informed);
         localInfo.nb = nb;
@@ -155,7 +155,7 @@ double Models::InfoSIRS::getNodeEvents(eventList& events,
    }
    // information loss
    if (getInfo(state) == Informed) {
-      event infoLoss;
+      Event infoLoss;
       infoLoss.rate = lambda;
       infoLoss.newState = getState(getDisease(state), Uninformed);
       infoLoss.nb = nb;
@@ -184,7 +184,7 @@ double Models::InfoSIRS::getEdgeEvents(eventList& events,
       // infection
       if (getDisease(state) == Susceptible &&
           getDisease(nbState) == Infected) {
-         event infection;
+         Event infection;
          infection.rate = beta[getInfo(state)][getInfo(nbState)];
          infection.newState = getState(Infected, getInfo(state));
          infection.nb = nb;
@@ -201,7 +201,7 @@ double Models::InfoSIRS::getEdgeEvents(eventList& events,
    } else if (edge == Information) {
       // information transmission
       if (getInfo(state) == Uninformed && getInfo(nbState) == Informed) {
-         event infoTransmission;
+         Event infoTransmission;
          infoTransmission.rate = alpha;
          infoTransmission.newState = getState(getDisease(state), Informed);
          infoTransmission.nb = nb;
@@ -217,7 +217,7 @@ double Models::InfoSIRS::getEdgeEvents(eventList& events,
       }
       // information generation
       if (getInfo(state) == Uninformed && getDisease(nbState) == Infected) {
-         event infoGeneration;
+         Event infoGeneration;
          infoGeneration.rate = nu;
          infoGeneration.newState = getState(getDisease(state), Informed);
          infoGeneration.et = edge;

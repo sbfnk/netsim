@@ -58,7 +58,7 @@ double Models::ProtectiveSIRS::getNodeEvents(eventList& events,
 
    // loss of immunity
    if (getDisease(state) == Recovered) {
-      event immunityLoss;
+      Event immunityLoss;
       immunityLoss.rate = delta;
       immunityLoss.newState = getState(Susceptible, getInfo(state));
       if (immunityLoss.rate > 0) {
@@ -68,7 +68,7 @@ double Models::ProtectiveSIRS::getNodeEvents(eventList& events,
    } else
    if (getDisease(state) == Infected) {
       // recovery
-      event recovery;
+      Event recovery;
       recovery.rate = gamma;
       recovery.newState = getState(Recovered, getInfo(state));
       if (recovery.rate > 0) {
@@ -78,7 +78,7 @@ double Models::ProtectiveSIRS::getNodeEvents(eventList& events,
    }
    // information loss
    if (getInfo(state) == Informed) {
-      event infoLoss;
+      Event infoLoss;
       infoLoss.rate = lambda;
       infoLoss.newState = getState(getDisease(state), Uninformed);
       if (infoLoss.rate > 0) {
@@ -102,7 +102,7 @@ double Models::ProtectiveSIRS::getEdgeEvents(eventList& events,
       // infection
       if (getDisease(state) == Susceptible &&
           getDisease(nbState) == Infected) {
-         event infection;
+         Event infection;
          infection.rate = beta;
          if (getInfo(state) == 1) infection.rate *= sigma;
          infection.newState = getState(Infected, getInfo(state));
@@ -115,7 +115,7 @@ double Models::ProtectiveSIRS::getEdgeEvents(eventList& events,
      if (getDisease(state) == Susceptible &&
          getInfo(state) == Uninformed && getDisease(nbState) == Infected) {
       // information generation
-         event infoGeneration;
+         Event infoGeneration;
          infoGeneration.rate = nu;
          infoGeneration.newState = getState(getDisease(state), Informed);
          if (infoGeneration.rate > 0) {
