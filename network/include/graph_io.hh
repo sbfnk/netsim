@@ -11,6 +11,9 @@
 #include <string>
 #include <sstream>
 
+#define NO_FREETYPE // don't include freetype fonts
+#include <pngwriter.h>
+  
 #include "Edge.hh"
 
 //! \addtogroup graph_io Graph I/O
@@ -351,9 +354,9 @@ namespace boost {
   {
 
     std::vector<std::string> edgeStyles;
-    edgeStyles.push_back("solid");
-    edgeStyles.push_back("dashed");
-    edgeStyles.push_back("dotted");
+    edgeStyles.push_back("style=\"solid\"");
+    edgeStyles.push_back("style=\"dashed\"");
+    edgeStyles.push_back("style=\"dotted\"");
   
     // open file
     std::ifstream file;
@@ -531,8 +534,88 @@ namespace boost {
   
   }
 
-}
+  //----------------------------------------------------------
+  /*! \brief Get the RGB colour code corresponding to an ASCII colour
+    
+  \param[in] colour The ASCII colour code
+  \return A vector of size three, corresponding to red, green and blue colour
+  intensity
+  \ingroup helper_functions
+  */
+  std::vector<double> getColourCode(std::string colour)
+  {
+    std::vector<double> code(3, 0.0);
+    if (colour == "00;32") {
+      // dark blue
+      code[2]=0.3;
+    } else if (colour == "00;31") {
+      // dark red
+      code[0]=0.3;
+    } else if (colour == "00;34") {
+      // dark green
+      code[1]=0.3;
+    } else if (colour == "01;32") {
+      // light blue
+      code[2]=1.0;
+    } else if (colour == "01;31") {
+      // light red
+      code[0]=1.0;
+    } else if (colour == "01;34") {
+      // light green
+      code[1]=1.0;
+    }
+    return code;
+  }
 
+  //----------------------------------------------------------
+  /*! \brief Paint lattice to a png file
+    
+  \param[in] g The graph to write to the file
+  \param[in] m The model to be used to determine the vertex colours
+  corresponding to their states
+  \param[in] fileName The name of the file to be written (without extension .png)
+  \param[in] timeLabel Optional number to be written to the graph as title,
+  corresponding to a time
+  \ingroup graph_visualisation
+  */
+  template <typename Graph, typename Model>
+  void draw_lattice(const Graph& g, std::string fileName, const Model& m,
+                    double timeLabel = 0.)
+  {   
+    typedef typename boost::graph_traits<Graph>::vertex_iterator
+      vertex_iterator;
+    
+    unsigned int sideLength = static_cast<unsigned int>(sqrt(num_vertices(g)));
+    
+    // create canvas
+    pngwriter lattice_image(sideLength, sideLength, 0.0,
+                            (fileName+".png").c_str());
+    unsigned x = 1;
+    unsigned y = 1;
+    vertex_iterator vi, vi_end;
+    for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi) {
+      unsigned int state = g[*vi].state;
+      // get colour code corresponding to the state of the current vertex
+      std::vector<double> colourCode =
+        getColourCode(m.getVertexStates()[state].getColour());
+      if (g[*vi].state_detail > 0) {
+        for (unsigned int i = 0; i < colourCode.size(); ++i) {
+          colourCode[i] -= (1 - g[*vi].state_detail)*0.7;
+        }
+      }
+      lattice_image.plot(x,y,colourCode[0], colourCode[1], colourCode[2]);
+      ++x;
+      if (x > sideLength) {
+        // go to next row
+        x = 1;
+        ++y;
+      }
+    }
+    lattice_image.close();
+  }
+  
+}
+  
 //----------------------------------------------------------
 
 #endif

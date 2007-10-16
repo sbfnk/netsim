@@ -29,17 +29,21 @@ struct Event
   \param[in] n nb initialiser
   \param[in] e et initialiser
   */
-  Event(double r=0, int s=0, unsigned int n=0, unsigned int e=0) :
-    rate(r), newState(s), nb(n), et(e){}
+  Event(double r=0., int s=0, unsigned int n=0, unsigned int e=0,
+        double d=0.) :
+    rate(r), newState(s), newDetail(d), nb(n), et(e) {}
   
   //! The rate at which an event occurs (depends on model parameters)
   double rate; 
   //! The state an event will change a vertex to
   int newState; 
+  //! The refined real value of the state an event will change a vertex to
+  double newDetail;
   //! The neighbour "responsible" for the event
   unsigned int nb; 
   //! The edge type over which event is transmitted (if applicable)
-  unsigned int et; 
+  unsigned int et;
+
 };
 
 typedef std::vector<Event> eventList;
@@ -155,8 +159,9 @@ public:
   event list
   */
   virtual double getEdgeEvents(eventList& events,
-                               unsigned int state, unsigned int edge,
-                               unsigned int nbState, unsigned int nb) const = 0;
+                               unsigned int state, double detail,
+                               unsigned int edge, unsigned int nbState,
+                               double nbDetail, unsigned int nb) const = 0;
 
   /*! \brief Check whether an event is an infection.
 
@@ -221,6 +226,10 @@ public:
   //! Accessor for model_options
   const po::options_description& getOptions() const
   { return model_options; }
+
+  //! Get initial value of state_detail for a given state
+  virtual double getInitDetail(unsigned int state) const
+  { return 0.; }
 
 protected:
 

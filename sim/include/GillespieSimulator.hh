@@ -88,7 +88,6 @@ namespace Simulators {
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
       generateEventList(graph, *vi, model, verbose);
-      graph[*vi].infected = 0;
     }
 
     // generate the tree holding rate sums corresponding to vertices
@@ -158,13 +157,12 @@ namespace Simulators {
         std::cout << "Vertex #" << v << " changes state: " 
                   << model.getVertexStates()[graph[v].state]
                   << "->" << model.getVertexStates()[(*it).newState]
-                  << std::endl;
+                  << ", induced by " << it->nb << std::endl;
       }
 
       // collect statistics
       if (model.isInfection(graph[v].state, it->newState)) {
         addInfection();
-        graph[v].infected = true;
       }
       
       else if (model.isInformation(graph[v].state, it->newState)) addInformation();
@@ -173,6 +171,9 @@ namespace Simulators {
 
       // process the change of state
       graph[v].state = (*it).newState;
+      if (it->newDetail >= 0.) {
+        graph[v].state_detail = it->newDetail;
+      }
             
       // update vertex event list
       double rateDiff = generateEventList(graph, v, model, verbose);
@@ -210,10 +211,13 @@ namespace Simulators {
     
     std::vector<Tree::Leaf<unsigned int>*>::iterator it;
     for (it = tree.getLeaves().begin(); it != tree.getLeaves().end(); it++) {
-      if ((*it)->getRateSum() > 0) {
+      if ((*it)->getRateSum() > 1e-8) {
         std::cout << "Vertex #" << *((*it)->getItem()) << " ["
-                  << model.getVertexState(graph[*((*it)->getItem())].state)
-                  << "]:";
+                  << model.getVertexState(graph[*((*it)->getItem())].state);
+        if (graph[*((*it)->getItem())].state_detail > 0) {
+          std::cout << "," << graph[*((*it)->getItem())].state_detail;
+        }
+        std::cout << "]:";
         eventList::iterator eit;
         for (eit = graph[*((*it)->getItem())].events.begin();
              eit != graph[*((*it)->getItem())].events.end(); eit++) {

@@ -113,8 +113,6 @@ int main(int argc, char* argv[])
      "produce verbose output")
     ("very-verbose,V",
      "produce very verbose output")
-    ("params-file,p",po::value<std::string>(),
-     "file containing graph parameters")
     ;
 
   po::options_description edgetype_options
@@ -471,19 +469,6 @@ int main(int argc, char* argv[])
     std::cout << all_options << std::endl;
     return 0;
   }
-
-  if (vm.count("params-file")) {
-    std::ifstream ifs(vm["params-file"].as<std::string>().c_str());
-    try {
-      po::store(po::parse_config_file(ifs, all_options), vm);
-    }
-    catch (std::exception& e) {
-      std::cerr << "Error parsing params file: " << e.what() << std::endl;
-      return 1;
-    }
-  }
-
-  po::notify(vm); 
 
   if (vm.count("vertices")) {
     N = vm["vertices"].as<unsigned int>();

@@ -13,8 +13,8 @@ DEPENDFLAGS = -m
 
 #--------------------------------------------------------------------
 
-SOURCES     = simulate.cc Bin.cc InfoSIRS.cc ProtectiveSIRS.cc \
-	VaccinationSIRS.cc Model.cc
+SOURCES     = simulate.cc Bin.cc InfoSIRS.cc DimInfoSIRS.cc \
+		ProtectiveSIRS.cc VaccinationSIRS.cc Model.cc
 OBJECTS     = $(patsubst %.cc,out/%.o,${SOURCES})
 
 EXEC        = simulate
@@ -61,7 +61,8 @@ cleaner:
 out/simulate.o: include/Vertex.hh include/Simulator.hh \
 	include/GillespieSimulator.hh \
 	include/ChrisSimulator.hh include/Tree.hh include/Bin.hh \
-	include/InfoSIRS.hh include/Model.hh include/sim_statistics.hh \
+	include/InfoSIRS.hh include/DimInfoSIRS.hh include/Model.hh \
 	include/ProtectiveSIRS.hh include/VaccinationSIRS.hh \
+        include/sim_statistics.hh \
 	${CODEDIR}/network/include/graph_io.hh \
 	${CODEDIR}/network/include/Edge.hh

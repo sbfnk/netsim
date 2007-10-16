@@ -32,8 +32,9 @@
 
 // models
 #include "InfoSIRS.hh"
-#include "ProtectiveSIRS.hh"
+#include "DimInfoSIRS.hh"
 #include "VaccinationSIRS.hh"
+#include "ProtectiveSIRS.hh"
 
 namespace po = boost::program_options;
 
@@ -78,7 +79,6 @@ int main(int argc, char* argv[])
   bool generateIC = true; // default is to generate initial conditions
   bool keepIC = false; // default is not to keep initial conditions fro each run
   
-  std::string readGraph = ""; // default is to generate graph.
   bool allFromOne;
 
   bool pairs = false;
@@ -96,7 +96,7 @@ int main(int argc, char* argv[])
      "produce verbose output")
     ("very-verbose,V",
      "produce very verbose output")
-    ("model-file,m",po::value<std::string>(),
+    ("params-file,p",po::value<std::string>(),
      "file containing model parameters")
     ("write-file,w",po::value<std::string>(),
      "output file name")
@@ -108,8 +108,8 @@ int main(int argc, char* argv[])
   sim_options.add_options()
     ("sim", po::value<std::string>()->default_value("Gillespie"),
      "simulator to use (Gillespie, Chris)")
-    ("usemodel", po::value<std::string>()->default_value("InfoSIRS"),
-     "model to use (InfoSIRS, ProtectiveSIRS)")
+    ("usemodel,m", po::value<std::string>()->default_value("InfoSIRS"),
+     "model to use (InfoSIRS, DimInfoSIRS, VaccinationSIRS, ProtectiveSIRS)")
     ("tmax", po::value<double>()->default_value(stopTime),
      "time after which to stop\n(use tmax=0 to run until extinction)")
     ("imax", po::value<unsigned int>()->default_value(0),
@@ -120,6 +120,8 @@ int main(int argc, char* argv[])
      "write output data at arg timesteps (0 for no data output)")
     ("graphviz,g", po::value<int>()->default_value(outputGraphviz),
      "create graphviz output in the images directory at arg timesteps")
+    ("lattice,l", 
+     "paint output as pixelised lattices")
     ("graph-dir",po::value<std::string>()->default_value(graphDir),
      "output directory for graph output")
     ("nsims", po::value<unsigned int>()->default_value(1),
@@ -155,10 +157,12 @@ int main(int argc, char* argv[])
     std::string modelString = vm["usemodel"].as<std::string>();
     if (modelString == "InfoSIRS") {
       model = new Models::InfoSIRS(verbose);
+    } else if (modelString == "DimInfoSIRS") {
+      model = new Models::DimInfoSIRS(verbose); 
+    } else if (modelString == "VaccinationSIRS") {
+      model = new Models::VaccinationSIRS(verbose); 
     } else if (modelString == "ProtectiveSIRS") {
-      model = new Models::ProtectiveSIRS(verbose);
-    } else if (modelString == "Vaccination") {
-      model = new Models::VaccinationSIRS(verbose);
+      model = new Models::ProtectiveSIRS(verbose); 
     } else {
       std::cerr << "Error: unknown model: " << modelString << std::endl;
       return 1;
@@ -320,7 +324,7 @@ int main(int argc, char* argv[])
         // update number of vertices
         if (verbose) {
           std::cout << "Read " << edgesRead << " edges from graph file "
-                    << readGraph << std::endl;
+                    << fileNames[i] << std::endl;
         }
         if (num_vertices(temp_graph) > num_vertices(graph)) {
           boost::add_vertices(graph,
@@ -328,11 +332,11 @@ int main(int argc, char* argv[])
 	  N = num_vertices(graph);
         };
       } else if (edgesRead == 0) {
-        std::cerr << "WARNING: no " << model->getEdgeTypes()[i] << "-edges read"
-                  << "from " << readGraph << std::endl;
+        std::cerr << "WARNING: no " << model->getEdgeTypes()[i] << "-edges to "
+                  << "read from " << fileNames[i] << std::endl;
       } else {
         std::cerr << "ERROR: Could not read from graph file "
-                  << readGraph << std::endl;
+                  << fileNames[i] << std::endl;
         return 1;
       }
     }
@@ -351,8 +355,6 @@ int main(int argc, char* argv[])
     std::cerr << command_line_options << graph_options << std::endl;
     return 1;
   }
-
-  if (graph_function == 0) graph_function = &boost::write_graph;
 
   // consider pairs
   if (vm.count("pairs")) {
@@ -382,6 +384,13 @@ int main(int argc, char* argv[])
   // timesteps after which to write graphviz output
   if (vm.count("graphviz")) {
     outputGraphviz = vm["graphviz"].as<int>();
+  }
+
+  // paint images as lattice
+  if (vm.count("lattice")) {
+    graph_function = &boost::draw_lattice;
+  } else {
+    graph_function = &boost::write_graph;
   }
 
   // set base file name
@@ -532,11 +541,13 @@ int main(int argc, char* argv[])
       // generate vertices' state
       /******************************************************************/
       
-      // add N vertices in state baseState to graph
+      // set the initial state of all vertices to the base state
       boost::graph_traits<multitype_graph>::vertex_iterator vi, vi_end;      
-      for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi)
+      for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
         graph[*vi].state = baseState;
-      
+        graph[*vi].state_detail = model->getInitDetail(baseState);
+      }
+        
       // sum over vector init to make sure the sum is less than N
       unsigned int initSum = 0;
       for (std::vector<unsigned int>::iterator it = init.begin();
@@ -549,7 +560,7 @@ int main(int argc, char* argv[])
 		  << N << ")" << std::endl;
       }
       
-      // inserting init[i] vertices of type i
+      // initialise init[i] vertices of type i
       boost::graph_traits<multitype_graph>::vertex_descriptor v;
       for (unsigned int i=0; i<model->getVertexStates().size(); i++) {
         for (unsigned int j=0; j<init[i]; j++) {
@@ -558,6 +569,7 @@ int main(int argc, char* argv[])
             v = boost::random_vertex(graph, gen);
             if (graph[v].state == baseState) {
               graph[v].state = i;
+              graph[v].state_detail = model->getInitDetail(i);
               inserted = true;
             }
           }
@@ -694,13 +706,7 @@ int main(int argc, char* argv[])
                 << sim->getNumInfections() << std::endl;
       statsFile << "Cumulative number of informations: " << sim->getNumInformations() 
                 << std::endl;
-      unsigned int infectedVertices = 0;
       boost::graph_traits<multitype_graph>::vertex_iterator vi, vi_end;
-      for (tie(vi, vi_end) = vertices(graph); vi != vi_end; vi++) {
-        if (graph[*vi].infected) ++infectedVertices;
-      }
-      statsFile << "Number of infected vertices: " << infectedVertices
-                << std::endl;
       statsFile.close();
     }
     
@@ -709,13 +715,7 @@ int main(int argc, char* argv[])
                 << std::endl;
       std::cout << "Cumulative number of informations: " << sim->getNumInformations() 
                 << std::endl;
-      unsigned int infectedVertices = 0;
       boost::graph_traits<multitype_graph>::vertex_iterator vi, vi_end;
-      for (tie(vi, vi_end) = vertices(graph); vi != vi_end; vi++) {
-        if (graph[*vi].infected) ++infectedVertices;
-      }
-      std::cout << "Number of infected vertices: " << infectedVertices
-                << std::endl;
     }
     
     if (verbose) print_sim_status(graph, *model, pairs, triples);

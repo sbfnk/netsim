@@ -93,8 +93,10 @@ double Models::ProtectiveSIRS::getNodeEvents(eventList& events,
 //----------------------------------------------------------
 double Models::ProtectiveSIRS::getEdgeEvents(eventList& events,
                                              unsigned int state,
+                                             double detail,
                                              unsigned int edge,
                                              unsigned int nbState,
+                                             double nbDetail,
                                              unsigned int nb) const
 {
    double rateSum(.0);

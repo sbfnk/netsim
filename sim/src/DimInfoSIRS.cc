@@ -1,17 +1,19 @@
-/*! \file VaccinationSIRS.cc
-  \brief Implementation of the Models::VaccinationSIRS class
+/*! \file DimInfoSIRS.cc
+  \brief Implementation of the Models::DimInfoSIRS class
 */
 #include <iostream>
 #include <fstream>
 
-#include "VaccinationSIRS.hh"
+#include <math.h>
+
+#include "DimInfoSIRS.hh"
 
 //----------------------------------------------------------
 /*! \brief Constructor.
 
 \sa Model::Model
 */
-Models::VaccinationSIRS::VaccinationSIRS(unsigned int v)
+Models::DimInfoSIRS::DimInfoSIRS(unsigned int v)
   : Model(v)
 {
   /*************************************/
@@ -40,22 +42,16 @@ Models::VaccinationSIRS::VaccinationSIRS(unsigned int v)
   // define model parameters
   /************************************/
   model_options.add_options()
-    ("beta--", po::value<double>(),
+    ("beta", po::value<double>(),
      "disease transmission rate uninformed->uninformed")
-    ("beta+-", po::value<double>(),
-     "disease transmission rate informed->uninformed")
-    ("beta-+", po::value<double>(),
-     "disease transmission rate uninformed->informed")
-    ("beta++", po::value<double>(),
-     "disease transmission rate informed->informed")
-    ("gamma-", po::value<double>(),
-     "recovery rate of uninformed")
-    ("gamma+", po::value<double>(),
-     "recovery rate of informed")
-    ("delta-", po::value<double>(),
-     "loss of immunity rate of uninformed")
-    ("delta+", po::value<double>(),
-     "loss of immunity rate of informed")
+    ("rho", po::value<double>(),
+     "loss of quality in information")
+    ("gamma", po::value<double>(),
+     "recovery rate")
+    ("delta", po::value<double>(),
+     "loss of immunity rate")
+    ("delta", po::value<double>(),
+     "loss of immunity rate")
     ("alpha", po::value<double>(),
      "information transmission rate")
     ("nu", po::value<double>(),
@@ -64,56 +60,40 @@ Models::VaccinationSIRS::VaccinationSIRS(unsigned int v)
      "local information generation rate")
     ("lambda", po::value<double>(),
      "loss of information rate")
-    ("theta", po::value<double>(),
-     "vaccination rate")
-    ("sigma", po::value<double>(),
-     "ratio between uninformed/uninformed susceptibilities")
     ;
 
-  params.insert(std::make_pair("beta--", &beta[0][0]));
-  params.insert(std::make_pair("beta+-", &beta[1][0]));
-  params.insert(std::make_pair("beta-+", &beta[0][1]));
-  params.insert(std::make_pair("beta++", &beta[1][1]));
-  params.insert(std::make_pair("gamma-", &gamma[0]));
-  params.insert(std::make_pair("gamma+", &gamma[1]));
-  params.insert(std::make_pair("delta-", &delta[0]));
-  params.insert(std::make_pair("delta+", &delta[1]));
+  /*************************************/
+  // assign model parameters to variables
+  /************************************/
+  params.insert(std::make_pair("beta", &beta));
+  params.insert(std::make_pair("gamma", &gamma));
+  params.insert(std::make_pair("delta", &delta));
   params.insert(std::make_pair("alpha", &alpha));
   params.insert(std::make_pair("nu", &nu));
   params.insert(std::make_pair("omega", &omega));
   params.insert(std::make_pair("lambda", &lambda));
-  params.insert(std::make_pair("theta", &theta));
-  params.insert(std::make_pair("sigma", &sigma));
-
+  params.insert(std::make_pair("rho", &rho));
 }
 
 //----------------------------------------------------------
-void Models::VaccinationSIRS::Init(po::variables_map& vm)
+void Models::DimInfoSIRS::Init(po::variables_map& vm)
 {
   Model::Init(vm);
-  if (vm.count("sigma")) {
-    // if sigma is defined, beta+- and beta++ are overwritten
-    beta[1][0]=sigma*beta[0][0];
-    beta[1][1]=sigma*beta[0][1];
-    if (verbose >= 1) {
-      std::cout << "sigma given, setting beta+-=" << beta[1][0]
-                << " and beta++=" << beta[1][1] << std::endl;
-    }
-  }
 }
 
 //----------------------------------------------------------
-double Models::VaccinationSIRS::getNodeEvents(eventList& events,
-                                          unsigned int state,
-                                          unsigned int nb) const
+double Models::DimInfoSIRS::getNodeEvents(eventList& events,
+                                       unsigned int state,
+                                       unsigned int nb) const
 {
    double rateSum(.0);
 
-   // loss of immunity
    if (getDisease(state) == Recovered) {
+     // loss of immunity
       Event immunityLoss;
-      immunityLoss.rate = delta[getInfo(state)];
+      immunityLoss.rate = delta;
       immunityLoss.newState = getState(Susceptible, getInfo(state));
+      immunityLoss.newDetail = -1.;
       immunityLoss.nb = nb;
       if (immunityLoss.rate > 0) {
         events.push_back(immunityLoss);
@@ -127,8 +107,9 @@ double Models::VaccinationSIRS::getNodeEvents(eventList& events,
    if (getDisease(state) == Infected) {
       // recovery
       Event recovery;
-      recovery.rate = gamma[getInfo(state)];
+      recovery.rate = gamma;
       recovery.newState = getState(Recovered, getInfo(state));
+      recovery.newDetail = -1.;
       recovery.nb = nb;
       if (recovery.rate > 0) {
         events.push_back(recovery);
@@ -143,6 +124,7 @@ double Models::VaccinationSIRS::getNodeEvents(eventList& events,
         Event localInfo;
         localInfo.rate = omega;
         localInfo.newState = getState(getDisease(state), Informed);
+        localInfo.newDetail = 1.;
         localInfo.nb = nb;
         if (localInfo.rate > 0) {
           events.push_back(localInfo);
@@ -159,6 +141,7 @@ double Models::VaccinationSIRS::getNodeEvents(eventList& events,
       Event infoLoss;
       infoLoss.rate = lambda;
       infoLoss.newState = getState(getDisease(state), Uninformed);
+      infoLoss.newDetail = 0.;
       infoLoss.nb = nb;
       if (infoLoss.rate > 0) {
         events.push_back(infoLoss);
@@ -168,34 +151,19 @@ double Models::VaccinationSIRS::getNodeEvents(eventList& events,
 	            << infoLoss.rate << std::endl;
         }
       }
-      // vaccination
-      if (getDisease(state) == Susceptible) {
-        Event vaccination;
-        vaccination.rate = theta;
-        vaccination.newState = getState(Recovered, Informed);
-        vaccination.nb = nb;
-        if (vaccination.rate > 0) {
-          events.push_back(vaccination);
-          rateSum += vaccination.rate;
-          if (verbose >= 2) {
-            std::cout << "Adding vaccination event with rate "
-                      << vaccination.rate << std::endl;
-          }
-        }
-      }
    }
 
    return rateSum;
 }
 
 //----------------------------------------------------------
-double Models::VaccinationSIRS::getEdgeEvents(eventList& events,
-                                              unsigned int state,
-                                              double detail,
-                                              unsigned int edge,
-                                              unsigned int nbState,
-                                              double nbDetail,
-                                              unsigned int nb) const
+double Models::DimInfoSIRS::getEdgeEvents(eventList& events,
+                                       unsigned int state,
+                                       double detail,
+                                       unsigned int edge,
+                                       unsigned int nbState,
+                                       double nbDetail,
+                                       unsigned int nb) const
 {
    double rateSum(.0);
    if (edge == Disease) {
@@ -203,8 +171,9 @@ double Models::VaccinationSIRS::getEdgeEvents(eventList& events,
       if (getDisease(state) == Susceptible &&
           getDisease(nbState) == Infected) {
          Event infection;
-         infection.rate = beta[getInfo(state)][getInfo(nbState)];
+         infection.rate = (1 - detail) * beta;
          infection.newState = getState(Infected, getInfo(state));
+         infection.newDetail = -1.;
          infection.nb = nb;
          infection.et = edge;
          if (infection.rate > 0) {
@@ -218,10 +187,30 @@ double Models::VaccinationSIRS::getEdgeEvents(eventList& events,
       }
    } else if (edge == Information) {
       // information transmission
-      if (getInfo(state) == Uninformed && getInfo(nbState) == Informed) {
+      if (getInfo(state) == Uninformed && getInfo(nbState) == Informed &&
+          nbDetail > 1e-2) {
          Event infoTransmission;
          infoTransmission.rate = alpha;
          infoTransmission.newState = getState(getDisease(state), Informed);
+         infoTransmission.newDetail = nbDetail * rho;
+         infoTransmission.nb = nb;
+         infoTransmission.et = edge;
+         if (infoTransmission.rate > 0) {
+           events.push_back(infoTransmission);
+           rateSum += infoTransmission.rate;
+           if (verbose >= 2) {
+             std::cout << "Adding information transmission event with rate " 
+                       << infoTransmission.rate << std::endl;
+           }
+         }
+      }
+      // information transmission
+      if (getInfo(state) == Informed && getInfo(nbState) == Informed &&
+          detail < nbDetail && nbDetail > 1e-2) {
+         Event infoTransmission;
+         infoTransmission.rate = alpha;
+         infoTransmission.newState = getState(getDisease(state), Informed);
+         infoTransmission.newDetail = nbDetail * rho;
          infoTransmission.nb = nb;
          infoTransmission.et = edge;
          if (infoTransmission.rate > 0) {
@@ -238,8 +227,9 @@ double Models::VaccinationSIRS::getEdgeEvents(eventList& events,
          Event infoGeneration;
          infoGeneration.rate = nu;
          infoGeneration.newState = getState(getDisease(state), Informed);
-         infoGeneration.nb = nb;
+         infoGeneration.newDetail = 1.;
          infoGeneration.et = edge;
+         infoGeneration.nb = nb;
          if (infoGeneration.rate > 0) {
            events.push_back(infoGeneration);
            rateSum += infoGeneration.rate;

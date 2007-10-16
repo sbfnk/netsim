@@ -1,22 +1,23 @@
-/*! \file VaccinationSIRS.hh
-  \brief The Models::VaccinationSIRS class.
+/*! \file DimInfoSIRS.hh
+  \brief The Models::DimInfoSIRS class.
 */
-#ifndef VACCINATIONSIRS_HH
-#define VACCINATIONSIRS_HH
+#ifndef DIMINFOSIRS_HH
+#define DIMINFOSIRS_HH
 
 #include "Model.hh"
 
 namespace Models {
 
-  /*! \brief Class implementing the SIRS model with information and vaccination.
+  /*! \brief Class implementing an SIRS model with information.
 
   This defines 6 vertex states (S-,I-,R-,S+,I+,R+) and 2 edge types (d and i),
   with information-dependent infection, recovery and loss of immunity, as well as
-  information transmission and forgetting, local information generation,
-  information generation over i links and vaccination.
+  information transmission and forgetting, local information generation and
+  information generation over i links. Information diminishes at each
+  transmission by a factor rho.
   
   */
-  class VaccinationSIRS :
+  class DimInfoSIRS :
     public Model
   {
 
@@ -26,11 +27,11 @@ namespace Models {
     enum infoStatesEnum {Uninformed, Informed};
     //! Possible edge types.
     enum edgeTypesEnum {Disease, Information};
-  
+    
   public:
 
-    VaccinationSIRS(unsigned int v = 0);
-    ~VaccinationSIRS() {;}
+    DimInfoSIRS(unsigned int v = 0);
+    ~DimInfoSIRS() {;}
 
     void Init(po::variables_map& vm);
   
@@ -44,15 +45,12 @@ namespace Models {
     bool isInfection(unsigned int before_state, unsigned int after_state) const
     { return ((getDisease(before_state) == Susceptible) &&
               (getDisease(after_state) == Infected)); }
-
     bool isRecovery(unsigned int before_state, unsigned int after_state) const
     { return ((getDisease(before_state) == Infected) &&
               (getDisease(after_state) != Infected)); }
-
     bool isInformation(unsigned int before_state, unsigned int after_state) const
     { return ((getInfo(before_state) == Uninformed) &&
               (getInfo(after_state) == Informed)); }
-
     bool isForgetting(unsigned int before_state, unsigned int after_state) const
     { return ((getInfo(before_state) == Informed) &&
               (getInfo(after_state) == Uninformed)); }
@@ -67,21 +65,24 @@ namespace Models {
     unsigned int getState(unsigned int dState, unsigned int iState) const
     { return dState+iState*3; }
     
+    //! Get initial value of state_detail for a given state
+    virtual double getInitDetail(unsigned int state) const
+    { if (getInfo(state) == Informed) return 1.; 
+      else return Model::getInitDetail(state); }
   
   private:
 
-    double gamma[2]; //!< Recovery rates.
-    double delta[2]; //!< Loss of immunity rates.
-    double beta[2][2]; //!< Infection rates.
+    double gamma; //!< Recovery rates.
+    double delta; //!< Loss of immunity rates.
+    double beta; //!< Infection rates.
     double alpha; //!< Information transmission rate.
     double lambda; //!< Rate of forgetting.
     double omega; //!< Local infromation generation rate.
     double nu; //!< Information generation rate over i-edges.
-    double sigma; //!< Ratio between informed and uninformed susceptibility.
-    double theta; //!< Vaccination rate of informed susceptibles.
+    double rho; //!< Ratio between informed and uninformed susceptibility.
   
   };
-  
+
 }
 
 #endif
