@@ -15,7 +15,7 @@ fi
 
 # usage message
 usage="Usage: do_stats.sh [-m model_file] "
-usage="$usage [-s sim_file] [-d timestep] [-q] [model_options]"
+usage="$usage [-m model_file] [-d timestep] [-q] [model_options]"
 
 # defaults
 force=n
@@ -28,7 +28,6 @@ while [ $# -ge 1 ];
   case $1 
       in
       -m) shift; model=$1;;
-      -s) shift; sim=$1;;
       -d) shift; dt=$1;;
       -f) force="y";;
       -q) quiet="y";;
@@ -43,10 +42,7 @@ done
 sim_options=""
 
 if [ $model ]; then
-    sim_options="$sim_options -m $model"
-fi
-if [ $sim ]; then
-    sim_options="$sim_options -p $sim"
+    sim_options="$sim_options -p $model"
 fi
 
 # set sim_command
