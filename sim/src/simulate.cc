@@ -46,7 +46,7 @@ typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
 std::string generateFileName(std::string nameBase, unsigned int id)
 {
   std::stringstream s;
-  s << nameBase << std::setw(3) << std::setfill('0') << id;
+  s << nameBase << std::setw(6) << std::setfill('0') << id;
   return s.str();
 }
 
@@ -627,7 +627,7 @@ int main(int argc, char* argv[])
       // create graph directories
       if (nSim == 1) mkdir(graphDir.c_str(), 0755);
       mkdir(graphDirName.str().c_str(), 0755);
-      graph_function(graph, (graphDirName.str() + "/frame000"), *model, -1);
+      graph_function(graph, (graphDirName.str() + "/frame000000"), *model, -1);
     }
     
     // prints data to outputFile
