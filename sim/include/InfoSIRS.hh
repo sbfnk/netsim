@@ -37,7 +37,8 @@ namespace Models {
     double getNodeEvents(eventList& events, unsigned int state,
                          unsigned int nb) const;
     double getEdgeEvents(eventList& events, unsigned int state,
-                         unsigned int edge, unsigned int nbState,
+                         double detail, unsigned int edge,
+                         unsigned int nbState, double nbDetail,
                          unsigned int nb) const;
 
     bool isInfection(unsigned int before_state, unsigned int after_state) const
