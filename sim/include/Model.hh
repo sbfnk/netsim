@@ -26,6 +26,7 @@ struct Event
   /*! \brief Constructor.
   \param[in] r rate initialiser
   \param[in] s newState initialiser
+  \param[in] d newDetail initialiser
   \param[in] n nb initialiser
   \param[in] e et initialiser
   */
@@ -152,8 +153,10 @@ public:
 
   \param[out] events The list of edge events that can happen to the vertex.
   \param[in] state The state of the vertex.
+  \param[in] detail The detailed (real-valued) state of the vertex.
   \param[in] edge The type of edge.
   \param[in] nbState The state of the neighbour.
+  \param[in] nbDetail The detailed (real-valued) state of the neighbour.
   \param[in] nb The vertex id of the neighbour.
   \return The sum of the rates of all events that have been stored in the
   event list
