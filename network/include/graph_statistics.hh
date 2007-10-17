@@ -502,10 +502,11 @@ namespace boost {
 
   \param[in] g The graph to calculate the degree distribution for.
   \param[in] nEdgeTypes The number of edge types.
-  \param[out] 2D array of edgetypes and corresponding degree distributions, the
-  first (nEdgeTypes) entries for the degree distribution of edges of that type
-  only (non-parallel), the next (nEdgeTypes) entries for all eges of that type
-  (including parallel), the next for parallel and the last for all edges
+  \param[out] degrees 2D array of edgetypes and corresponding degree 
+  distributions, the first (nEdgeTypes) entries for the degree distribution of 
+  edges of that type only (non-parallel), the next (nEdgeTypes) entries for all
+  edges of that type (including parallel), the next for parallel and the last 
+  for all edges
   \return the maximal degree
   \ingroup graph_statistics
   */

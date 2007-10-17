@@ -17,7 +17,7 @@
 #include "Edge.hh"
 
 //! \addtogroup graph_io Graph I/O
-//! \addtogroup graph_statistics Graph statistic
+//! \addtogroup graph_statistics Graph statistics
 //! \addtogroup helper_functions Helper functions
 
 namespace boost {

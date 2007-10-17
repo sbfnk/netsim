@@ -227,7 +227,7 @@ namespace boost {
   \param[out] rrg_edges Vector of vertex pairs representing edges.
   \param[in] d The (constant) degree.
   \param[in] N Number of nodes.
-  \param[in] uni_gen The random generator to be used.
+  \param[in] r The random generator to be used.
   \return true if generation of random graph successful, false if one is left
   without possible pairs of nodes before convergence to a full regular graph.
   \ingroup graph_generators
