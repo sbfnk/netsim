@@ -461,6 +461,7 @@ namespace boost {
   \param[out] g The graph to read into
   \param[in] graphFileName The name of the file to be read
   \param[in] m The model to be used to assign vertex colours to states.
+  \param[in] defaultState The default state of vertices in the graph
   \return The number of edges which have been read.
   \ingroup graph_io
   */
