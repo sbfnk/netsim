@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
   unsigned int stopInformations;
 
   double outputData = 0.;
-  int outputGraphviz = -1;
+  double outputGraphviz = -1.;
   std::string graphDir = "images";
   std::string outputFileName = "";
   std::ofstream* outputFile = 0;
@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
      "number of informations after which to stop (if >0)")
     ("output", po::value<double>()->default_value(0.),
      "write output data at arg timesteps (0 for no data output)")
-    ("graphviz,g", po::value<int>()->default_value(outputGraphviz),
+    ("graphviz,g", po::value<double>()->default_value(outputGraphviz),
      "create graphviz output in the images directory at arg timesteps")
     ("lattice,l", 
      "paint output as pixelised lattices")
@@ -383,7 +383,7 @@ int main(int argc, char* argv[])
 
   // timesteps after which to write graphviz output
   if (vm.count("graphviz")) {
-    outputGraphviz = vm["graphviz"].as<int>();
+    outputGraphviz = vm["graphviz"].as<double>();
   }
 
   // paint images as lattice
@@ -642,6 +642,7 @@ int main(int argc, char* argv[])
     // run simulation
     /******************************************************************/
     double nextDataStep = outputData;
+    double nextGraphStep = outputGraphviz;
     
     unsigned int steps = 0;
     unsigned int outputNum = 1;
@@ -661,12 +662,15 @@ int main(int argc, char* argv[])
         std::cout << "time elapsed: " << sim->getTime() << std::endl;
       }
       
-      if ((outputGraphviz > 0) && (steps % outputGraphviz == 0)) {
+      if ((outputGraphviz > 0) && (sim->getTime() > nextGraphStep)) {
         graph_function(graph,
                        generateFileName((graphDirName.str() +"/frame"),
                                         outputNum),
                        *model,
                        sim->getTime());
+        do {
+	  nextGraphStep += outputGraphviz;
+	} while (sim->getTime() > nextGraphStep);
         ++outputNum;
       }
       if (outputFile && sim->getTime() > nextDataStep) {
