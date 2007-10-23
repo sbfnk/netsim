@@ -32,26 +32,25 @@ namespace Models {
     ProtectiveSIRS(unsigned int v = 0);
     ~ProtectiveSIRS() {;}
   
-    double getNodeEvents(eventList& events, unsigned int state,
+    double getNodeEvents(eventList& events, State state,
                          unsigned int nb) const;
-    double getEdgeEvents(eventList& events, unsigned int state,
-                         double detail, unsigned int edge,
-                         unsigned int nbState, double nbDetail,
+    double getEdgeEvents(eventList& events, State state,
+                         unsigned int edge, State nbState,
                          unsigned int nb) const;
 
-    bool isInfection(unsigned int before_state, unsigned int after_state) const
+    bool isInfection(State before_state, State after_state) const
     { return ((getDisease(before_state) == Susceptible) &&
               (getDisease(after_state) == Infected)); }
   
     //! Get the disease part of a full vertex state.
-    unsigned int getDisease(unsigned int state) const
-    { return (state < 2 ? 0 : state - 1); }
+    unsigned int getDisease(State state) const
+    { return (state.base < 2 ? 0 : state.base - 1); }
     //! Get the information part of a full vertex state.
-    unsigned int getInfo(unsigned int state) const
-    { return (state == 1); }
+    unsigned int getInfo(State state) const
+    { return (state.base == 1); }
     //! Get the full vertex state from disease and information parts.
-    unsigned int getState(unsigned int dState, unsigned int iState) const
-    { return (dState == 0 ? iState : dState + 1); }
+    unsigned int getState(State dState, State iState) const
+    { return (dState.base == 0 ? iState.base : dState.base + 1); }
     
   
   private:

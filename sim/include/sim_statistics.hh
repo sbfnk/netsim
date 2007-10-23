@@ -35,7 +35,7 @@
 
     vertex_iterator vi, vi_end;
     for (boost::tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
-      ++counts[g[*vi].state];
+      ++counts[g[*vi].state.base];
     }
    
     return counts;
@@ -71,8 +71,8 @@ count_state_pairs(Graph& g, unsigned int nVertexStates,
   edge_iterator ei, ei_end;
   for (boost::tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
     std::vector<unsigned int> states(2);
-    states[0] = g[source(*ei, g)].state;
-    states[1] = g[target(*ei, g)].state;
+    states[0] = g[source(*ei, g)].state.base;
+    states[1] = g[target(*ei, g)].state.base;
     std::sort(states.begin(), states.end());
     ++counts[g[*ei].type][states[0]][states[1]];
   }
@@ -109,8 +109,8 @@ count_parallel_edges(Graph& g, unsigned int nVertexStates)
   for (boost::tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
     if ((g[*ei].type == 0) && g[*ei].parallel) {
       std::vector<unsigned int> states(2);
-      states[0] = g[source(*ei, g)].state;
-      states[1] = g[target(*ei, g)].state;
+      states[0] = g[source(*ei, g)].state.base;
+      states[1] = g[target(*ei, g)].state.base;
       std::sort(states.begin(), states.end());
       ++counts[states[0]][states[1]];
     }
@@ -164,15 +164,15 @@ count_state_triples(Graph& g, unsigned int nVertexStates,
             std::vector<unsigned int> states(2);
             edges[0] = g[*oi].type;
             edges[1] = g[*oi2].type;
-            states[0] = g[target(*oi, g)].state;
-            states[1] = g[target(*oi2, g)].state;
+            states[0] = g[target(*oi, g)].state.base;
+            states[1] = g[target(*oi2, g)].state.base;
             std::sort(edges.begin(), edges.end());
             std::sort(states.begin(), states.end());
             
             ++counts
               [edges[0]]
               [edges[1]]
-              [g[*vi].state]
+              [g[*vi].state.base]
               [states[0]]
               [states[1]];
 

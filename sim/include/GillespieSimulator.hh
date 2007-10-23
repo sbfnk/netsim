@@ -60,7 +60,7 @@ namespace Simulators {
     void initialise();
     bool updateState();
   
-    void print();
+   void print();
 
   private:
   
@@ -155,8 +155,8 @@ namespace Simulators {
             
       if (verbose >= 2) {
         std::cout << "Vertex #" << v << " changes state: " 
-                  << model.getVertexStates()[graph[v].state]
-                  << "->" << model.getVertexStates()[(*it).newState]
+                  << model.getVertexStates()[graph[v].state.base]
+                  << "->" << model.getVertexStates()[(*it).newState.base]
                   << ", induced by " << it->nb << std::endl;
       }
 
@@ -170,9 +170,9 @@ namespace Simulators {
       else if (model.isForgetting(graph[v].state, it->newState)) addForgetting();
 
       // process the change of state
-      graph[v].state = (*it).newState;
-      if (it->newDetail >= 0.) {
-        graph[v].state_detail = it->newDetail;
+      graph[v].state.base = (*it).newState.base;
+      if (it->newState.detail >= 0.) {
+        graph[v].state.detail = it->newState.detail;
       }
             
       // update vertex event list
@@ -213,15 +213,15 @@ namespace Simulators {
     for (it = tree.getLeaves().begin(); it != tree.getLeaves().end(); it++) {
       if ((*it)->getRateSum() > 1e-8) {
         std::cout << "Vertex #" << *((*it)->getItem()) << " ["
-                  << model.getVertexState(graph[*((*it)->getItem())].state);
-        if (graph[*((*it)->getItem())].state_detail > 0) {
-          std::cout << "," << graph[*((*it)->getItem())].state_detail;
+                  << model.getVertexState(graph[*((*it)->getItem())].state.base);
+        if (graph[*((*it)->getItem())].state.detail > 0) {
+          std::cout << "," << graph[*((*it)->getItem())].state.detail;
         }
         std::cout << "]:";
         eventList::iterator eit;
         for (eit = graph[*((*it)->getItem())].events.begin();
              eit != graph[*((*it)->getItem())].events.end(); eit++) {
-          std::cout << " " << model.getVertexState((*eit).newState) << " ("
+          std::cout << " " << model.getVertexState((*eit).newState.base) << " ("
                     << (*eit).rate << ")";
         }
         std::cout << std::endl;

@@ -64,7 +64,7 @@ namespace Simulators {
     //! \brief An event in the Chris simulator
     struct ChrisEvent
     {
-      int newState; //! The new state after the event happens.
+      State newState; //! The new state after the event happens.
       vertex_descriptor vertex; //! The affected vertex.
       double eventTime; //! The time at which the event will happen.
       bool valid; //! Whether the event can still happen.
@@ -138,8 +138,9 @@ namespace Simulators {
     ChrisEvent* ev = events.top();
     
     std::cout << "Next event: Vertex #" << ev->vertex << " ["
-              << model.getVertexStates()[graph[ev->vertex].state] << " --> "
-              << model.getVertexStates()[ev->newState] << "]" << std::endl;
+              << model.getVertexStates()[graph[ev->vertex].state.base]
+              << " --> " << model.getVertexStates()[ev->newState.base]
+              << "]" << std::endl;
   }
   
   //----------------------------------------------------------

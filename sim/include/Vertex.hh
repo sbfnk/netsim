@@ -7,6 +7,8 @@
 
 #include <list>
 
+#include <Model.hh>
+
 /*! \brief Container for vertex properties.
 \ingroup gillespie_simulator
 */
@@ -16,25 +18,18 @@ public:
 
   //! Constructor.
   Vertex()
-    : state(0), state_detail(0.) {;}
+    : state() {;}
   
   /*! \brief Constructor.
     \param[in] s state initialiser.
   */
   Vertex(unsigned int s)
-    : state(s), state_detail(0.) {;}
+    : state(s) {;}
 
   //! Destructor
   virtual ~Vertex() {;}
-      
-  /*! Integer variable corresponding to the current state of the vertex, to be defined
-    by the used Model.
-  */
-  unsigned int state;
-  /*! Real-valued variable refining the current state of the vertex, to be defined
-    by the used Model.
-  */
-  double state_detail;
+
+  State state;
   
   //! The sum of rates of all events that can change the state of the vertex.
   double rateSum;

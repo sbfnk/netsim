@@ -544,8 +544,8 @@ int main(int argc, char* argv[])
       // set the initial state of all vertices to the base state
       boost::graph_traits<multitype_graph>::vertex_iterator vi, vi_end;      
       for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-        graph[*vi].state = baseState;
-        graph[*vi].state_detail = model->getInitDetail(baseState);
+        graph[*vi].state =
+          State(baseState, model->getInitDetail(baseState));
       }
         
       // sum over vector init to make sure the sum is less than N
@@ -567,9 +567,8 @@ int main(int argc, char* argv[])
           bool inserted = false;
           while (!inserted) {
             v = boost::random_vertex(graph, gen);
-            if (graph[v].state == baseState) {
-              graph[v].state = i;
-              graph[v].state_detail = model->getInitDetail(i);
+            if (graph[v].state.base == baseState) {
+              graph[v].state = State(i, model->getInitDetail(i));
               inserted = true;
             }
           }

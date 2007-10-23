@@ -34,35 +34,34 @@ namespace Models {
 
     void Init(po::variables_map& vm);
   
-    double getNodeEvents(eventList& events, unsigned int state,
+    double getNodeEvents(eventList& events, State state,
                          unsigned int nb) const;
-    double getEdgeEvents(eventList& events, unsigned int state,
-                         double detail, unsigned int edge,
-                         unsigned int nbState, double nbDetail,
+    double getEdgeEvents(eventList& events, State state,
+                         unsigned int edge, State nbState, 
                          unsigned int nb) const;
 
-    bool isInfection(unsigned int before_state, unsigned int after_state) const
+    bool isInfection(State before_state, State after_state) const
     { return ((getDisease(before_state) == Susceptible) &&
               (getDisease(after_state) == Infected)); }
-    bool isRecovery(unsigned int before_state, unsigned int after_state) const
+    bool isRecovery(State before_state, State after_state) const
     { return ((getDisease(before_state) == Infected) &&
               (getDisease(after_state) != Infected)); }
-    bool isInformation(unsigned int before_state, unsigned int after_state) const
+    bool isInformation(State before_state, State after_state) const
     { return ((getInfo(before_state) == Uninformed) &&
               (getInfo(after_state) == Informed)); }
-    bool isForgetting(unsigned int before_state, unsigned int after_state) const
+    bool isForgetting(State  before_state, State after_state) const
     { return ((getInfo(before_state) == Informed) &&
               (getInfo(after_state) == Uninformed)); }
 
     //! Get the disease part of a full vertex state.
-    unsigned int getDisease(unsigned int state) const
-    { return (state % 3); }
+    unsigned int getDisease(State state) const
+    { return (state.base % 3); }
     //! Get the information part of a full vertex state.
-    unsigned int getInfo(unsigned int state) const
-    { return (state / 3); }
+    unsigned int getInfo(State state) const
+    { return (state.base / 3); }
     //! Get the full vertex state from disease and information parts.
-    unsigned int getState(unsigned int dState, unsigned int iState) const
-    { return dState+iState*3; }
+    unsigned int getState(State dState, State iState) const
+    { return dState.base+iState.base*3; }
     
   
   private:

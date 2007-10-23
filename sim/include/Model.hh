@@ -16,6 +16,38 @@
 namespace po = boost::program_options;
 
 //----------------------------------------------------------
+/*! \brief The state a vertex can assume
+  
+\ingroup models
+\ingroup gillespie_simulator
+*/
+  //! Type denoting the state of an individual
+  struct State {
+
+    //! Constructor.
+    State() : base(0), detail(0.) {;}
+
+    /*! \brief Constructor.
+      \param[in] b base state.
+    */
+    State(unsigned int b) : base(b), detail(0.) {;}
+
+    /*! \brief Constructor.
+      \param[in] b base state.
+      \param[in] d refined state.
+    */
+    State(unsigned int b, double d) : base(b), detail(d) {;}
+    /*! Integer variable corresponding to the current state of the individual,
+      to be defined by the used Model.
+    */
+    unsigned int base;
+    /*! Real-valued variable refining the current state of the individual, to be
+      defined by the used Model.
+    */
+    double detail;
+  };
+
+//----------------------------------------------------------
 /*! \brief An event which can happen to a vertex.
   
 \ingroup models
@@ -26,20 +58,16 @@ struct Event
   /*! \brief Constructor.
   \param[in] r rate initialiser
   \param[in] s newState initialiser
-  \param[in] d newDetail initialiser
   \param[in] n nb initialiser
   \param[in] e et initialiser
   */
-  Event(double r=0., int s=0, unsigned int n=0, unsigned int e=0,
-        double d=0.) :
-    rate(r), newState(s), newDetail(d), nb(n), et(e) {}
+  Event(double r=0., State s = State(), unsigned int n=0, unsigned int e=0) :
+    rate(r), newState(s), nb(n), et(e) {}
   
   //! The rate at which an event occurs (depends on model parameters)
   double rate; 
   //! The state an event will change a vertex to
-  int newState; 
-  //! The refined real value of the state an event will change a vertex to
-  double newDetail;
+  State newState; 
   //! The neighbour "responsible" for the event
   unsigned int nb; 
   //! The edge type over which event is transmitted (if applicable)
@@ -141,7 +169,7 @@ public:
   event list 
   */
   virtual double getNodeEvents(eventList& events,
-                               unsigned int state,
+                               State state,
                                unsigned int nb) const = 0;
   /*! \brief Get edge events.
 
@@ -161,10 +189,9 @@ public:
   \return The sum of the rates of all events that have been stored in the
   event list
   */
-  virtual double getEdgeEvents(eventList& events,
-                               unsigned int state, double detail,
-                               unsigned int edge, unsigned int nbState,
-                               double nbDetail, unsigned int nb) const = 0;
+  virtual double getEdgeEvents(eventList& events, State state, 
+                               unsigned int edge, State nbState,
+                               unsigned int nb) const = 0;
 
   /*! \brief Check whether an event is an infection.
 
@@ -173,8 +200,7 @@ public:
   \param[in] before_state The state before the event happens.
   \param[in] after_state The state after the event happens.
    */
-  virtual bool isInfection(unsigned int before_state,
-                           unsigned int after_state) const
+  virtual bool isInfection(State before_state, State after_state) const
   { return false; }
 
   /*! \brief Check whether an event is a recovery.
@@ -184,8 +210,7 @@ public:
   \param[in] before_state The state before the event happens.
   \param[in] after_state The state after the event happens.
    */
-  virtual bool isRecovery(unsigned int before_state,
-                          unsigned int after_state) const
+  virtual bool isRecovery(State before_state, State after_state) const
   { return false; }
   
   /*! \brief Check whether an event is an information event
@@ -195,8 +220,7 @@ public:
   \param[in] before_state The state before the event happens.
   \param[in] after_state The state after the event happens.
   */
-  virtual bool isInformation(unsigned int before_state,
-                             unsigned int after_state) const
+  virtual bool isInformation(State before_state, State after_state) const
   { return false; }
 
   /*! \brief Check whether an event is a forgetting event
@@ -206,8 +230,7 @@ public:
   \param[in] before_state The state before the event happens.
   \param[in] after_state The state after the event happens.
   */
-  virtual bool isForgetting(unsigned int before_state,
-                            unsigned int after_state) const
+  virtual bool isForgetting(State before_state, State after_state) const
   { return false; }
 
   //! Accessor for vertexStates
@@ -231,7 +254,7 @@ public:
   { return model_options; }
 
   //! Get initial value of state_detail for a given state
-  virtual double getInitDetail(unsigned int state) const
+  virtual double getInitDetail(unsigned int baseState) const
   { return 0.; }
 
 protected:

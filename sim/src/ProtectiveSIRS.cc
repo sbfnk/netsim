@@ -51,7 +51,7 @@ Models::ProtectiveSIRS::ProtectiveSIRS(unsigned int v)
 
 //----------------------------------------------------------
 double Models::ProtectiveSIRS::getNodeEvents(eventList& events,
-                                             unsigned int state,
+                                             State state,
                                              unsigned int nb) const
 {
    double rateSum(.0);
@@ -60,7 +60,7 @@ double Models::ProtectiveSIRS::getNodeEvents(eventList& events,
    if (getDisease(state) == Recovered) {
       Event immunityLoss;
       immunityLoss.rate = delta;
-      immunityLoss.newState = getState(Susceptible, getInfo(state));
+      immunityLoss.newState = State(getState(Susceptible, getInfo(state)));
       if (immunityLoss.rate > 0) {
         events.push_back(immunityLoss);
         rateSum += immunityLoss.rate;
@@ -70,7 +70,7 @@ double Models::ProtectiveSIRS::getNodeEvents(eventList& events,
       // recovery
       Event recovery;
       recovery.rate = gamma;
-      recovery.newState = getState(Recovered, getInfo(state));
+      recovery.newState = State(getState(Recovered, getInfo(state)));
       if (recovery.rate > 0) {
         events.push_back(recovery);
         rateSum += recovery.rate;
@@ -80,7 +80,7 @@ double Models::ProtectiveSIRS::getNodeEvents(eventList& events,
    if (getInfo(state) == Informed) {
       Event infoLoss;
       infoLoss.rate = lambda;
-      infoLoss.newState = getState(getDisease(state), Uninformed);
+      infoLoss.newState = State(getState(getDisease(state), Uninformed));
       if (infoLoss.rate > 0) {
         events.push_back(infoLoss);
         rateSum += infoLoss.rate;
@@ -92,11 +92,9 @@ double Models::ProtectiveSIRS::getNodeEvents(eventList& events,
 
 //----------------------------------------------------------
 double Models::ProtectiveSIRS::getEdgeEvents(eventList& events,
-                                             unsigned int state,
-                                             double detail,
+                                             State state,
                                              unsigned int edge,
-                                             unsigned int nbState,
-                                             double nbDetail,
+                                             State nbState,
                                              unsigned int nb) const
 {
    double rateSum(.0);
@@ -107,7 +105,7 @@ double Models::ProtectiveSIRS::getEdgeEvents(eventList& events,
          Event infection;
          infection.rate = beta;
          if (getInfo(state) == 1) infection.rate *= sigma;
-         infection.newState = getState(Infected, getInfo(state));
+         infection.newState = State(getState(Infected, getInfo(state)));
          if (infection.rate > 0) {
            events.push_back(infection);
            rateSum += infection.rate;
@@ -119,7 +117,7 @@ double Models::ProtectiveSIRS::getEdgeEvents(eventList& events,
       // information generation
          Event infoGeneration;
          infoGeneration.rate = nu;
-         infoGeneration.newState = getState(getDisease(state), Informed);
+         infoGeneration.newState = State(getState(getDisease(state), Informed));
          if (infoGeneration.rate > 0) {
            events.push_back(infoGeneration);
            rateSum += infoGeneration.rate;

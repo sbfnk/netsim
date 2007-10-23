@@ -104,8 +104,8 @@ void Models::VaccinationSIRS::Init(po::variables_map& vm)
 
 //----------------------------------------------------------
 double Models::VaccinationSIRS::getNodeEvents(eventList& events,
-                                          unsigned int state,
-                                          unsigned int nb) const
+                                              State state,
+                                              unsigned int nb) const
 {
    double rateSum(.0);
 
@@ -113,7 +113,7 @@ double Models::VaccinationSIRS::getNodeEvents(eventList& events,
    if (getDisease(state) == Recovered) {
       Event immunityLoss;
       immunityLoss.rate = delta[getInfo(state)];
-      immunityLoss.newState = getState(Susceptible, getInfo(state));
+      immunityLoss.newState = State(getState(Susceptible, getInfo(state)));
       immunityLoss.nb = nb;
       if (immunityLoss.rate > 0) {
         events.push_back(immunityLoss);
@@ -128,7 +128,7 @@ double Models::VaccinationSIRS::getNodeEvents(eventList& events,
       // recovery
       Event recovery;
       recovery.rate = gamma[getInfo(state)];
-      recovery.newState = getState(Recovered, getInfo(state));
+      recovery.newState = State(getState(Recovered, getInfo(state)));
       recovery.nb = nb;
       if (recovery.rate > 0) {
         events.push_back(recovery);
@@ -142,7 +142,7 @@ double Models::VaccinationSIRS::getNodeEvents(eventList& events,
         // local information generation
         Event localInfo;
         localInfo.rate = omega;
-        localInfo.newState = getState(getDisease(state), Informed);
+        localInfo.newState = State(getState(getDisease(state), Informed));
         localInfo.nb = nb;
         if (localInfo.rate > 0) {
           events.push_back(localInfo);
@@ -158,7 +158,7 @@ double Models::VaccinationSIRS::getNodeEvents(eventList& events,
    if (getInfo(state) == Informed) {
       Event infoLoss;
       infoLoss.rate = lambda;
-      infoLoss.newState = getState(getDisease(state), Uninformed);
+      infoLoss.newState = State(getState(getDisease(state), Uninformed));
       infoLoss.nb = nb;
       if (infoLoss.rate > 0) {
         events.push_back(infoLoss);
@@ -172,7 +172,7 @@ double Models::VaccinationSIRS::getNodeEvents(eventList& events,
       if (getDisease(state) == Susceptible) {
         Event vaccination;
         vaccination.rate = theta;
-        vaccination.newState = getState(Recovered, Informed);
+        vaccination.newState = State(getState(Recovered, Informed));
         vaccination.nb = nb;
         if (vaccination.rate > 0) {
           events.push_back(vaccination);
@@ -190,11 +190,9 @@ double Models::VaccinationSIRS::getNodeEvents(eventList& events,
 
 //----------------------------------------------------------
 double Models::VaccinationSIRS::getEdgeEvents(eventList& events,
-                                              unsigned int state,
-                                              double detail,
+                                              State state,
                                               unsigned int edge,
-                                              unsigned int nbState,
-                                              double nbDetail,
+                                              State nbState,
                                               unsigned int nb) const
 {
    double rateSum(.0);
@@ -204,7 +202,7 @@ double Models::VaccinationSIRS::getEdgeEvents(eventList& events,
           getDisease(nbState) == Infected) {
          Event infection;
          infection.rate = beta[getInfo(state)][getInfo(nbState)];
-         infection.newState = getState(Infected, getInfo(state));
+         infection.newState = State(getState(Infected, getInfo(state)));
          infection.nb = nb;
          infection.et = edge;
          if (infection.rate > 0) {
@@ -221,7 +219,8 @@ double Models::VaccinationSIRS::getEdgeEvents(eventList& events,
       if (getInfo(state) == Uninformed && getInfo(nbState) == Informed) {
          Event infoTransmission;
          infoTransmission.rate = alpha;
-         infoTransmission.newState = getState(getDisease(state), Informed);
+         infoTransmission.newState =
+           State(getState(getDisease(state), Informed));
          infoTransmission.nb = nb;
          infoTransmission.et = edge;
          if (infoTransmission.rate > 0) {
@@ -237,7 +236,7 @@ double Models::VaccinationSIRS::getEdgeEvents(eventList& events,
       if (getInfo(state) == Uninformed && getDisease(nbState) == Infected) {
          Event infoGeneration;
          infoGeneration.rate = nu;
-         infoGeneration.newState = getState(getDisease(state), Informed);
+         infoGeneration.newState = State(getState(getDisease(state), Informed));
          infoGeneration.nb = nb;
          infoGeneration.et = edge;
          if (infoGeneration.rate > 0) {
