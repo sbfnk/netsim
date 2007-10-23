@@ -83,8 +83,8 @@ void Models::DimInfoSIRS::Init(po::variables_map& vm)
 
 //----------------------------------------------------------
 double Models::DimInfoSIRS::getNodeEvents(eventList& events,
-                                       unsigned int state,
-                                       unsigned int nb) const
+                                          State state,
+                                          unsigned int nb) const
 {
    double rateSum(.0);
 
@@ -92,8 +92,8 @@ double Models::DimInfoSIRS::getNodeEvents(eventList& events,
      // loss of immunity
       Event immunityLoss;
       immunityLoss.rate = delta;
-      immunityLoss.newState = getState(Susceptible, getInfo(state));
-      immunityLoss.newDetail = -1.;
+      immunityLoss.newState =
+        State(getBaseState(Susceptible, getInfo(state)), -1);
       immunityLoss.nb = nb;
       if (immunityLoss.rate > 0) {
         events.push_back(immunityLoss);
@@ -108,8 +108,7 @@ double Models::DimInfoSIRS::getNodeEvents(eventList& events,
       // recovery
       Event recovery;
       recovery.rate = gamma;
-      recovery.newState = getState(Recovered, getInfo(state));
-      recovery.newDetail = -1.;
+      recovery.newState = State(getBaseState(Recovered, getInfo(state)), -1);
       recovery.nb = nb;
       if (recovery.rate > 0) {
         events.push_back(recovery);
@@ -119,12 +118,12 @@ double Models::DimInfoSIRS::getNodeEvents(eventList& events,
                     << std::endl;
         }
       }
-      if (getInfo(state) == Uninformed) {
+      if (state.detail < 1) {
         // local information generation
         Event localInfo;
         localInfo.rate = omega;
-        localInfo.newState = getState(getDisease(state), Informed);
-        localInfo.newDetail = 1.;
+        localInfo.newState =
+          State(getBaseState(getDisease(state), Informed), 1);
         localInfo.nb = nb;
         if (localInfo.rate > 0) {
           events.push_back(localInfo);
@@ -140,8 +139,13 @@ double Models::DimInfoSIRS::getNodeEvents(eventList& events,
    if (getInfo(state) == Informed) {
       Event infoLoss;
       infoLoss.rate = lambda;
-      infoLoss.newState = getState(getDisease(state), Uninformed);
-      infoLoss.newDetail = 0.;
+      double detailUpdate = state.detail * rho;
+      if (detailUpdate < 0.01) {
+        infoLoss.newState =
+          State(getBaseState(getDisease(state), Uninformed), 0);
+      } else {
+        infoLoss.newState = State(state.base, detailUpdate);
+      }
       infoLoss.nb = nb;
       if (infoLoss.rate > 0) {
         events.push_back(infoLoss);
@@ -158,12 +162,10 @@ double Models::DimInfoSIRS::getNodeEvents(eventList& events,
 
 //----------------------------------------------------------
 double Models::DimInfoSIRS::getEdgeEvents(eventList& events,
-                                       unsigned int state,
-                                       double detail,
-                                       unsigned int edge,
-                                       unsigned int nbState,
-                                       double nbDetail,
-                                       unsigned int nb) const
+                                          State state,
+                                          unsigned int edge,
+                                          State nbState,
+                                          unsigned int nb) const
 {
    double rateSum(.0);
    if (edge == Disease) {
@@ -171,9 +173,9 @@ double Models::DimInfoSIRS::getEdgeEvents(eventList& events,
       if (getDisease(state) == Susceptible &&
           getDisease(nbState) == Infected) {
          Event infection;
-         infection.rate = (1 - detail) * beta;
-         infection.newState = getState(Infected, getInfo(state));
-         infection.newDetail = -1.;
+         infection.rate = (1 - state.detail) * beta;
+         infection.newState =
+           State(getBaseState(Infected, getInfo(state)), -1);
          infection.nb = nb;
          infection.et = edge;
          if (infection.rate > 0) {
@@ -188,11 +190,11 @@ double Models::DimInfoSIRS::getEdgeEvents(eventList& events,
    } else if (edge == Information) {
       // information transmission
       if (getInfo(state) == Uninformed && getInfo(nbState) == Informed &&
-          nbDetail > 1e-2) {
+          nbState.detail > 1e-2) {
          Event infoTransmission;
          infoTransmission.rate = alpha;
-         infoTransmission.newState = getState(getDisease(state), Informed);
-         infoTransmission.newDetail = nbDetail * rho;
+         infoTransmission.newState =
+           State(getBaseState(getDisease(state), Informed), nbState.detail * rho);
          infoTransmission.nb = nb;
          infoTransmission.et = edge;
          if (infoTransmission.rate > 0) {
@@ -206,11 +208,11 @@ double Models::DimInfoSIRS::getEdgeEvents(eventList& events,
       }
       // information transmission
       if (getInfo(state) == Informed && getInfo(nbState) == Informed &&
-          detail < nbDetail && nbDetail > 1e-2) {
+          state.detail < nbState.detail && nbState.detail > 1e-2) {
          Event infoTransmission;
          infoTransmission.rate = alpha;
-         infoTransmission.newState = getState(getDisease(state), Informed);
-         infoTransmission.newDetail = nbDetail * rho;
+         infoTransmission.newState =
+           State(getBaseState(getDisease(state), Informed), nbState.detail * rho);
          infoTransmission.nb = nb;
          infoTransmission.et = edge;
          if (infoTransmission.rate > 0) {
@@ -223,11 +225,11 @@ double Models::DimInfoSIRS::getEdgeEvents(eventList& events,
          }
       }
       // information generation
-      if (getInfo(state) == Uninformed && getDisease(nbState) == Infected) {
+      if (state.detail < 1 && getDisease(nbState) == Infected) {
          Event infoGeneration;
          infoGeneration.rate = nu;
-         infoGeneration.newState = getState(getDisease(state), Informed);
-         infoGeneration.newDetail = 1.;
+         infoGeneration.newState =
+           State(getBaseState(getDisease(state), Informed), 1);
          infoGeneration.et = edge;
          infoGeneration.nb = nb;
          if (infoGeneration.rate > 0) {
