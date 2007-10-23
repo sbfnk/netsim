@@ -68,7 +68,7 @@ namespace boost {
     template <class VertexID>
     void operator()(std::ostream& out, const VertexID& v) const
     {
-      out << "[" << model.getVertexStates()[state[v]].getDrawOption()
+      out << "[" << model.getVertexStates()[state[v].base].getDrawOption()
           << " label=\"\"]";
     }
     
@@ -519,7 +519,7 @@ namespace boost {
             unsigned int src = cast_stream<unsigned int>(s);
             
             if (src < num_vertices(g)) {
-              g[src].state = state;
+              g[src].state.base = state;
               ++vertexCount;
             }
           }
@@ -595,13 +595,12 @@ namespace boost {
     unsigned y = 1;
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi) {
-      unsigned int state = g[*vi].state;
       // get colour code corresponding to the state of the current vertex
       std::vector<double> colourCode =
-        getColourCode(m.getVertexStates()[state].getColour());
-      if (g[*vi].state_detail > 0) {
+        getColourCode(m.getVertexStates()[g[*vi].state.base].getColour());
+      if (g[*vi].state.detail > 0) {
         for (unsigned int i = 0; i < colourCode.size(); ++i) {
-          colourCode[i] -= (1 - g[*vi].state_detail)*0.7;
+          colourCode[i] -= (1 - g[*vi].state.detail)*0.7;
         }
       }
       lattice_image.plot(x,y,colourCode[0], colourCode[1], colourCode[2]);
