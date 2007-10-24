@@ -422,7 +422,7 @@ int main(int argc, char* argv[])
     std::stringstream s;
     s << edgeLabels[i] << "-randomise";
     additional_options.add_options()
-      (s.str().c_str(), 
+      (s.str().c_str(), po::value<double>()->default_value(0.), 
        ("randomise vertices before adding "+std::string(1,edgeLabels[i])+
         "-edges").c_str());
   }
@@ -972,8 +972,9 @@ int main(int argc, char* argv[])
       boost::addEdges(temp_graph, gen, addFraction);
     }
     
-    if (vm.count(std::string(1,edgeLabels[i])+"-randomise")) {
-      randomise_vertices(temp_graph, gen);
+    if (vm.count(currentEdgeLabel+"-randomise")) {
+      double randFraction = vm[currentEdgeLabel+"-randomise"].as<double>();
+      randomise_vertices(temp_graph, gen, randFraction);
     }
 
     // copy edges to main graph

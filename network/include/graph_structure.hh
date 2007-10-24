@@ -745,10 +745,11 @@ namespace boost {
     
   \param[in, out] g The graph to randomise the vertices in.
   \param[in] r The random generator to use.
+  \param[in] fraction The fraction of vertices to randomise.
   \ingroup graph_structure
   */
   template <typename Graph, typename RandomGenerator>
-  void randomise_vertices(Graph& g, RandomGenerator& r)
+  void randomise_vertices(Graph& g, RandomGenerator& r, double fraction = 1.)
   {
     typedef typename graph_traits<Graph>::vertex_descriptor
       vertex_descriptor;
@@ -757,23 +758,41 @@ namespace boost {
     typedef typename graph_traits<Graph>::edge_iterator
       edge_iterator;
 
+    uniform_real<> uni_dist(0, 1);
+    variate_generator<RandomGenerator&, uniform_real<> > uni_gen(r, uni_dist);
+
     Graph temp_graph;
     // add vertices to temp_graph
     boost::add_vertices(temp_graph, num_vertices(g));
-    // randomise vertices and store in vector
-    std::vector<vertex_descriptor> original_vertices, randomised_vertices;
+
+    // decide which vertices to randomize
+    std::vector<vertex_descriptor> original_vertices;
+    std::vector<vertex_descriptor> vertices_to_randomise;
+    std::vector<vertex_descriptor> randomised_vertices;
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
       original_vertices.push_back(*vi);
     }
-
-    uniform_real<> uni_dist(0, 1);
-    variate_generator<RandomGenerator&, uniform_real<> > uni_gen(r, uni_dist);
-    while (original_vertices.size() > 0) {
+    std::vector<bool> randomise_flag(num_vertices(g), false);
+    for (unsigned int i = 0; i < fraction*num_vertices(g); ++i) {
       vertex_descriptor rand_no =
         static_cast<unsigned int>(uni_gen() * original_vertices.size());
-      randomised_vertices.push_back(original_vertices[rand_no]);
+      randomise_flag[original_vertices[rand_no]] = true;
+      vertices_to_randomise.push_back(original_vertices[rand_no]);
       original_vertices.erase(original_vertices.begin()+rand_no);
+    }
+    
+    // randomise vertices and store in vector
+    for (unsigned int i = 0; i < num_vertices(g); ++i) {
+      if (randomise_flag[i]) {
+        vertex_descriptor rand_no =
+          static_cast<unsigned int>(uni_gen() * vertices_to_randomise.size());
+        randomised_vertices.push_back(vertices_to_randomise[rand_no]);
+        vertices_to_randomise.erase(vertices_to_randomise.begin()+rand_no);
+      } else {
+        randomised_vertices.push_back(original_vertices[0]);
+        original_vertices.erase(original_vertices.begin());
+      }
     }
 
     // add edges according to randomisation
