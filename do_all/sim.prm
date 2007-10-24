@@ -7,7 +7,7 @@ output       = 0.1 # timesteps at which there is data output
 graphviz     = -1 # timesteps at which to generate graphs
 #d-topology   = random-regular # topology of disease network
 #i-topology   = random-regular        # topology of information network
-nsims        = 1000
+nsims        = 100
 base         = S-   # base state of individuals (S,s,I,i,R,r)
 
 #S-           = 5   # number of random uninformed susceptibles

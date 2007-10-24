@@ -22,7 +22,7 @@ GetOptions("step=f" => \$step,
 	   "alpha-step=f" => \$alpha_step,
 	   "beta-step=f" => \$beta_step);
 
-my $usage = "Usage: vary_parameter.pl low_beta high_beta ".
+my $usage = "Usage: scan_vincent.pl low_beta high_beta ".
   "low_alpha high_alpha [-s step] [-a alpha-step] [-b beta-step]\n";
 
 (@ARGV >= 4) || die ($usage);
@@ -38,13 +38,13 @@ $ha = shift(@ARGV);
 ($beta_step > 0) || ($beta_step = $step);
 ($alpha_step > 0) && ($beta_step > 0) || die($usage);
 
-print "Varying alpha in [$la,$ha] and beta in [$lb,$hb]\n";
+print "Varying alpha in [$la,$ha) in steps of $alpha_step and beta in [$lb,$hb) in steps of $beta_step\n";
 print "Parameters: @ARGV\n\n";
 
 for ($alpha = $la; $alpha <= $ha; $alpha += $alpha_step) {
   for ($beta = $lb; $beta <= $hb; $beta += $beta_step) {
-    printf("alpha=%.2f beta=%.2f\n", $alpha, $beta);
-    $arguments = sprintf("--alpha=%.2f --beta-+=%.2f --beta--=%.2f",$alpha,$beta,$beta);
+    print("alpha=$alpha beta=$beta\n");
+    $arguments = sprintf("--alpha=%.2f --beta=%.2f",$alpha,$beta);
     system("$command $arguments @ARGV");
   }
 }

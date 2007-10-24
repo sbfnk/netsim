@@ -27,7 +27,6 @@ while [ $# -ge 1 ];
   
   case $1 
       in
-      -m) shift; model=$1;;
       -d) shift; dt=$1;;
       -f) force="y";;
       -q) quiet="y";;
@@ -40,10 +39,6 @@ done
 
 # setting sim_options
 sim_options=""
-
-if [ $model ]; then
-    sim_options="$sim_options -p $model"
-fi
 
 # set sim_command
 sim_base="$CODEDIR/sim/bin/simulate"

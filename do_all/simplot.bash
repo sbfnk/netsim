@@ -3,7 +3,7 @@
 # set script path
 graph_dir=$CODEDIR/graph
 
-gp_sim_script=$graph_dir/scripts/sim_only.gp
+gp_sim_script=$graph_dir/scripts/sim.gp
 
 # check command-line args
 if [[ $# != 1 ]]; then

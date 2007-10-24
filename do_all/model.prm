@@ -1,15 +1,15 @@
 # Model parameters: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-vertices   = 100
-beta--     = 0.8
-beta-+     = 0.8
-beta+-     = 0.01
-beta++     = 0.01
-gamma-     = 1
-gamma+     = 1
-delta-     = 1
-delta+     = 1
-alpha      = 0.25
+#vertices   = 1000
+beta--     = 0
+beta-+     = 0
+beta+-     = 0
+beta++     = 0
+gamma-     = 0
+gamma+     = 0
+delta-     = 0
+delta+     = 0
+alpha      = 0
 nu         = 0
-lambda     = 1
+lambda     = 0 #forgetting
 omega      = 0
 sigma      = 0
