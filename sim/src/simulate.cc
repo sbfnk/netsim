@@ -35,6 +35,7 @@
 #include "DimInfoSIRS.hh"
 #include "VaccinationSIRS.hh"
 #include "ProtectiveSIRS.hh"
+#include "SingleSIRS.hh"
 
 namespace po = boost::program_options;
 
@@ -109,7 +110,7 @@ int main(int argc, char* argv[])
     ("sim", po::value<std::string>()->default_value("Gillespie"),
      "simulator to use (Gillespie, Chris)")
     ("usemodel,m", po::value<std::string>()->default_value("InfoSIRS"),
-     "model to use (InfoSIRS, DimInfoSIRS, VaccinationSIRS, ProtectiveSIRS)")
+     "model to use (InfoSIRS, DimInfoSIRS, VaccinationSIRS, ProtectiveSIRS, SingleSIRS)")
     ("tmax", po::value<double>()->default_value(stopTime),
      "time after which to stop\n(use tmax=0 to run until extinction)")
     ("imax", po::value<unsigned int>()->default_value(0),
@@ -163,6 +164,8 @@ int main(int argc, char* argv[])
       model = new Models::VaccinationSIRS(verbose); 
     } else if (modelString == "ProtectiveSIRS") {
       model = new Models::ProtectiveSIRS(verbose); 
+    } else if (modelString == "SingleSIRS") {
+      model = new Models::SingleSIRS(verbose); 
     } else {
       std::cerr << "Error: unknown model: " << modelString << std::endl;
       return 1;
