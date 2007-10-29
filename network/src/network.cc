@@ -99,6 +99,7 @@ int main(int argc, char* argv[])
   unsigned int verbose = 0;
 
   std::string readGraph = ""; // default is to generate graph.
+  bool readAll = false;
   std::string edgeLabels = "di";
 
   po::options_description main_options
@@ -210,7 +211,10 @@ int main(int argc, char* argv[])
   
   graph_options.add_options()
     ("vertices,N", po::value<unsigned int>(),
-     "number of vertices");
+     "number of vertices")
+    ("read-file,r", po::value<std::string>(),
+     "read full graph from file (ignores topology options")
+    ;
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     graph_options.add_options()
       ((std::string(1,edgeLabels[i]) + "-topology").c_str(),
@@ -502,6 +506,11 @@ int main(int argc, char* argv[])
 
   std::vector<unsigned int> edgeTypes;
   for (unsigned int i = 0; i < nEdgeTypes; ++i) edgeTypes.push_back(i);
+
+  if (vm.count("read-file")) {
+    readGraph = vm["read-file"].as<std::string>();
+    readAll = true;
+  }
   
   for (unsigned int i = 0; i < edgeTypes.size(); ++i) {
 
@@ -510,12 +519,13 @@ int main(int argc, char* argv[])
 
     std::string currentEdgeLabel = std::string(1, edgeLabels[edgeTypes[i]]);
     
-    std::stringstream s;
-    s << edgeLabels[i] << "-topology";
-    if (vm.count(s.str())) {
-      topology = vm[s.str()].as<std::string>();
+    std::string optStr = edgeLabels[i] + "-topology";
+    if (readAll) {
+      topology = "read";
+    } else if (vm.count(optStr)) {
+      topology = vm[optStr].as<std::string>();
     } else {
-      std::cerr << "ERROR: no " << s.str() << " specified" << std::endl;
+      std::cerr << "ERROR: no " << optStr << " specified" << std::endl;
       std::cerr << main_options << graph_options << std::endl;
       return 1;
     }
@@ -527,19 +537,16 @@ int main(int argc, char* argv[])
       /******************************************************************/
       
       latticeOptions opt;
-      s.str("");
-      s << edgeLabels[i] << "-dim";
-      opt.dimensions = vm[s.str()].as<unsigned int>();
-      
+      optStr = edgeLabels[i] + "-dim";
+      opt.dimensions = vm[optStr].as<unsigned int>();
       opt.sideLength = static_cast<int>(pow(N, 1.0/opt.dimensions));
       if (pow(opt.sideLength, opt.dimensions) != N) { 
         std::cerr << "ERROR: cannot generate square lattice out of " << N
                   << " vertices." << std::endl;
         return 1;
       }
-      s.str("");
-      s << edgeLabels[i] << "-pb";
-      if (vm.count(s.str())) {
+      optStr = edgeLabels[i] + "-pb";
+      if (vm.count(optStr)) {
         opt.periodicBoundary = true;
       } else {
         opt.periodicBoundary = false;
@@ -562,7 +569,6 @@ int main(int argc, char* argv[])
       /******************************************************************/
       
       latticeOptions opt;
-      s.str("");
       
       opt.sideLength = static_cast<int>(sqrt(N));
       if (pow(opt.sideLength, 2) != N) { 
@@ -571,8 +577,8 @@ int main(int argc, char* argv[])
         return 1;
       }
       
-      s << edgeLabels[i] << "-pb";
-      if (vm.count(s.str())) {
+      optStr = edgeLabels[i] + "-pb";
+      if (vm.count(optStr)) {
         opt.periodicBoundary = true;
       } else {
         opt.periodicBoundary = false;
@@ -595,12 +601,10 @@ int main(int argc, char* argv[])
       /******************************************************************/
       
       treeOptions opt;
-      s.str("");
-      
-      s.str("");
-      s << edgeLabels[i] << "-branches";
-      if (vm.count(s.str())) {
-        opt.branches = vm[s.str()].as<unsigned int>();
+
+      optStr = edgeLabels[i] + "-branches";
+      if (vm.count(optStr)) {
+        opt.branches = vm[optStr].as<unsigned int>();
       } else {
         std::cerr << "ERROR: number of branches not specified" << std::endl;
         std::cerr << *tree_options[i] << std::endl;
@@ -625,24 +629,22 @@ int main(int argc, char* argv[])
       
       rgOptions opt;
 
-      s.str("");
-      s << edgeLabels[i] << "-edges";
-      std::stringstream t;
-      t << edgeLabels[i] << "-degree";
-      if (vm.count(s.str())) {
-        opt.edges = vm[s.str()].as<unsigned int>();
-        if (vm.count(t.str())) {
-          std::cerr << "WARNING: " << s.str() << " and " << t.str()
-                     << " exclude each other, ignoring " << t.str()
+      optStr = edgeLabels[i] + "-edges";
+      std::string optStr2 = edgeLabels[i] + "-degree";
+      if (vm.count(optStr)) {
+        opt.edges = vm[optStr].as<unsigned int>();
+        if (vm.count(optStr2)) {
+          std::cerr << "WARNING: " << optStr << " and " << optStr2
+                     << " exclude each other, ignoring " << optStr2
                      << std::endl;
         }
       } else {
-        if (vm.count(t.str())) {
+        if (vm.count(optStr2)) {
           opt.edges =
-            static_cast<unsigned int>(vm[t.str()].as<double>() * N / 2.);
+            static_cast<unsigned int>(vm[optStr2].as<double>() * N / 2.);
         } else {
-          std::cerr << "ERROR: neither " << s.str() << " nor "
-                    << t.str() << " specified." << std::endl;
+          std::cerr << "ERROR: neither " << optStr << " nor "
+                    << optStr2 << " specified." << std::endl;
           std::cerr << *rg_options[i] << std::endl;
           return 1;
         }
@@ -673,16 +675,14 @@ int main(int argc, char* argv[])
       /******************************************************************/
       
       rrgOptions opt;
-      
-      s.str("");
-      s << edgeLabels[i] << "-degree";
-      if (vm.count(s.str())) {
-        opt.degree = static_cast<unsigned int>(vm[s.str()].as<double>());
+
+      optStr = edgeLabels[i] + "-degree";
+      if (vm.count(optStr)) {
+        opt.degree = static_cast<unsigned int>(vm[optStr].as<double>());
       } 
-      s.str("");
-      s << edgeLabels[i] << "-joint-degree";
-      if (vm.count(s.str())) {
-        opt.jointDegree = vm[s.str()].as<unsigned int>();
+      optStr = edgeLabels[i] + "-joint-degree";
+      if (vm.count(optStr)) {
+        opt.jointDegree = vm[optStr].as<unsigned int>();
       }
       if (opt.degree + opt.jointDegree == 0) {
         std::cerr << "WARNING: Neither degree nor joint-degree specified, "
@@ -763,10 +763,9 @@ int main(int argc, char* argv[])
       
       swOptions opt;
       
-      s.str("");
-      s << edgeLabels[i] << "-degree";
-      if (vm.count(s.str())) {
-        opt.degree = static_cast<unsigned int>(vm[s.str()].as<double>());
+      optStr = edgeLabels[i] + "-degree";
+      if (vm.count(optStr)) {
+        opt.degree = static_cast<unsigned int>(vm[optStr].as<double>());
       } else {
         std::cerr << "ERROR: no degree specified" << std::endl;
         std::cerr << *sw_options[i] << std::endl;
@@ -792,19 +791,17 @@ int main(int argc, char* argv[])
       
       plodOptions opt;
       
-      s.str("");
-      s << edgeLabels[i] << "-alpha";
-      if (vm.count(s.str())) {
-        opt.alpha = vm[s.str()].as<double>();
+      optStr = edgeLabels[i] + "-alpha";
+      if (vm.count(optStr)) {
+        opt.alpha = vm[optStr].as<double>();
       } else {
         std::cerr << "ERROR: no alpha specified" << std::endl;
         std::cerr << *plod_options[i] << std::endl;
         return 1;
       }
-      s.str("");
-      s << edgeLabels[i] << "-beta";
-      if (vm.count(s.str())) {
-        opt.beta = vm[s.str()].as<double>();
+      optStr = edgeLabels[i] + "-beta";
+      if (vm.count(optStr)) {
+        opt.beta = vm[optStr].as<double>();
       } else {
         std::cerr << "ERROR: no beta specified" << std::endl;
         std::cerr << *plod_options[i] << std::endl;
@@ -830,10 +827,9 @@ int main(int argc, char* argv[])
       
       abOptions opt;
       
-      s.str("");
-      s << edgeLabels[i] << "-newedges";
-      if (vm.count(s.str())) {
-        opt.new_edges = vm[s.str()].as<unsigned int>();
+      optStr = edgeLabels[i] + "-newedges";
+      if (vm.count(optStr)) {
+        opt.new_edges = vm[optStr].as<unsigned int>();
       } else {
         std::cerr << "ERROR: no number of edges to add per vertex specified"
                   << std::endl;
@@ -888,13 +884,12 @@ int main(int argc, char* argv[])
       /******************************************************************/
       readFileOptions opt;
 
-      s.str("");
-      s << edgeLabels[i] << "-file";
-      if (vm.count(s.str())) {
+      optStr = edgeLabels[i] + "-file";
+      if (vm.count(optStr)) {
         if (readGraph.size() == 0) {
-          readGraph = vm[s.str()].as<std::string>();
+          readGraph = vm[optStr].as<std::string>();
         }
-        opt.fileName = vm[s.str()].as<std::string>();
+        opt.fileName = vm[optStr].as<std::string>();
       } else {
         if (readGraph.size() == 0) {
           std::cerr << "ERROR: no file name specified" << std::endl;
@@ -920,7 +915,7 @@ int main(int argc, char* argv[])
       }
     } else if (topology == "null") {
     } else {
-      std::cerr << "ERROR: unknown " << s.str() << ": " << topology
+      std::cerr << "ERROR: unknown " << optStr << ": " << topology
                 << std::endl;
       std::cerr << main_options << graph_options << std::endl;
       return 1;
@@ -1030,7 +1025,7 @@ int main(int argc, char* argv[])
   // Mark parallel edges
   /******************************************************************/
   unsigned int parallel_edges = mark_parallel_edges(graph);
-  if (verbose) {
+  if (verbose >= 2) {
     std::cout << "No. of parallel edges is: " << parallel_edges
               << std::endl;
   }
