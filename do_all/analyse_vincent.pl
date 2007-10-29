@@ -76,18 +76,18 @@ if ($info) {
   my $firstline = !$no_header;
   foreach $var2 (sort keys %data) {
     if ($firstline) {
-      $linestring = "0"."$delimiter";
+      $linestring = "   0"."$delimiter";
       foreach $var1 (sort keys %{$data{$var2}}) {
-	$linestring .= $var1."$delimiter";
+	$linestring .= sprintf("%.2f",$var1)."$delimiter";
       }
       chop $linestring;
       print "$linestring\n";
       $firstline = 0;
     }
 
-    $linestring = $var2."$delimiter";
+    $linestring = sprintf("%.2f",$var2)."$delimiter";
     foreach $var1 (sort keys %{$data{$var2}}) {
-      $linestring .= $data{$var2}{$var1}."$delimiter";
+      $linestring .= sprintf("%4.0f",$data{$var2}{$var1})."$delimiter";
     }
     chop $linestring;
     print "$linestring\n";
