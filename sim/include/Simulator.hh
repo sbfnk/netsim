@@ -38,6 +38,7 @@ public:
   virtual void initialise()
   {
     numInfections = numInformations = numRecoveries = numForgettings = 0;
+    time = 0.;
   }
   
   //! Perform an update. Implemented by derived classes.
