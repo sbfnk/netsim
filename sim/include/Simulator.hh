@@ -190,6 +190,7 @@ double updateEventList(Graph& graph,
   double tempSum = .0;
 
   if (verbose >= 2) {
+    std::streamsize prec = std::cout.precision();
     std::cout << "Updating events list for vertex #" << v << " ("
               << model.getVertexStates()[graph[v].state.base];
     if (graph[v].state.detail > 0.) {
@@ -204,6 +205,8 @@ double updateEventList(Graph& graph,
     }
     std::cout << ") along "
               << model.getEdgeTypes()[graph[e].type] << "-edge" << std::endl;
+    std::cout << std::setprecision(prec);
+    std::cout.unsetf(std::ios::fixed);
   }
   for (unsigned int i = 0; i < graph[v].events.size(); i++) {
     if (graph[v].events[i].nb == id[n] &&
