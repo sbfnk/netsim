@@ -1074,7 +1074,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // count vertices
   /******************************************************************/
-  if (vm.count("pairs") || vm.count("triples")) {
+  if (vm.count("pairs") || vm.count("triples") || verbose) {
     std::stringstream output;
     if (baseFileName.length() == 0 || verbose) {
       output << "\nVertex count:" << std::endl;
@@ -1084,7 +1084,7 @@ int main(int argc, char* argv[])
     /******************************************************************/
     // count pairs
     /******************************************************************/
-    if (vm.count("pairs")) {
+    if (vm.count("pairs") || verbose) {
       
       if (baseFileName.length() == 0 || verbose) {
         output << "\nPair count:" << std::endl;
