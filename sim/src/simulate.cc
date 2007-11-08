@@ -7,9 +7,12 @@
 #include <string>
 #include <map>
 
+#include <stdlib.h>
+#include <math.h>
 #include <sys/time.h>
 #include <sys/stat.h>
 
+#include <boost/filesystem.hpp>
 #include <boost/graph/random.hpp>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
@@ -18,7 +21,6 @@
 #include <boost/graph/small_world_generator.hpp>
 #include <boost/graph/plod_generator.hpp>
 #include <boost/graph/erdos_renyi_generator.hpp>
-#include <math.h>
 
 #include "network/include/graph_structure.hh"
 #include "network/include/graph_io.hh"
@@ -38,6 +40,7 @@
 #include "SingleSIRS.hh"
 
 namespace po = boost::program_options;
+namespace fs = boost::filesystem;
 
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
                               Vertex, Edge> multitype_graph;
@@ -68,7 +71,17 @@ int main(int argc, char* argv[])
 
   double outputData = 0.;
   double outputGraphviz = -1.;
-  std::string graphDir = "images";
+  double outputDist = -1.;
+
+  char* dataDir = getenv("DATADIR");
+  std::string outputDir;
+  if (dataDir) {
+    mkdir(dataDir, 0755);
+    outputDir = dataDir;
+  } else {
+    outputDir = "output";
+  }
+
   std::string outputFileName = "";
   std::ofstream* outputFile = 0;
 
@@ -99,8 +112,6 @@ int main(int argc, char* argv[])
      "produce very verbose output")
     ("params-file,p",po::value<std::string>(),
      "file containing model parameters")
-    ("write-file,w",po::value<std::string>(),
-     "output file name")
     ;
 
   po::options_description sim_options
@@ -117,14 +128,16 @@ int main(int argc, char* argv[])
      "number of infections after which to stop (if >0)")
     ("pmax", po::value<unsigned int>()->default_value(0),
      "number of informations after which to stop (if >0)")
-    ("output", po::value<double>()->default_value(0.),
+    ("data,d", po::value<double>()->default_value(outputData),
      "write output data at arg timesteps (0 for no data output)")
     ("graphviz,g", po::value<double>()->default_value(outputGraphviz),
      "create graphviz output in the images directory at arg timesteps")
+    ("info-dist,i", po::value<double>()->default_value(outputDist),
+     "create information distribution in the dist directory at arg timesteps")
     ("lattice,l", 
      "paint output as pixelised lattices")
-    ("graph-dir",po::value<std::string>()->default_value(graphDir),
-     "output directory for graph output")
+    ("output-dir",po::value<std::string>()->default_value(outputDir),
+     "output directory for graph and data output")
     ("nsims", po::value<unsigned int>()->default_value(1),
      "number of simulation runs to produce (on a given graph)")
     ;
@@ -389,18 +402,17 @@ int main(int argc, char* argv[])
     outputGraphviz = vm["graphviz"].as<double>();
   }
 
+  // timesteps after which to write info distribution
+  if (vm.count("info-dist")) {
+    outputDist = vm["info-dist"].as<double>();
+  }
+
   // paint images as lattice
   if (vm.count("lattice")) {
     graph_function = &boost::write_png;
   } else {
     graph_function = &boost::write_graph;
   }
-
-  // set base file name
-  std::string baseFileName;
-  if (vm.count("write-file")) {
-    baseFileName = vm["write-file"].as<std::string>();
-  }    
 
   numSims = vm["nsims"].as<unsigned int>();
   
@@ -492,11 +504,24 @@ int main(int argc, char* argv[])
     stopTime = vm["tmax"].as<double>();
     stopInfections = vm["imax"].as<unsigned int>();
     stopInformations = vm["pmax"].as<unsigned int>();
-    outputData = vm["output"].as<double>();
+    outputData = vm["data"].as<double>();
         
-    // graph directory
-    if (vm.count("graph-dir")) {
-      graphDir = vm["graph-dir"].as<std::string>();
+    // output directory
+    if (vm.count("output-dir")) {
+      outputDir = vm["output-dir"].as<std::string>();
+      // remove existing data
+      if (fs::exists(outputDir)) {
+        fs::directory_iterator iter(outputDir), end_iter;
+        for (; iter != end_iter; ++iter) {
+          if (iter->leaf().substr(0,3) == "run") {
+            if (fs::is_directory(*iter)) {
+              fs::remove_all(outputDir+"/"+(iter->leaf()));
+            }
+          }
+        }
+      } else {
+        mkdir(outputDir.c_str(), 0755);
+      }
     }
   }
   
@@ -509,10 +534,6 @@ int main(int argc, char* argv[])
       std::cout.flush();
     }
     
-    std::stringstream fileName;
-    fileName << baseFileName << std::setfill('0') << std::setw(extLength)
-             << nSim;
-
     /******************************************************************/
     // generate new initial state
     /******************************************************************/
@@ -596,15 +617,25 @@ int main(int argc, char* argv[])
       }
     }
     
-    std::stringstream graphDirName(graphDir, std::ios::in | std::ios::out |
-                                   std::ios::ate);
-    graphDirName << "/run" << std::setfill('0') << std::setw(extLength) << nSim;
+    std::stringstream runStr(std::ios::in | std::ios::out | std::ios::ate);
+    runStr << "run" << std::setfill('0') << std::setw(extLength) << nSim;
+
+    std::string runOutputDir = outputDir + "/" + runStr.str();
+    
+    mkdir(runOutputDir.c_str(), 0755);
+    
+
+    std::string runDataDir = runOutputDir;
+    std::string runGraphDir = runOutputDir + "/images";
+    std::string runDistDir = runOutputDir + "/dist";
     
     /******************************************************************/
     // open output file
     /******************************************************************/
-    if (vm.count("write-file")) {
-      outputFileName = fileName.str()+".sim.dat";
+    if (outputData > 0) {
+      // create data directory
+      mkdir(runDataDir.c_str(), 0755);
+      outputFileName = runDataDir+"/"+runStr.str()+".sim.dat";
       
       try {
         outputFile = new std::ofstream();
@@ -626,11 +657,17 @@ int main(int argc, char* argv[])
     
     // GraphViz output
     if (outputGraphviz >= 0) {
-      // create graph directories
-      if (nSim == 1) mkdir(graphDir.c_str(), 0755);
-      mkdir(graphDirName.str().c_str(), 0755);
-      graph_function(graph, (graphDirName.str() + "/frame000000"), *model, -1);
+      // create graph directory
+      mkdir(runGraphDir.c_str(), 0755);
+      graph_function(graph, (runGraphDir + "/frame000000"), *model, -1);
     }
+    // Information distribution output
+    if (outputDist >= 0) {
+      // create distribution directory
+      mkdir(runDistDir.c_str(), 0755);
+      write_detail_dist(graph, (runDistDir + "/dist000000"));
+    }
+    
     
     // prints data to outputFile
     std::string lastLine = "";
@@ -645,9 +682,11 @@ int main(int argc, char* argv[])
     /******************************************************************/
     double nextDataStep = outputData;
     double nextGraphStep = outputGraphviz;
+    double nextDistStep = outputDist;
     
     unsigned int steps = 0;
-    unsigned int outputNum = 1;
+    unsigned int graphOutputNum = 1;
+    unsigned int distOutputNum = 1;
     
     while ((stopTime >= 0 || sim->getTime()<stopTime) &&
            (stopInfections == 0 || (sim->getNumInfections() < stopInfections &&
@@ -664,17 +703,6 @@ int main(int argc, char* argv[])
         std::cout << "time elapsed: " << sim->getTime() << std::endl;
       }
       
-      if ((outputGraphviz > 0) && (sim->getTime() > nextGraphStep)) {
-        graph_function(graph,
-                       generateFileName((graphDirName.str() +"/frame"),
-                                        outputNum),
-                       *model,
-                       sim->getTime());
-        do {
-	  nextGraphStep += outputGraphviz;
-	} while (sim->getTime() > nextGraphStep);
-        ++outputNum;
-      }
       if (outputFile && sim->getTime() > nextDataStep) {
         lastLine = 
           write_sim_data(graph, *model, sim->getTime(), *outputFile, pairs, triples);
@@ -684,6 +712,27 @@ int main(int argc, char* argv[])
           } while (sim->getTime() > nextDataStep);
         }
       }
+      if ((outputGraphviz > 0) && (sim->getTime() > nextGraphStep)) {
+        graph_function(graph,
+                       generateFileName((runGraphDir +"/frame"),
+                                        graphOutputNum),
+                       *model,
+                       sim->getTime());
+        do {
+	  nextGraphStep += outputGraphviz;
+	} while (sim->getTime() > nextGraphStep);
+        ++graphOutputNum;
+      }
+      if ((outputDist > 0) && (sim->getTime() > nextDistStep)) {
+        write_detail_dist(graph,
+                          generateFileName((runDistDir +"/dist"),
+                                           distOutputNum));
+
+        do {
+	  nextDistStep += outputDist;
+	} while (sim->getTime() > nextDistStep);
+        ++distOutputNum;
+      }
       ++steps;
     }
     
@@ -691,10 +740,15 @@ int main(int argc, char* argv[])
                            << std::endl;
     if (outputGraphviz >= 0) {
       graph_function(graph,
-                     generateFileName((graphDirName.str()+"/frame"),
-                                      outputNum),
+                     generateFileName((runGraphDir+"/frame"),
+                                      graphOutputNum),
                      *model,
                      sim->getTime());
+    }
+    if (outputDist >= 0) {
+      write_detail_dist(graph,
+                     generateFileName((runDistDir+"/dist"),
+                                      distOutputNum));
     }
     
     if (outputFile) {
@@ -706,7 +760,7 @@ int main(int argc, char* argv[])
       outputFile->close();
       delete outputFile;
       std::ofstream statsFile;
-      std::string statsFileName = fileName.str()+".stats";
+      std::string statsFileName = runDataDir+"/"+runStr.str()+".stats";
       statsFile.open(statsFileName.c_str(), std::ios::out);
       statsFile << "Cumulative number of infections: "
                 << sim->getNumInfections() << std::endl;
@@ -733,7 +787,7 @@ int main(int argc, char* argv[])
     if (stopTime == 0) stopTime = sim->getTime();
     if (stopTime > 0) {
       std::ofstream gpFile;
-      std::string gpFileName = baseFileName+".gp";
+      std::string gpFileName = outputDir+"/"+"init.gp";
       
       try {
         gpFile.open(gpFileName.c_str(), std::ios::out);
