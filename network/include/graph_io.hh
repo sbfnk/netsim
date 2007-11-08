@@ -580,7 +580,7 @@ namespace boost {
   \ingroup graph_visualisation
   */
   template <typename Graph, typename Model>
-  void draw_lattice(const Graph& g, std::string fileName, const Model& m,
+  void write_png(const Graph& g, std::string fileName, const Model& m,
                     double timeLabel = 0.)
   {   
     typedef typename boost::graph_traits<Graph>::vertex_iterator
@@ -613,7 +613,31 @@ namespace boost {
     }
     lattice_image.close();
   }
-  
+
+  template <typename Graph>
+  void write_detail_dist(const Graph& g, std::string fileName)
+  {
+    typedef typename boost::graph_traits<Graph>::vertex_iterator
+      vertex_iterator;
+
+    std::ofstream distFile;
+    try {
+      distFile.open(fileName.c_str(), std::ios::out);
+    }
+    catch (std::exception &e) {
+      std::cerr << "... unable to open gnuplot output file " 
+                << fileName << " for writing the information distribution"
+                << std::endl;
+      std::cerr << "... Standard exception: " << e.what() << std::endl;      
+      return;
+    }
+    
+    vertex_iterator vi, vi_end;
+    for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi) {
+      distFile << g[*vi].state.detail << std::endl;
+    }
+  }
+
 }
   
 //----------------------------------------------------------
