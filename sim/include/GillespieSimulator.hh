@@ -222,9 +222,13 @@ namespace Simulators {
         for (eit = graph[*((*it)->getItem())].events.begin();
              eit != graph[*((*it)->getItem())].events.end(); eit++) {
           std::cout << " " << model.getVertexState((*eit).newState.base) << " ("
-                    << (*eit).rate << ")";
+                    << (*eit).rate;
+          if (eit->newState.detail > 0) {
+            std::cout << "," << eit->newState.detail;
+          }
+          std::cout << ")";
         }
-        std::cout << std::endl;
+        std::cout << std::endl << std::endl;
       }
     }
   }
