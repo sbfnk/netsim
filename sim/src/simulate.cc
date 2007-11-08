@@ -123,6 +123,8 @@ int main(int argc, char* argv[])
      "create graphviz output in the images directory at arg timesteps")
     ("lattice,l", 
      "paint output as pixelised lattices")
+    ("both,b", 
+     "paint output as pixelised lattices as well as graphviz .dot")
     ("graph-dir",po::value<std::string>()->default_value(graphDir),
      "output directory for graph output")
     ("nsims", po::value<unsigned int>()->default_value(1),
@@ -390,8 +392,10 @@ int main(int argc, char* argv[])
   }
 
   // paint images as lattice
-  if (vm.count("lattice")) {
-    graph_function = &boost::draw_lattice;
+  if (vm.count("both")) {
+    graph_function = &boost::write_graph_and_png;
+  } else if (vm.count("lattice")) {
+    graph_function = &boost::write_png;
   } else {
     graph_function = &boost::write_graph;
   }
