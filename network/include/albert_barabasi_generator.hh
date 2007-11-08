@@ -47,7 +47,7 @@ namespace boost {
 
     /*! \brief Constructor.
       \param[in] gen Random generator to use.
-      \param[in] n Number of vertices to create.
+      \param[in] n Number of vertices to include.
       \param[in] m Number of vertices to connect new nodes to at each step.
     */
     albert_barabasi_iterator(RandomGenerator& gen, vertices_size_type n, 
@@ -129,7 +129,7 @@ namespace boost {
   private:
         
     uniform_gen* gen;
-    unsigned int n;
+    vertices_size_type n;
     edges_size_type m;
     std::vector<vertices_size_type> nodes;
     std::set<unsigned int> targets;
