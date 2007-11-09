@@ -97,6 +97,7 @@ int main(int argc, char* argv[])
 
   bool pairs = false;
   bool triples = false;
+  bool effective = false;
 
   po::options_description command_line_options
     ("\nUsage: simulate [options]... \n\nMain options");
@@ -214,6 +215,8 @@ int main(int argc, char* argv[])
      "count pairs")
     ("triples",
      "count triples")
+    ("effective",
+     "count effective singles (weighted by detailed state)")
     ;
   
   po::options_description ic_options
@@ -380,6 +383,10 @@ int main(int argc, char* argv[])
   if (vm.count("triples")) {
     triples = true;
   }
+  // consider effective singles
+  if (vm.count("effective")) {
+    effective = true;
+  }
   // print stats at end of run
   if (vm.count("print-stats")) {
     printStats = true;
@@ -466,14 +473,44 @@ int main(int argc, char* argv[])
     keepIC = true;
   }
     
-  if (numSims > 0) {
+  if (vm.count("output-dir")) {
+    outputDir = vm["output-dir"].as<std::string>();
+  }
 
+  if (numSims > 0) {
+        
     /******************************************************************/
     // initialise model
     /******************************************************************/
     if (numSims > 0) {
       model->Init(vm);
       if (verbose >=1) model->Print();
+
+      // write model parameters
+      std::ofstream paramFile;
+      std::string paramFileName = outputDir+"/"+"runs.prm";
+      
+      try {
+        paramFile.open(paramFileName.c_str(), std::ios::out);
+      }
+      catch (std::exception &e) {
+        std::cerr << "... unable to open parameter file " 
+                  << paramFileName << std::endl;
+        std::cerr << "... Standard exception: " << e.what() << std::endl;      
+        return 1; 
+      }
+      
+      paramFile << *model << std::endl;
+      
+      try {
+        paramFile.close();
+      }
+      catch (std::exception &e) {
+        std::cerr << "... unable to close parameter file " 
+                  << paramFileName << std::endl;
+        std::cerr << "... Standard exception: " << e.what() << std::endl;      
+        return 1; 
+      }
     }
     
     /******************************************************************/
@@ -506,12 +543,9 @@ int main(int argc, char* argv[])
     stopInformations = vm["pmax"].as<unsigned int>();
     outputData = vm["data"].as<double>();
         
-    // output directory
-    if (vm.count("output-dir")) {
-      outputDir = vm["output-dir"].as<std::string>();
-      // remove existing data
-      if (fs::exists(outputDir)) {
-        fs::directory_iterator iter(outputDir), end_iter;
+    // remove existing data
+    if (fs::exists(outputDir)) {
+      fs::directory_iterator iter(outputDir), end_iter;
         for (; iter != end_iter; ++iter) {
           if (iter->leaf().substr(0,3) == "run") {
             if (fs::is_directory(*iter)) {
@@ -519,9 +553,8 @@ int main(int argc, char* argv[])
             }
           }
         }
-      } else {
-        mkdir(outputDir.c_str(), 0755);
-      }
+    } else {
+      mkdir(outputDir.c_str(), 0755);
     }
   }
   
@@ -673,7 +706,7 @@ int main(int argc, char* argv[])
     std::string lastLine = "";
     if (outputFile) {
       lastLine = write_sim_data(graph, *model, sim->getTime(), *outputFile,
-                                  pairs, triples);
+                                pairs, triples, effective);
     }
     if (verbose) print_sim_status(graph, *model, pairs, triples);
     
@@ -688,7 +721,7 @@ int main(int argc, char* argv[])
     unsigned int graphOutputNum = 1;
     unsigned int distOutputNum = 1;
     
-    while ((stopTime >= 0 || sim->getTime()<stopTime) &&
+    while ((stopTime == 0 || sim->getTime()<stopTime) &&
            (stopInfections == 0 || (sim->getNumInfections() < stopInfections &&
                                     sim->getNumInfections()+1 > sim->getNumRecoveries())) &&
            (stopInformations == 0 || (sim->getNumInformations() < stopInformations && 
@@ -705,7 +738,8 @@ int main(int argc, char* argv[])
       
       if (outputFile && sim->getTime() > nextDataStep) {
         lastLine = 
-          write_sim_data(graph, *model, sim->getTime(), *outputFile, pairs, triples);
+          write_sim_data(graph, *model, sim->getTime(), *outputFile, pairs,
+                         triples, effective);
         if (outputData > 0) {
           do {
             nextDataStep += outputData;
@@ -754,7 +788,8 @@ int main(int argc, char* argv[])
     if (outputFile) {
       if (sim->getTime() < stopTime) {
         lastLine = 
-          write_sim_data(graph, *model, sim->getTime(), *outputFile, pairs, triples);
+          write_sim_data(graph, *model, sim->getTime(), *outputFile, pairs,
+                         triples, effective);
       }
       *outputFile << stopTime << '\t' << lastLine;
       outputFile->close();
@@ -782,12 +817,12 @@ int main(int argc, char* argv[])
     
   }
 
-  if (vm.count("write-file")) {
+  if (vm.count("data")) {
 
     if (stopTime == 0) stopTime = sim->getTime();
     if (stopTime > 0) {
       std::ofstream gpFile;
-      std::string gpFileName = outputDir+"/"+"init.gp";
+      std::string gpFileName = outputDir+"/"+"runs.gp";
       
       try {
         gpFile.open(gpFileName.c_str(), std::ios::out);
