@@ -19,18 +19,12 @@ Models::DimInfoSIRS::DimInfoSIRS(unsigned int v)
   /*************************************/
   // define vertex classes
   /************************************/
-  // susceptible uninformed
-  vertexStates.push_back(Label("S-","00;32", 0, "fillcolor=\"royalblue4\""));
-  // infected uninformed
-  vertexStates.push_back(Label("I-","00;31", 1, "fillcolor=\"red4\""));
-  // recovered uninformed
-  vertexStates.push_back(Label("R-","00;34", 2, "fillcolor=\"green4\""));
-  // susceptible informed
-  vertexStates.push_back(Label("S+","01;32", 3, "fillcolor=\"royalblue\""));
-  // infected informed
-  vertexStates.push_back(Label("I+","01;31", 4, "fillcolor=\"red\""));
-  // recovered informed
-  vertexStates.push_back(Label("R+","01;34", 5, "fillcolor=\"green\""));
+  // susceptible
+  vertexStates.push_back(Label("S","01;32", 0, "fillcolor=\"royalblue\""));
+  // infected 
+  vertexStates.push_back(Label("I","01;31", 1, "fillcolor=\"red\""));
+  // recoveredn
+  vertexStates.push_back(Label("R","01;34", 2, "fillcolor=\"green\""));
 
   /*************************************/
   // define edge types
@@ -60,6 +54,8 @@ Models::DimInfoSIRS::DimInfoSIRS(unsigned int v)
      "local information generation rate")
     ("lambda", po::value<double>(),
      "loss of information rate")
+    ("threshold", po::value<double>(),
+     "threshold below which not to consider information transmission")
     ;
 
   /*************************************/
@@ -73,6 +69,7 @@ Models::DimInfoSIRS::DimInfoSIRS(unsigned int v)
   params.insert(std::make_pair("omega", &omega));
   params.insert(std::make_pair("lambda", &lambda));
   params.insert(std::make_pair("rho", &rho));
+  params.insert(std::make_pair("threshold", &threshold));
 }
 
 //----------------------------------------------------------
@@ -92,8 +89,7 @@ double Models::DimInfoSIRS::getNodeEvents(eventList& events,
      // loss of immunity
       Event immunityLoss;
       immunityLoss.rate = delta;
-      immunityLoss.newState =
-        State(getBaseState(Susceptible, getInfo(state)), -1);
+      immunityLoss.newState = State(Susceptible, -1);
       immunityLoss.nb = nb;
       if (immunityLoss.rate > 0) {
         events.push_back(immunityLoss);
@@ -108,7 +104,7 @@ double Models::DimInfoSIRS::getNodeEvents(eventList& events,
       // recovery
       Event recovery;
       recovery.rate = gamma;
-      recovery.newState = State(getBaseState(Recovered, getInfo(state)), -1);
+      recovery.newState = State(Recovered, -1);
       recovery.nb = nb;
       if (recovery.rate > 0) {
         events.push_back(recovery);
@@ -122,8 +118,7 @@ double Models::DimInfoSIRS::getNodeEvents(eventList& events,
         // local information generation
         Event localInfo;
         localInfo.rate = omega;
-        localInfo.newState =
-          State(getBaseState(getDisease(state), Informed), 1);
+        localInfo.newState = State(state.base, 1);
         localInfo.nb = nb;
         if (localInfo.rate > 0) {
           events.push_back(localInfo);
@@ -136,16 +131,11 @@ double Models::DimInfoSIRS::getNodeEvents(eventList& events,
       }
    }
    // information loss
-   if (getInfo(state) == Informed) {
+   if (state.detail > 0) {
       Event infoLoss;
       infoLoss.rate = lambda;
       double detailUpdate = state.detail * rho;
-      if (detailUpdate < 0.01) {
-        infoLoss.newState =
-          State(getBaseState(getDisease(state), Uninformed), 0);
-      } else {
-        infoLoss.newState = State(state.base, detailUpdate);
-      }
+      infoLoss.newState = State(state.base, detailUpdate);
       infoLoss.nb = nb;
       if (infoLoss.rate > 0) {
         events.push_back(infoLoss);
@@ -174,8 +164,7 @@ double Models::DimInfoSIRS::getEdgeEvents(eventList& events,
           getDisease(nbState) == Infected) {
          Event infection;
          infection.rate = (1 - state.detail) * beta;
-         infection.newState =
-           State(getBaseState(Infected, getInfo(state)), -1);
+         infection.newState = State(Infected, -1);
          infection.nb = nb;
          infection.et = edge;
          if (infection.rate > 0) {
@@ -189,30 +178,10 @@ double Models::DimInfoSIRS::getEdgeEvents(eventList& events,
       }
    } else if (edge == Information) {
       // information transmission
-      if (getInfo(state) == Uninformed && getInfo(nbState) == Informed &&
-          nbState.detail > 1e-2) {
+      if (state.detail < nbState.detail && nbState.detail > threshold) {
          Event infoTransmission;
          infoTransmission.rate = alpha;
-         infoTransmission.newState =
-           State(getBaseState(getDisease(state), Informed), nbState.detail * rho);
-         infoTransmission.nb = nb;
-         infoTransmission.et = edge;
-         if (infoTransmission.rate > 0) {
-           events.push_back(infoTransmission);
-           rateSum += infoTransmission.rate;
-           if (verbose >= 2) {
-             std::cout << "Adding information transmission event with rate " 
-                       << infoTransmission.rate << std::endl;
-           }
-         }
-      }
-      // information transmission
-      if (getInfo(state) == Informed && getInfo(nbState) == Informed &&
-          state.detail < nbState.detail && nbState.detail > 1e-2) {
-         Event infoTransmission;
-         infoTransmission.rate = alpha;
-         infoTransmission.newState =
-           State(getBaseState(getDisease(state), Informed), nbState.detail * rho);
+         infoTransmission.newState = State(state.base, nbState.detail * rho);
          infoTransmission.nb = nb;
          infoTransmission.et = edge;
          if (infoTransmission.rate > 0) {
@@ -228,8 +197,7 @@ double Models::DimInfoSIRS::getEdgeEvents(eventList& events,
       if (state.detail < 1 && getDisease(nbState) == Infected) {
          Event infoGeneration;
          infoGeneration.rate = nu;
-         infoGeneration.newState =
-           State(getBaseState(getDisease(state), Informed), 1);
+         infoGeneration.newState = State(state.base, 1);
          infoGeneration.et = edge;
          infoGeneration.nb = nb;
          if (infoGeneration.rate > 0) {

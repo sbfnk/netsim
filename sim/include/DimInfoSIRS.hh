@@ -24,7 +24,7 @@ namespace Models {
     //! Possible disease states.
     enum diseaseStatesEnum {Susceptible,Infected,Recovered};
     //! Possible information states.
-    enum infoStatesEnum {Uninformed, Informed};
+    enum infoStatesEnum {Informed};
     //! Possible edge types.
     enum edgeTypesEnum {Disease, Information};
     
@@ -57,16 +57,8 @@ namespace Models {
     { return (state.base % 3); }
     //! Get the information part of a full vertex state.
     unsigned int getInfo(State state) const
-    { return (state.base / 3); }
-    //! Get the full vertex state from disease and information parts.
-    unsigned int getBaseState(unsigned int dState, unsigned int iState) const
-    { return dState + iState*3; }
+    { return 0; }
     
-    //! Get initial value of state_detail for a given state
-    virtual double getInitDetail(unsigned int baseState) const
-    { if (getInfo(State(baseState)) == Informed) return 1.; 
-      else return Model::getInitDetail(baseState); }
-  
   private:
 
     double gamma; //!< Recovery rates.
@@ -77,7 +69,9 @@ namespace Models {
     double omega; //!< Local infromation generation rate.
     double nu; //!< Information generation rate over i-edges.
     double rho; //!< Ratio between informed and uninformed susceptibility.
-  
+
+    double threshold; //!< Threshold below which information will not be passed
+
   };
 
 }
