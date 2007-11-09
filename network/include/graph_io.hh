@@ -598,8 +598,9 @@ namespace boost {
       // get colour code corresponding to the state of the current vertex
       std::vector<double> colourCode =
         getColourCode(m.getVertexStates()[g[*vi].state.base].getColour());
-      if (g[*vi].state.detail > 0) {
-        for (unsigned int i = 0; i < colourCode.size(); ++i) {
+      for (unsigned int i = 0; i < colourCode.size(); ++i) {
+        // if we have a light colour, shade by detailed state
+        if (colourCode[i] == 1.) {
           colourCode[i] -= (1 - g[*vi].state.detail)*0.7;
         }
       }
