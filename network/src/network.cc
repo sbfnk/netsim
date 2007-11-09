@@ -1092,7 +1092,8 @@ int main(int argc, char* argv[])
       std::vector<unsigned int> pairs = count_pairs(graph, nEdgeTypes);
       for (unsigned int i = 0; i < nEdgeTypes; ++i) {
         output << "  " << edgeLabels[i] << "-pairs: " << pairs[i]
-               << std::endl;
+               << " (avg degree: " << pairs[i]*2./num_vertices(graph)
+	       << ")" << std::endl;
       }
       output << " " << "parallel: " << parallel_edges << std::endl;
     }
