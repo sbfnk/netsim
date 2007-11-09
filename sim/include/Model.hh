@@ -153,7 +153,8 @@ public:
   virtual ~Model() {}
   
   virtual void Init(po::variables_map& vm);
-  void Print();
+  void print(std::ostream &os) const;
+  void Print() const;
 
   /*! \brief Get node events.
 
@@ -286,6 +287,8 @@ protected:
   unsigned int verbose;
   
 };
+
+std::ostream& operator<<(std::ostream& os, const Model& m);
 
 //----------------------------------------------------------
 /*! \brief The models of interaction for usage in the simulation.

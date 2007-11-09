@@ -28,15 +28,21 @@ void Model::Init(po::variables_map& vm)
   }
 }
 
-//! Print the model parameters.
-void Model::Print()
+//! Print the model parameters to ostream.
+void Model::print(std::ostream &os) const
 {
-  std::cout << "Model parameters:" << std::endl;
-  std::cout << "=================" << std::endl;
-  for (std::map<std::string, double*>::iterator it = params.begin();
+  os << "Model parameters:" << std::endl;
+  os << "=================" << std::endl;
+  for (std::map<std::string, double*>::const_iterator it = params.begin();
        it != params.end(); it++) {
-    std::cout << it->first << ": " << *(it->second) << std::endl; 
+    os << it->first << ": " << *(it->second) << std::endl; 
   }
+}
+
+//! Print the model parameters to the screen.
+void Model::Print() const
+{
+  std::cout << *this;
 }
 
 /*! \brief Stream operator for Label.
@@ -49,3 +55,14 @@ Streams a letter associated VertexState/EdgeType, useful for easy printout
 */
 std::ostream& operator<<(std::ostream& os, const Label& l)
 { l.print(os); return os; }
+
+/*! \brief Stream operator for Model.
+
+Stream the model paramters.
+\param[in, out] os The stream to write the Model to
+\param[in] l The Model to stream
+
+\return A reference to the stream written to
+*/
+std::ostream& operator<<(std::ostream& os, const Model& m)
+{ m.print(os); return os; }
