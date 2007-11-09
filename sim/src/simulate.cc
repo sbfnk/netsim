@@ -73,14 +73,20 @@ int main(int argc, char* argv[])
   double outputGraphviz = -1.;
   double outputDist = -1.;
 
-  char* dataDir = getenv("DATADIR");
+  char* dataDirEnv = getenv("DATADIR");
   std::string outputDir;
-  if (dataDir) {
-    mkdir(dataDir, 0755);
-    outputDir = dataDir;
+  if (dataDirEnv) {
+    mkdir(dataDirEnv, 0755);
+    outputDir = dataDirEnv;
   } else {
     outputDir = "output";
   }
+
+  char* graphDirEnv = getenv("GRAPHDIR");
+  std::string inputGraphDir = "";
+  if (graphDirEnv) {
+    inputGraphDir = graphDirEnv;
+  } 
 
   std::string outputFileName = "";
   std::ofstream* outputFile = 0;
@@ -197,12 +203,12 @@ int main(int argc, char* argv[])
 
   graph_options.add_options()
     ("file,f", po::value<std::string>(),
-     "file to read from (one file for all edge types)");
+     "file to read from (one file for all edge types, .graph will be appended)");
 
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     graph_options.add_options()
       ((edgeTypes[i].getText()+"-file").c_str(), po::value<std::string>(),
-       ("file to read "+edgeTypes[i].getText()+"-network from").c_str());
+       ("file to read "+edgeTypes[i].getText()+"-network from (.graph will be appended)").c_str());
   }
   
   po::options_description statistics_options
@@ -309,13 +315,19 @@ int main(int argc, char* argv[])
   // read graph from file
   /******************************************************************/
 
-  std::vector<std::string> fileNames(nEdgeTypes);
+  std::vector<std::string> fileNames(nEdgeTypes, "");
+  if (inputGraphDir.size() > 0) {
+    for (unsigned int i = 0; i < edgeTypes.size(); i++) {
+      fileNames[i] = inputGraphDir + "/";
+    }
+  }
+  
   
   if (vm.count("file")) {
     // read all from one file
     allFromOne = true;
     for (unsigned int i = 0; i < edgeTypes.size(); i++) {
-      fileNames[i] = vm["file"].as<std::string>();
+      fileNames[i] += vm["file"].as<std::string>() + ".graph";
     }
   } else {
     allFromOne = false;
@@ -324,7 +336,7 @@ int main(int argc, char* argv[])
       s.str("");
       s << edgeTypes[i].getText() << "-file";
       if (vm.count(s.str())) {
-        fileNames[i] = vm[s.str()].as<std::string>();
+        fileNames[i] += vm[s.str()].as<std::string>();
       } else {
         fileNames[i] = "";
       }
