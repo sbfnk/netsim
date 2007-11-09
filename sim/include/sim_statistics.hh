@@ -14,45 +14,73 @@
 
 //! \addtogroup sim_statistics Simulation statistics
 
-  //----------------------------------------------------------
-  /*! \brief Count vertices.
+//----------------------------------------------------------
+/*! \brief Count vertices.
   
-  Counts the number of vertices of a given state in a graph
+Counts the number of vertices of a given state in a graph
 
-  \param[in] g The graph containing the vertices
-  \param[in] nVertexStates The number of vertex states.
-  \return A vector of state counts.
-  \ingroup sim_statistics
-  */
-  template <typename Graph>
-  std::vector<unsigned int>
-  count_vertices(Graph& g, unsigned int nVertexStates)
-  {
-    typedef typename boost::graph_traits<Graph>::vertex_iterator
-      vertex_iterator;
+\param[in] g The graph containing the vertices
+\param[in] nVertexStates The number of vertex states.
+\return A vector of state counts.
+\ingroup sim_statistics
+*/
+template <typename Graph>
+std::vector<unsigned int>
+count_vertices(Graph& g, unsigned int nVertexStates, bool effective = false)
+{
+  typedef typename boost::graph_traits<Graph>::vertex_iterator
+    vertex_iterator;
 
-    std::vector<unsigned int> counts(nVertexStates,0);
+  std::vector<unsigned int> counts(nVertexStates,0);
 
-    vertex_iterator vi, vi_end;
-    for (boost::tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
-      ++counts[g[*vi].state.base];
-    }
-   
-    return counts;
+  vertex_iterator vi, vi_end;
+  for (boost::tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+    ++counts[g[*vi].state.base];
   }
+   
+  return counts;
+}
 
-  //----------------------------------------------------------
-  /*! \brief Count state pairs.
+//----------------------------------------------------------
+/*! \brief Count effective vertices.
   
-  Counts the number of pairs of states in a graph.
+Counts the effecitve number of vertices (weighted by the detailed state) of a
+given state in a graph 
 
-  \param[in] g The graph containing the vertices and edges
-  \param[in] nVertexStates The number of vertex states.
-  \param[in] nEdgeTypes The number of edge types.
-  \return A 3d array of pairs, the first index of which denounces edge type and
-  the other two vertex states
-  \ingroup sim_statistics
-  */
+\param[in] g The graph containing the vertices
+\param[in] nVertexStates The number of vertex states.
+\return A vector of state counts.
+\ingroup sim_statistics
+*/
+template <typename Graph>
+std::vector<double>
+count_effective_vertices(Graph& g, unsigned int nVertexStates)
+{
+  typedef typename boost::graph_traits<Graph>::vertex_iterator
+    vertex_iterator;
+
+  std::vector<double> counts(nVertexStates,0.);
+
+  vertex_iterator vi, vi_end;
+  for (boost::tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+    counts[g[*vi].state.base] += (1-g[*vi].state.detail);
+  }
+   
+  return counts;
+}
+
+//----------------------------------------------------------
+/*! \brief Count state pairs.
+  
+Counts the number of pairs of states in a graph.
+
+\param[in] g The graph containing the vertices and edges
+\param[in] nVertexStates The number of vertex states.
+\param[in] nEdgeTypes The number of edge types.
+\return A 3d array of pairs, the first index of which denounces edge type and
+the other two vertex states
+\ingroup sim_statistics
+*/
 template <typename Graph>
 boost::multi_array<unsigned int, 3>
 count_state_pairs(Graph& g, unsigned int nVertexStates,
@@ -302,7 +330,8 @@ computation) or not
 template<typename Graph>
 std::string write_sim_data(const Graph& g, const Model& m,
                            double t, std::ofstream& ofile,
-                           bool pairs = true, bool triples = true)
+                           bool pairs = true, bool triples = true,
+                           bool effective = true)
 {
   unsigned int nVertexStates = m.getVertexStates().size();
   unsigned int nEdgeTypes = m.getEdgeTypes().size();
@@ -317,6 +346,14 @@ std::string write_sim_data(const Graph& g, const Model& m,
   for (unsigned int i = 0; i < nVertexStates; i++) {
     line << vertexCount[i] << '\t';
   }
+
+  if (effective) {
+    std::vector<double> effVertexCount =
+      count_effective_vertices(g, nVertexStates);
+    for (unsigned int i = 0; i < nVertexStates; i++) {
+      line << effVertexCount[i] << '\t';
+    }
+  }    
 
   if (pairs) {
     boost::multi_array<unsigned int, 3> pairCount =
