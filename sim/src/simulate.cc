@@ -511,8 +511,12 @@ int main(int argc, char* argv[])
         std::cerr << "... Standard exception: " << e.what() << std::endl;      
         return 1; 
       }
-      
-      paramFile << *model << std::endl;
+
+      for (unsigned int i = 0; i < edgeTypes.size(); i++) {
+        paramFile << edgeTypes[i].getText() << "-graph: " << fileNames[i]
+                  << std::endl;
+      }
+      paramFile << std::endl << *model << std::endl;
       
       try {
         paramFile.close();
@@ -829,7 +833,7 @@ int main(int argc, char* argv[])
     
   }
 
-  if (vm.count("data")) {
+  if (outputData > 0) {
 
     if (stopTime == 0) stopTime = sim->getTime();
     if (stopTime > 0) {
