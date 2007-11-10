@@ -74,13 +74,11 @@ int main(int argc, char* argv[])
   double outputDist = -1.;
 
   char* dataDirEnv = getenv("DATADIR");
-  std::string outputDir;
+  std::string outputDir = "";
   if (dataDirEnv) {
     mkdir(dataDirEnv, 0755);
     outputDir = dataDirEnv;
-  } else {
-    outputDir = "output";
-  }
+  } 
 
   char* graphDirEnv = getenv("GRAPHDIR");
   std::string inputGraphDir = "";
@@ -486,7 +484,7 @@ int main(int argc, char* argv[])
   }
     
   if (vm.count("output-dir")) {
-    outputDir = vm["output-dir"].as<std::string>();
+    outputDir += vm["output-dir"].as<std::string>();
   }
 
   if (numSims > 0) {
