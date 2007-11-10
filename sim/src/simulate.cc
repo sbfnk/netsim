@@ -484,7 +484,7 @@ int main(int argc, char* argv[])
   }
     
   if (vm.count("output-dir")) {
-    outputDir += vm["output-dir"].as<std::string>();
+    outputDir += "/"+vm["output-dir"].as<std::string>();
   }
 
   if (numSims > 0) {
@@ -824,7 +824,7 @@ int main(int argc, char* argv[])
       if (stopTime == 0) stopTime = sim->getTime();
       if (stopTime > 0) {
         std::ofstream gpFile;
-        std::string gpFileName = runDataDir+"/"+runStr.str()+".stats";
+        std::string gpFileName = runDataDir+"/"+runStr.str()+".gp";
         
         try {
           gpFile.open(gpFileName.c_str(), std::ios::out);
