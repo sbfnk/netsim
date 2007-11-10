@@ -141,8 +141,8 @@ int main(int argc, char* argv[])
      "create information distribution in the dist directory at arg timesteps")
     ("lattice,l", 
      "paint output as pixelised lattices")
-    ("output-dir,o",po::value<std::string>()->default_value(outputDir),
-     "output directory for graph and data output")
+    ("output-dir,o",po::value<std::string>(),
+     "output directory for graph and data output (as subdir of $DATADIR)")
     ("nsims", po::value<unsigned int>()->default_value(1),
      "number of simulation runs to produce (on a given graph)")
     ;
