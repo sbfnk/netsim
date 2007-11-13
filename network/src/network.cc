@@ -519,7 +519,7 @@ int main(int argc, char* argv[])
 
     std::string currentEdgeLabel = std::string(1, edgeLabels[edgeTypes[i]]);
     
-    std::string optStr = edgeLabels[i] + "-topology";
+    std::string optStr = edgeLabels[i] + std::string("-topology");
     if (readAll) {
       topology = "read";
     } else if (vm.count(optStr)) {
