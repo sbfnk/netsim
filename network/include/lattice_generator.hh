@@ -140,6 +140,7 @@ namespace boost {
       ++edgeCount;
 
       if (edgeCount == 1) {
+        // right neighbour on same line
         if ((source % sideLength == sideLength - 1)) {
           // at end of line
           if (periodic_boundary) target = source - sideLength + 1;
@@ -149,6 +150,8 @@ namespace boost {
           target = source + 1;
         }
       } else if (edgeCount == 2) {
+        // neighbour below (low-right neighbour if line# uneven, 
+        // low-left neighbour if line# even)
         if (source + 1 > sideLength*(sideLength-1)) {
           // last line
           if (periodic_boundary) target = source - sideLength * (sideLength - 1);
@@ -157,6 +160,7 @@ namespace boost {
           target = source + sideLength;
         }
       } else if (edgeCount == 3) {
+        // other neighbour below
         if (source + 1 > sideLength*(sideLength-1)) {
           // last line
           if (periodic_boundary) {
@@ -185,7 +189,7 @@ namespace boost {
           // uneven line
           if ((source % sideLength == sideLength - 1)) {
             // at end of line
-            if (periodic_boundary) target = source - sideLength + 1;
+            if (periodic_boundary) target = source + 1;
             else ++(*this);
           } else {
             target = source + sideLength + 1;
