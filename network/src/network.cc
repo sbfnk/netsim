@@ -511,7 +511,7 @@ int main(int argc, char* argv[])
     readGraph = vm["read-file"].as<std::string>();
     readAll = true;
   }
-  
+
   for (unsigned int i = 0; i < edgeTypes.size(); ++i) {
 
     onetype_graph temp_graph;
@@ -577,7 +577,7 @@ int main(int argc, char* argv[])
         return 1;
       }
       
-      optStr = edgeLabels[i] + "-pb";
+      optStr = edgeLabels[i] + std::string("-pb");
       if (vm.count(optStr)) {
         opt.periodicBoundary = true;
       } else {
@@ -593,7 +593,7 @@ int main(int argc, char* argv[])
       tri_lattice_iterator tli_end;
       
       boost::add_edge_structure(temp_graph, tli, tli_end, Edge(i));
-      
+
     } else if (topology == "tree") {
       
       /******************************************************************/
@@ -630,7 +630,7 @@ int main(int argc, char* argv[])
       rgOptions opt;
 
       optStr = edgeLabels[i] + "-edges";
-      std::string optStr2 = edgeLabels[i] + "-degree";
+      std::string optStr2 = edgeLabels[i] + std::string("-degree");
       if (vm.count(optStr)) {
         opt.edges = vm[optStr].as<unsigned int>();
         if (vm.count(optStr2)) {
