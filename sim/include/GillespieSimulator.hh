@@ -206,6 +206,7 @@ namespace Simulators {
   template <typename RandomGenerator, typename Graph>
   void GillespieSimulator<RandomGenerator, Graph>::print()
   {
+    std::cout << std::endl;
     // get simulation variable
     const Model& model = this->getModel();
     
@@ -228,9 +229,10 @@ namespace Simulators {
           }
           std::cout << ")";
         }
-        std::cout << std::endl << std::endl;
+        std::cout << std::endl;
       }
     }
+    std::cout << std::endl;
   }
   
 }
