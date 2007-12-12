@@ -90,7 +90,7 @@ namespace boost {
         breadth_first_search(g, *vi, et,
             visitor(make_bfs_visitor(record_infected_distance(d, m,
                                                               on_tree_edge()))));
-      } catch (unsigned int e) {
+      } catch (unsigned long e) {
         distance = e;
       }
       
