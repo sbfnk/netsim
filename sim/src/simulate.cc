@@ -24,6 +24,7 @@
 
 #include "network/include/graph_structure.hh"
 #include "network/include/graph_io.hh"
+#include "network/include/nearest_infected.hh"
 #include "network/include/Edge.hh"
 
 #include "sim_statistics.hh"
@@ -72,6 +73,7 @@ int main(int argc, char* argv[])
   double outputData = 0.;
   double outputGraphviz = -1.;
   double outputDist = -1.;
+  double outputCorr = -1.;
 
   char* dataDirEnv = getenv("DATADIR");
   std::string outputDir = "";
@@ -139,6 +141,8 @@ int main(int argc, char* argv[])
      "create graphviz output in the images directory at arg timesteps")
     ("info-dist,i", po::value<double>()->default_value(outputDist),
      "create information distribution in the dist directory at arg timesteps")
+    ("info-dis-corr,c", po::value<double>()->default_value(outputCorr),
+     "create correlation between information and infection in the corr directory at arg timesteps")
     ("lattice,l", 
      "paint output as pixelised lattices")
     ("output-dir,o",po::value<std::string>(),
@@ -424,6 +428,11 @@ int main(int argc, char* argv[])
     outputDist = vm["info-dist"].as<double>();
   }
 
+  // timesteps after which to write info distribution
+  if (vm.count("info-dis-corr")) {
+    outputCorr = vm["info-dis-corr"].as<double>();
+  }
+
   // paint images as lattice
   if (vm.count("lattice")) {
     graph_function = &boost::write_png;
@@ -576,7 +585,7 @@ int main(int argc, char* argv[])
     
     if (printStats) {
       std::cout << "----- " << "run #" << nSim << std::endl;
-    } else if (numSims > 0) {
+    } else if (numSims > 0 && !verbose) {
       std::cout << ".";
       std::cout.flush();
     }
@@ -675,6 +684,7 @@ int main(int argc, char* argv[])
     std::string runDataDir = runOutputDir;
     std::string runGraphDir = runOutputDir + "/images";
     std::string runDistDir = runOutputDir + "/dist";
+    std::string runCorrDir = runOutputDir + "/corr";
     
     /******************************************************************/
     // open output file
@@ -714,6 +724,13 @@ int main(int argc, char* argv[])
       mkdir(runDistDir.c_str(), 0755);
       write_detail_dist(graph, (runDistDir + "/dist000000"));
     }
+    // Information-disease correlation output
+    if (outputCorr >= 0) {
+      // create distribution directory
+      mkdir(runCorrDir.c_str(), 0755);
+      write_info_dis_corr(graph, *model, Edge(0), (runCorrDir + "/corr000000"));
+    }
+    
     
     
     // prints data to outputFile
@@ -730,10 +747,12 @@ int main(int argc, char* argv[])
     double nextDataStep = outputData;
     double nextGraphStep = outputGraphviz;
     double nextDistStep = outputDist;
+    double nextCorrStep = outputCorr;
     
     unsigned int steps = 0;
     unsigned int graphOutputNum = 1;
     unsigned int distOutputNum = 1;
+    unsigned int corrOutputNum = 1;
     
     while ((stopTime == 0 || sim->getTime()<stopTime) &&
            (stopInfections == 0 || (sim->getNumInfections() < stopInfections &&
@@ -759,6 +778,7 @@ int main(int argc, char* argv[])
             nextDataStep += outputData;
           } while (sim->getTime() > nextDataStep);
         }
+        outputFile->flush();
       }
       if ((outputGraphviz > 0) && (sim->getTime() > nextGraphStep)) {
         graph_function(graph,
@@ -781,6 +801,16 @@ int main(int argc, char* argv[])
 	} while (sim->getTime() > nextDistStep);
         ++distOutputNum;
       }
+      if ((outputCorr > 0) && (sim->getTime() > nextCorrStep)) {
+        write_info_dis_corr(graph, *model, Edge(0),
+                            generateFileName((runCorrDir +"/corr"),
+                                             corrOutputNum));
+
+        do {
+	  nextCorrStep += outputCorr;
+	} while (sim->getTime() > nextCorrStep);
+        ++corrOutputNum;
+      }
       ++steps;
     }
     
@@ -797,6 +827,11 @@ int main(int argc, char* argv[])
       write_detail_dist(graph,
                      generateFileName((runDistDir+"/dist"),
                                       distOutputNum));
+    }
+    if (outputCorr >= 0) {
+      write_info_dis_corr(graph, *model, Edge(0),
+                          generateFileName((runCorrDir+"/corr"),
+                                           corrOutputNum));
     }
     
     if (outputFile) {

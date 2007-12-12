@@ -626,7 +626,7 @@ namespace boost {
       distFile.open(fileName.c_str(), std::ios::out);
     }
     catch (std::exception &e) {
-      std::cerr << "... unable to open gnuplot output file " 
+      std::cerr << "... unable to open output file " 
                 << fileName << " for writing the information distribution"
                 << std::endl;
       std::cerr << "... Standard exception: " << e.what() << std::endl;      
@@ -639,6 +639,35 @@ namespace boost {
     }
   }
 
+
+  template <typename Graph, typename EdgeType, typename Model>
+  void write_info_dis_corr(const Graph& g, const Model& m,
+                           EdgeType et, std::string fileName)
+  {
+    typedef typename boost::graph_traits<Graph>::vertex_iterator
+      vertex_iterator;
+
+    std::ofstream corrFile;
+    try {
+      corrFile.open(fileName.c_str(), std::ios::out);
+    }
+    catch (std::exception &e) {
+      std::cerr << "... unable to open correlation output file " 
+                << fileName << std::endl;
+      std::cerr << "... Standard exception: " << e.what() << std::endl;      
+      return;
+    }
+
+    std::vector<unsigned int> infected_distances = nearest_infected(g, et, m);
+    unsigned int vertex_counter = 0;
+    
+    vertex_iterator vi, vi_end;
+    for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi) {
+      corrFile << g[*vi].state.detail << '\t'
+               << infected_distances[vertex_counter] << std::endl;
+      ++vertex_counter;
+    }
+  }
 }
   
 //----------------------------------------------------------
