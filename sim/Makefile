@@ -67,5 +67,7 @@ out/simulate.o: include/Vertex.hh include/Simulator.hh \
 	include/ProtectiveSIRS.hh include/VaccinationSIRS.hh \
 	include/SingleSIRS.hh \
         include/sim_statistics.hh \
+	${CODEDIR}/network/include/graph_structure.hh \
 	${CODEDIR}/network/include/graph_io.hh \
+	${CODEDIR}/network/include/nearest_infected.hh \
 	${CODEDIR}/network/include/Edge.hh
