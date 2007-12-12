@@ -85,6 +85,7 @@ namespace boost {
           search_list.end()) {
         put(m_distance_found, v, get(m_distance, v));
         ++found;
+        // throw exception once all are found
         if (found == search_list.size()) throw 14;
       }
     }
