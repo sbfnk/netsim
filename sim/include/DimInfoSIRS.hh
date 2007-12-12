@@ -58,6 +58,10 @@ namespace Models {
     //! Get the information part of a full vertex state.
     unsigned int getInfo(State state) const
     { return 0; }
+
+    //! Check whether a vertex is infected
+    bool isInfected(State state) const
+    { return (getDisease(state) == Infected); }
     
   private:
 

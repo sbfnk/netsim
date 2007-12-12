@@ -234,6 +234,15 @@ public:
   virtual bool isForgetting(State before_state, State after_state) const
   { return false; }
 
+  /*! \brief Check whether a vertex is infected
+     
+  This is implemented by classes derived from Model.
+  
+  \param[in] state The state to check.
+  */
+  virtual bool isInfected(State state) const
+  { return false; }
+
   //! Accessor for vertexStates
   const std::vector<Label>& getVertexStates() const
   { return vertexStates; }
