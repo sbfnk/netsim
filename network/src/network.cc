@@ -901,13 +901,17 @@ int main(int argc, char* argv[])
       }
 
       // reading graph structure and initial state from file
-      if (read_graph(temp_graph, opt.fileName, i) > 0) {
+      bool read_result = read_graph(temp_graph, opt.fileName, i);
+      if (read_result > 0) {
         
         // update number of vertices
         N = num_vertices(graph);
         if (verbose) {
           std::cout << "graph file " << readGraph << " was read ok\n";
         }
+      } else if (read_result == 0) {
+        std::cerr << "WARNING: no " << edgeLabels[i] << "-edges in "
+                  << readGraph << std::endl;
       } else {
         std::cerr << "ERROR: something wrong in read graph from "
                   << readGraph << std::endl;
