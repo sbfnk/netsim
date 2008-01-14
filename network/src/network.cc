@@ -519,7 +519,7 @@ int main(int argc, char* argv[])
 
     std::string currentEdgeLabel = std::string(1, edgeLabels[edgeTypes[i]]);
     
-    std::string optStr = edgeLabels[i] + std::string("-topology");
+    std::string optStr = std::string(1, edgeLabels[i]) + std::string("-topology");
     if (readAll) {
       topology = "read";
     } else if (vm.count(optStr)) {
@@ -537,7 +537,7 @@ int main(int argc, char* argv[])
       /******************************************************************/
       
       latticeOptions opt;
-      optStr = edgeLabels[i] + "-dim";
+      optStr = std::string(1, edgeLabels[i]) + "-dim";
       opt.dimensions = vm[optStr].as<unsigned int>();
       opt.sideLength = static_cast<int>(pow(N, 1.0/opt.dimensions));
       if (pow(opt.sideLength, opt.dimensions) != N) { 
@@ -545,7 +545,7 @@ int main(int argc, char* argv[])
                   << " vertices." << std::endl;
         return 1;
       }
-      optStr = edgeLabels[i] + "-pb";
+      optStr = std::string(1, edgeLabels[i]) + "-pb";
       if (vm.count(optStr)) {
         opt.periodicBoundary = true;
       } else {
@@ -577,7 +577,7 @@ int main(int argc, char* argv[])
         return 1;
       }
       
-      optStr = edgeLabels[i] + std::string("-pb");
+      optStr = std::string(1, edgeLabels[i]) + std::string("-pb");
       if (vm.count(optStr)) {
         opt.periodicBoundary = true;
       } else {
@@ -602,7 +602,7 @@ int main(int argc, char* argv[])
       
       treeOptions opt;
 
-      optStr = edgeLabels[i] + "-branches";
+      optStr = std::string(1, edgeLabels[i]) + "-branches";
       if (vm.count(optStr)) {
         opt.branches = vm[optStr].as<unsigned int>();
       } else {
@@ -629,8 +629,8 @@ int main(int argc, char* argv[])
       
       rgOptions opt;
 
-      optStr = edgeLabels[i] + "-edges";
-      std::string optStr2 = edgeLabels[i] + std::string("-degree");
+      optStr = std::string(1, edgeLabels[i]) + "-edges";
+      std::string optStr2 = std::string(1, edgeLabels[i]) + std::string("-degree");
       if (vm.count(optStr)) {
         opt.edges = vm[optStr].as<unsigned int>();
         if (vm.count(optStr2)) {
@@ -676,11 +676,11 @@ int main(int argc, char* argv[])
       
       rrgOptions opt;
 
-      optStr = edgeLabels[i] + "-degree";
+      optStr = std::string(1, edgeLabels[i]) + "-degree";
       if (vm.count(optStr)) {
         opt.degree = static_cast<unsigned int>(vm[optStr].as<double>());
       } 
-      optStr = edgeLabels[i] + "-joint-degree";
+      optStr = std::string(1, edgeLabels[i]) + "-joint-degree";
       if (vm.count(optStr)) {
         opt.jointDegree = vm[optStr].as<unsigned int>();
       }
@@ -763,7 +763,7 @@ int main(int argc, char* argv[])
       
       swOptions opt;
       
-      optStr = edgeLabels[i] + "-degree";
+      optStr = std::string(1, edgeLabels[i]) + "-degree";
       if (vm.count(optStr)) {
         opt.degree = static_cast<unsigned int>(vm[optStr].as<double>());
       } else {
@@ -791,7 +791,7 @@ int main(int argc, char* argv[])
       
       plodOptions opt;
       
-      optStr = edgeLabels[i] + "-alpha";
+      optStr = std::string(1, edgeLabels[i]) + "-alpha";
       if (vm.count(optStr)) {
         opt.alpha = vm[optStr].as<double>();
       } else {
@@ -799,7 +799,7 @@ int main(int argc, char* argv[])
         std::cerr << *plod_options[i] << std::endl;
         return 1;
       }
-      optStr = edgeLabels[i] + "-beta";
+      optStr = std::string(1, edgeLabels[i]) + "-beta";
       if (vm.count(optStr)) {
         opt.beta = vm[optStr].as<double>();
       } else {
@@ -827,7 +827,7 @@ int main(int argc, char* argv[])
       
       abOptions opt;
       
-      optStr = edgeLabels[i] + "-newedges";
+      optStr = std::string(1, edgeLabels[i]) + "-newedges";
       if (vm.count(optStr)) {
         opt.new_edges = vm[optStr].as<unsigned int>();
       } else {
@@ -884,7 +884,7 @@ int main(int argc, char* argv[])
       /******************************************************************/
       readFileOptions opt;
 
-      optStr = edgeLabels[i] + "-file";
+      optStr = std::string(1,edgeLabels[i]) + "-file";
       if (vm.count(optStr)) {
         if (readGraph.size() == 0) {
           readGraph = vm[optStr].as<std::string>();
@@ -901,20 +901,21 @@ int main(int argc, char* argv[])
       }
 
       // reading graph structure and initial state from file
-      bool read_result = read_graph(temp_graph, opt.fileName, i);
+      int read_result = read_graph(temp_graph, opt.fileName, i);
       if (read_result > 0) {
-        
         // update number of vertices
         N = num_vertices(graph);
         if (verbose) {
-          std::cout << "graph file " << readGraph << " was read ok\n";
+          std::cout << "graph file " << opt.fileName << " was read ok"
+	            << std::endl;
         }
       } else if (read_result == 0) {
         std::cerr << "WARNING: no " << edgeLabels[i] << "-edges in "
-                  << readGraph << std::endl;
+                  << opt.fileName << std::endl;
       } else {
-        std::cerr << "ERROR: something wrong in read graph from "
-                  << readGraph << std::endl;
+        std::cerr << "ERROR: something wrong in reading "
+	          << edgeLabels[i] << "-graph from "
+                  << opt.fileName << std::endl;
         return 1;
       }
     } else if (topology == "null") {
