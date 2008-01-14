@@ -44,8 +44,6 @@ Models::DimInfoSIRS::DimInfoSIRS(unsigned int v)
      "recovery rate")
     ("delta", po::value<double>(),
      "loss of immunity rate")
-    ("delta", po::value<double>(),
-     "loss of immunity rate")
     ("alpha", po::value<double>(),
      "information transmission rate")
     ("nu", po::value<double>(),
