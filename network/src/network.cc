@@ -28,6 +28,7 @@
 #include "tree_generator.hh"
 #include "erdos_renyi_generator2.hh"
 #include "albert_barabasi_generator.hh"
+#include "community_generator.hh"
 #include "cluster_coeffs.hh"
 #include "assortativity.hh"
 #include "degree_overlap.hh"
@@ -83,6 +84,11 @@ struct abOptions
 
 struct readFileOptions {
   std::string fileName;
+};
+
+struct communityOptions {
+  double delta, pd, pr;
+  unsigned int iterations;
 };
 
 int main(int argc, char* argv[])
@@ -221,7 +227,7 @@ int main(int argc, char* argv[])
        po::value<std::string>(),
        (std::string(1,edgeLabels[i]) + "-network topology\n((tri-)lattice, "+
         "tree, random, random-regular, small-world, plod, albert-barabasi, "+
-        "complete, read, null)").c_str());
+        "community, complete, read, null)").c_str());
   }
   
   po::options_description assortativity_options
@@ -377,6 +383,36 @@ int main(int argc, char* argv[])
     ab_options.push_back(abo);
   }
 
+  // Community graph
+  std::vector<po::options_description*> com_options;
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+    std::stringstream s;
+    s << edgeLabels[i] << "-Community options";
+    po::options_description* co =
+      new po::options_description(s.str().c_str());
+    s.str("");
+    s << edgeLabels[i] << "-delta";
+    co->add_options()
+      (s.str().c_str(), po::value<double>()->default_value(0.5),
+       "amount to increase link weight by if strenghtened");
+    s.str("");
+    s << edgeLabels[i] << "-pr";
+    co->add_options()
+      (s.str().c_str(), po::value<double>()->default_value(5e-4),
+       "probability for creation of random link");
+    s.str("");
+    s << edgeLabels[i] << "-pd";
+    co->add_options()
+      (s.str().c_str(), po::value<double>()->default_value(1e-3),
+       "probabiliy for node deletion");
+    s.str("");
+    s << edgeLabels[i] << "-iter";
+    co->add_options()
+      (s.str().c_str(), po::value<unsigned int>()->default_value(25),
+       "number of iterations");
+    com_options.push_back(co);
+  }
+
   // read graph
   std::vector<po::options_description*> readFile_options;
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
@@ -427,7 +463,7 @@ int main(int argc, char* argv[])
     s << edgeLabels[i] << "-randomise";
     additional_options.add_options()
       (s.str().c_str(), po::value<double>()->default_value(0.), 
-       ("randomise vertices before adding "+std::string(1,edgeLabels[i])+
+       ("randomise fraction of vertices before adding "+std::string(1,edgeLabels[i])+
         "-edges").c_str());
   }
 
@@ -445,6 +481,7 @@ int main(int argc, char* argv[])
     all_options.add(*(sw_options[i]));
     all_options.add(*(plod_options[i]));
     all_options.add(*(ab_options[i]));
+    all_options.add(*(com_options[i]));
     all_options.add(*(readFile_options[i]));
   }
 
@@ -838,7 +875,7 @@ int main(int argc, char* argv[])
       }
       
       /******************************************************************/
-      // generate Albert-Barabasi with desired properties
+      // generate Albert-Barabasi graph with desired properties
       /******************************************************************/
       typedef boost::albert_barabasi_iterator<boost::mt19937, onetype_graph>
         albert_barabasi_iterator;
@@ -847,6 +884,63 @@ int main(int argc, char* argv[])
       albert_barabasi_iterator ab_end;
       
       boost::add_edge_structure(temp_graph, ab, ab_end, Edge(i));
+
+    } else if (topology == "community") {
+      
+      /******************************************************************/
+      // read community graph specific parameters
+      /******************************************************************/
+
+      communityOptions opt;
+
+      optStr = std::string(1,edgeLabels[i]) + "-delta";
+      if (vm.count(optStr)) {
+        opt.delta = vm[optStr].as<double>();
+      } else {
+        std::cerr << "ERROR: no " << optStr << " specified"
+                  << std::endl;
+        std::cerr << *com_options[i] << std::endl;
+        return 1;
+      }
+      optStr = std::string(1,edgeLabels[i]) + "-pr";
+      if (vm.count(optStr)) {
+        opt.pr = vm[optStr].as<double>();
+      } else {
+        std::cerr << "ERROR: no " << optStr << " specified"
+                  << std::endl;
+        std::cerr << *com_options[i] << std::endl;
+        return 1;
+      }
+      optStr = std::string(1,edgeLabels[i]) + "-pd";
+      if (vm.count(optStr)) {
+        opt.pd = vm[optStr].as<double>();
+      } else {
+        std::cerr << "ERROR: no " << optStr << " specified"
+                  << std::endl;
+        std::cerr << *com_options[i] << std::endl;
+        return 1;
+      }
+      optStr = std::string(1,edgeLabels[i]) + "-iter";
+      if (vm.count(optStr)) {
+        opt.iterations = vm[optStr].as<unsigned int>();
+      } else {
+        std::cerr << "ERROR: no " << optStr << " specified"
+                  << std::endl;
+        std::cerr << *com_options[i] << std::endl;
+        return 1;
+      }
+
+      /******************************************************************/
+      // generate community graph with desired properties
+      /******************************************************************/
+      typedef boost::community_iterator<boost::mt19937, onetype_graph>
+        community_iterator;
+      
+      community_iterator com(gen, &temp_graph, opt.delta, opt.pr, opt.pd,
+                             opt.iterations);
+      community_iterator com_end;
+      
+      boost::add_edge_structure(temp_graph, com, com_end, Edge(i));
 
     } else if (topology == "complete") {
 
@@ -1336,11 +1430,13 @@ int main(int argc, char* argv[])
   /******************************************************************/
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     delete lattice_options[i];
+    delete tree_options[i];
     delete rg_options[i];
     delete rrg_options[i];
     delete sw_options[i];
     delete plod_options[i];
     delete ab_options[i];
+    delete com_options[i];
     delete readFile_options[i];
   }
   

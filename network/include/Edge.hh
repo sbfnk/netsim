@@ -13,12 +13,12 @@ class Edge
 public:
 
   //! Constructor.
-  Edge(): type(0), parallel(false) {;}
+  Edge(): type(0), parallel(false), weight(1.) {;}
 
   /*! \brief Constructor.
     \param[in] eType type initialiser.
   */
-  Edge(int eType): type(eType), parallel(false) {;}
+  Edge(int eType): type(eType), parallel(false), weight(1.) {;}
 
   /*! \brief Constructor.
     \param[in] eType type initialiser.
@@ -29,6 +29,8 @@ public:
   //! A number corresponding to an edge type, to be defined by the used Model.
   unsigned int type; 
   bool parallel; //!< Whether the edge has a parallel counterpart or not
+
+  double weight;
 
   bool operator==(const Edge& rhs)
   { return type == rhs.type; }

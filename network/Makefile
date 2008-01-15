@@ -58,4 +58,5 @@ out/network.o: include/lattice_generator.hh include/graph_structure.hh \
 	include/albert_barabasi_generator.hh include/cluster_coeffs.hh \
 	include/assortativity.hh include/graph_statistics.hh \
 	include/path_length.hh include/breadth_first_search.hpp \
-	include/degree_overlap.hh include/tree_generator.hh
+	include/degree_overlap.hh include/tree_generator.hh \
+        include/community_generator.hh
