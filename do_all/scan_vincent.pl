@@ -44,7 +44,7 @@ $ha = shift(@ARGV);
 print "Varying $param in [$la,$ha) in steps of $alpha_step and beta in [$lb,$hb) in steps of $beta_step\n";
 print "Parameters: @ARGV\n\n";
 
-for ($alpha = $la; $alpha <= $ha; $alpha += $alpha_step) {
+for ($alpha = $la; $alpha <= $ha; $alpha += $param_step) {
   for ($beta = $lb; $beta <= $hb; $beta += $beta_step) {
     print("$param=$alpha beta=$beta\n");
     $arguments = sprintf("--$param=%.2f --beta=%.2f",$alpha,$beta);
