@@ -10,12 +10,17 @@ my $means = 0;
 my $code_dir = @ENV{'CODEDIR'};
 my $data_dir = @ENV{'DATADIR'};
 
+my $alpha_scale = 1.;
+my $beta_scale = 1.;
+
 my $no_header = 0;
 
 GetOptions("threshold=i" => \$threshold,
 	   "no-header" => \$no_header,
 	   "info" => \$info,
 	   "vinf" => \$num_inf,
+	   "alpha-scale=f" => \$alpha_scale,
+	   "beta-scale=f" => \$beta_scale,
 	   "means" => \$means);
 
 
@@ -40,12 +45,13 @@ if ($info) {
 }
 
 my %data;
+my %columns;
 
 open(IN, $filename) or die "Can't read $filename\n";
 while ($line = <IN>) {
   if ($line =~ /^[\w\+\-]+=([0-9\.]+) [\w\+\-]+=([0-9\.]+)/) {
-    my $var1 = $1;
-    my $var2 = $2;
+    my $var1 = $1 / $alpha_scale;
+    my $var2 = $2 / $beta_scale;
     my $count = 0;
     my $sum = 0;
     $line = <IN>;
@@ -63,6 +69,7 @@ while ($line = <IN>) {
     } else {
       $data{$var2}{$var1} = $count;
     }
+    $columns{$var1} = 1;
   }
 }
 
@@ -77,7 +84,7 @@ if ($info) {
   foreach $var2 (sort keys %data) {
     if ($firstline) {
       $linestring = "   0"."$delimiter";
-      foreach $var1 (sort keys %{$data{$var2}}) {
+      foreach $var1 (sort keys %columns) {
 	$linestring .= sprintf("%.2f",$var1)."$delimiter";
       }
       chop $linestring;
@@ -86,7 +93,7 @@ if ($info) {
     }
 
     $linestring = sprintf("%.2f",$var2)."$delimiter";
-    foreach $var1 (sort keys %{$data{$var2}}) {
+    foreach $var1 (sort keys %columns) {
       $linestring .= sprintf("%4.0f",$data{$var2}{$var1})."$delimiter";
     }
     chop $linestring;
