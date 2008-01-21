@@ -25,12 +25,12 @@ set style line 6 lt 2 lc rgb "green" lw 3
 
 set output 'sim.ps'
 set title "simulation"
-plot 'FILE_ID.sim.dat' u 1:2 ls 1 title 'S-' w l \
-   , 'FILE_ID.sim.dat' u 1:5 ls 2 title 'S+' w l \
-   , 'FILE_ID.sim.dat' u 1:3 ls 3 title 'I-' w l \
-   , 'FILE_ID.sim.dat' u 1:6 ls 4 title 'I+' w l \
-   , 'FILE_ID.sim.dat' u 1:4 ls 5 title 'R-' w l \
-   , 'FILE_ID.sim.dat' u 1:7 ls 6 title 'R+' w l \
+plot 'FILE_ID.sim.dat' u 1:2 ls 1 title 'S' w l \
+   , 'FILE_ID.sim.dat' u 1:3 ls 3 title 'I' w l \
+   , 'FILE_ID.sim.dat' u 1:4 ls 5 title 'R' w l \
+   , 'FILE_ID.sim.dat' u 1:5 ls 2 title 'S''' w l \
+   , 'FILE_ID.sim.dat' u 1:6 ls 4 title 'I''' w l \
+   , 'FILE_ID.sim.dat' u 1:7 ls 6 title 'R''' w l \
 
 #####################################
 

@@ -1,0 +1,8 @@
+#!/bin/sh
+
+n=0;
+for I in "$@"
+do
+  echo "$n `$CODEDIR/sim/scripts/info_dist_single.pl $I`"
+  n=`echo "$n + 1" | bc`
+done
