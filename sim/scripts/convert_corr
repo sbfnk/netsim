@@ -1,0 +1,12 @@
+#!/bin/sh
+
+for I in "$@"
+do
+	echo "set terminal gif ;"\
+             "set output '$I.gif';"\
+             "set xlabel 'info generation';"\
+             "set ylabel 'distance from infection';"\
+             "set xrange [0:180];"\
+             "set yrange [0:80];"\
+             "plot '$I' using (log(\$1)/log(0.8)):2 title '' " | gnuplot
+done
