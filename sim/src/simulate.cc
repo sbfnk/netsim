@@ -504,36 +504,6 @@ int main(int argc, char* argv[])
     if (numSims > 0) {
       model->Init(vm);
       if (verbose >=1) model->Print();
-
-      // write model parameters
-      std::ofstream paramFile;
-      std::string paramFileName = outputDir+"/"+"runs.prm";
-      
-      try {
-        paramFile.open(paramFileName.c_str(), std::ios::out);
-      }
-      catch (std::exception &e) {
-        std::cerr << "... unable to open parameter file " 
-                  << paramFileName << std::endl;
-        std::cerr << "... Standard exception: " << e.what() << std::endl;      
-        return 1; 
-      }
-
-      for (unsigned int i = 0; i < edgeTypes.size(); i++) {
-        paramFile << edgeTypes[i].getText() << "-graph: " << fileNames[i]
-                  << std::endl;
-      }
-      paramFile << std::endl << *model << std::endl;
-      
-      try {
-        paramFile.close();
-      }
-      catch (std::exception &e) {
-        std::cerr << "... unable to close parameter file " 
-                  << paramFileName << std::endl;
-        std::cerr << "... Standard exception: " << e.what() << std::endl;      
-        return 1; 
-      }
     }
     
     /******************************************************************/
@@ -680,12 +650,44 @@ int main(int argc, char* argv[])
     
     mkdir(runOutputDir.c_str(), 0755);
     
-
     std::string runDataDir = runOutputDir;
     std::string runGraphDir = runOutputDir + "/images";
     std::string runDistDir = runOutputDir + "/dist";
     std::string runCorrDir = runOutputDir + "/corr";
     
+    /******************************************************************/
+    // write model parameters
+    /******************************************************************/
+    
+    std::ofstream paramFile;
+    std::string paramFileName = runOutputDir+"/"+runStr.str()+".prm";
+    
+    try {
+      paramFile.open(paramFileName.c_str(), std::ios::out);
+    }
+    catch (std::exception &e) {
+      std::cerr << "... unable to open parameter file " 
+                << paramFileName << std::endl;
+      std::cerr << "... Standard exception: " << e.what() << std::endl;      
+      return 1; 
+    }
+    
+    for (unsigned int i = 0; i < edgeTypes.size(); i++) {
+      paramFile << edgeTypes[i].getText() << "-graph: " << fileNames[i]
+                << std::endl;
+    }
+    paramFile << std::endl << *model << std::endl;
+    
+    try {
+      paramFile.close();
+    }
+    catch (std::exception &e) {
+      std::cerr << "... unable to close parameter file " 
+                << paramFileName << std::endl;
+      std::cerr << "... Standard exception: " << e.what() << std::endl;      
+      return 1; 
+    }
+      
     /******************************************************************/
     // open output file
     /******************************************************************/
