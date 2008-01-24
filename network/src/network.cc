@@ -108,6 +108,8 @@ int main(int argc, char* argv[])
   bool readAll = false;
   std::string edgeLabels = "di";
 
+  bool allStats = false;
+
   po::options_description main_options
     ("Usage: network -p params_file [options]... \n\nMain options");
 
@@ -188,6 +190,8 @@ int main(int argc, char* argv[])
     ("Graph statistics");
   
   statistics_options.add_options()
+    ("all-stats",
+     "print all statistics")
     ("degree-dist",
      "compute degree distribution")
     ("pairs",
@@ -1184,10 +1188,14 @@ int main(int argc, char* argv[])
     }
   }
 
+  if (vm.count("all-stats")) {
+    allStats = true;
+  }
+
   /******************************************************************/
   // count vertices
   /******************************************************************/
-  if (vm.count("pairs") || vm.count("triples") || verbose) {
+  if (vm.count("pairs") || vm.count("triples") || verbose || allStats) {
     std::stringstream output;
     if (baseFileName.length() == 0 || verbose) {
       output << "\nVertex count:" << std::endl;
@@ -1197,7 +1205,7 @@ int main(int argc, char* argv[])
     /******************************************************************/
     // count pairs
     /******************************************************************/
-    if (vm.count("pairs") || verbose) {
+    if (vm.count("pairs") || verbose || allStats) {
       
       if (baseFileName.length() == 0 || verbose) {
         output << "\nPair count:" << std::endl;
@@ -1214,7 +1222,7 @@ int main(int argc, char* argv[])
     /******************************************************************/
     // count triples
     /******************************************************************/
-    if (vm.count("triples")) {
+    if (vm.count("triples") || allStats) {
       
       if (baseFileName.length() == 0 || verbose) {
         output << "\nTriple count:" << std::endl;
@@ -1243,7 +1251,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // calculate degree distribution
   /******************************************************************/
-  if (vm.count("degree-dist")) {
+  if (vm.count("degree-dist") || allStats) {
     std::stringstream output;
 
     boost::multi_array<unsigned int, 2> dd;
@@ -1286,7 +1294,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // calculate local clustering coefficients
   /******************************************************************/
-  if (vm.count("local-cluster-coeff")) {
+  if (vm.count("local-cluster-coeff") || allStats) {
     std::stringstream output;
     
     boost::multi_array<double, 3> lcc =
@@ -1316,7 +1324,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // calculate global clustering coefficients
   /******************************************************************/
-  if (vm.count("global-cluster-coeff")) {
+  if (vm.count("global-cluster-coeff") || allStats) {
     std::stringstream output;
     
     boost::multi_array<double, 3> gcc =
@@ -1346,7 +1354,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // calculate average path lengths
   /******************************************************************/
-  if (vm.count("path-length")) {
+  if (vm.count("path-length") || allStats) {
     std::stringstream output;
     
     for (unsigned int i = 0; i < nEdgeTypes; ++i) {
@@ -1377,7 +1385,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // calculate assortativities 
   /******************************************************************/
-  if (vm.count("assortativity")) {
+  if (vm.count("assortativity") || allStats) {
     std::stringstream output;
     
     for (unsigned int i = 0; i < nEdgeTypes; ++i) {
@@ -1407,7 +1415,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // calculate degree overlaps 
   /******************************************************************/
-  if (vm.count("degree-overlap")) {
+  if (vm.count("degree-overlap") || allStats) {
     std::stringstream output;
     
     for (unsigned int i = 0; i < nEdgeTypes; ++i) {
