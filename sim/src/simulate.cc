@@ -105,6 +105,8 @@ int main(int argc, char* argv[])
   bool triples = false;
   bool effective = false;
 
+  bool doIO = false;
+
   po::options_description command_line_options
     ("\nUsage: simulate [options]... \n\nMain options");
 
@@ -295,7 +297,6 @@ int main(int argc, char* argv[])
   
   po::notify(vm);
 
-
   /******************************************************************/
   // initialise random generator
   /******************************************************************/
@@ -418,6 +419,10 @@ int main(int argc, char* argv[])
                            << std::endl;
   }
 
+  // timesteps after which to write data output
+  if (vm.count("data")) {
+    outputData = vm["data"].as<double>();
+  }
   // timesteps after which to write graphviz output
   if (vm.count("graphviz")) {
     outputGraphviz = vm["graphviz"].as<double>();
@@ -433,6 +438,8 @@ int main(int argc, char* argv[])
     outputCorr = vm["info-dis-corr"].as<double>();
   }
 
+  doIO = (outputData > 0 || outputGraphviz >= 0 || outputDist >= 0 || outputCorr >= 0);
+    
   // paint images as lattice
   if (vm.count("lattice")) {
     graph_function = &boost::write_png;
@@ -534,11 +541,11 @@ int main(int argc, char* argv[])
     stopTime = vm["tmax"].as<double>();
     stopInfections = vm["imax"].as<unsigned int>();
     stopInformations = vm["pmax"].as<unsigned int>();
-    outputData = vm["data"].as<double>();
         
-    // remove existing data
-    if (fs::exists(outputDir)) {
-      fs::directory_iterator iter(outputDir), end_iter;
+    if (doIO) {
+      // remove existing data
+      if (fs::exists(outputDir)) {
+        fs::directory_iterator iter(outputDir), end_iter;
         for (; iter != end_iter; ++iter) {
           if (iter->leaf().substr(0,3) == "run") {
             if (fs::is_directory(*iter)) {
@@ -546,8 +553,9 @@ int main(int argc, char* argv[])
             }
           }
         }
-    } else {
-      mkdir(outputDir.c_str(), 0755);
+      } else {
+        mkdir(outputDir.c_str(), 0755);
+      }
     }
   }
   
@@ -661,31 +669,33 @@ int main(int argc, char* argv[])
     
     std::ofstream paramFile;
     std::string paramFileName = runOutputDir+"/"+runStr.str()+".prm";
-    
-    try {
-      paramFile.open(paramFileName.c_str(), std::ios::out);
-    }
-    catch (std::exception &e) {
-      std::cerr << "... unable to open parameter file " 
-                << paramFileName << std::endl;
-      std::cerr << "... Standard exception: " << e.what() << std::endl;      
-      return 1; 
-    }
-    
-    for (unsigned int i = 0; i < edgeTypes.size(); i++) {
-      paramFile << edgeTypes[i].getText() << "-graph: " << fileNames[i]
-                << std::endl;
-    }
-    paramFile << std::endl << *model << std::endl;
-    
-    try {
-      paramFile.close();
-    }
-    catch (std::exception &e) {
-      std::cerr << "... unable to close parameter file " 
-                << paramFileName << std::endl;
-      std::cerr << "... Standard exception: " << e.what() << std::endl;      
-      return 1; 
+
+    if (doIO) {
+      try {
+        paramFile.open(paramFileName.c_str(), std::ios::out);
+      }
+      catch (std::exception &e) {
+        std::cerr << "... unable to open parameter file " 
+                  << paramFileName << std::endl;
+        std::cerr << "... Standard exception: " << e.what() << std::endl;      
+        return 1; 
+      }
+      
+      for (unsigned int i = 0; i < edgeTypes.size(); i++) {
+        paramFile << edgeTypes[i].getText() << "-graph: " << fileNames[i]
+                  << std::endl;
+      }
+      paramFile << std::endl << *model << std::endl;
+      
+      try {
+        paramFile.close();
+      }
+      catch (std::exception &e) {
+        std::cerr << "... unable to close parameter file " 
+                  << paramFileName << std::endl;
+        std::cerr << "... Standard exception: " << e.what() << std::endl;      
+        return 1; 
+      }
     }
       
     /******************************************************************/
@@ -852,16 +862,6 @@ int main(int argc, char* argv[])
       }
       *outputFile << stopTime << '\t' << lastLine;
       outputFile->close();
-      delete outputFile;
-      std::ofstream statsFile;
-      std::string statsFileName = runDataDir+"/"+runStr.str()+".stats";
-      statsFile.open(statsFileName.c_str(), std::ios::out);
-      statsFile << "Cumulative number of infections: "
-                << sim->getNumInfections() << std::endl;
-      statsFile << "Cumulative number of informations: " << sim->getNumInformations() 
-                << std::endl;
-      boost::graph_traits<multitype_graph>::vertex_iterator vi, vi_end;
-      statsFile.close();
     }
     
     if (outputData > 0) {
@@ -895,6 +895,44 @@ int main(int argc, char* argv[])
           std::cerr << "... Standard exception: " << e.what() << std::endl;      
           return 1; 
         }
+      }
+    }
+    
+    delete outputFile;
+
+    if (doIO) {
+      std::ofstream statsFile;
+      std::string statsFileName = runDataDir+"/"+runStr.str()+".stats";
+      try {
+        paramFile.close();
+      }
+      catch (std::exception &e) {
+        std::cerr << "... unable to close parameter file " 
+                  << paramFileName << std::endl;
+        std::cerr << "... Standard exception: " << e.what() << std::endl;      
+        return 1; 
+      }
+      try {
+        statsFile.open(statsFileName.c_str(), std::ios::out);
+      }
+      catch (std::exception &e) {
+        std::cerr << "... unable to open stats file " 
+                  << statsFileName << " for writing" << std::endl;
+        std::cerr << "... Standard exception: " << e.what() << std::endl;      
+        return 1; 
+      }
+      statsFile << "Cumulative number of infections: "
+                << sim->getNumInfections() << std::endl;
+      statsFile << "Cumulative number of informations: " << sim->getNumInformations() 
+              << std::endl;
+      try {
+        statsFile.close();
+      }
+      catch (std::exception &e) {
+        std::cerr << "... unable to close stats file " 
+                  << statsFileName << std::endl;
+        std::cerr << "... Standard exception: " << e.what() << std::endl;      
+        return 1; 
       }
     }
     
