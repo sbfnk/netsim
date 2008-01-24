@@ -87,7 +87,7 @@ struct readFileOptions {
 };
 
 struct communityOptions {
-  double delta, pd, pr;
+  double delta, pl, pr, pd;
   unsigned int iterations;
 };
 
@@ -395,6 +395,11 @@ int main(int argc, char* argv[])
     co->add_options()
       (s.str().c_str(), po::value<double>()->default_value(0.5),
        "amount to increase link weight by if strenghtened");
+    s.str("");
+    s << edgeLabels[i] << "-pl";
+    co->add_options()
+      (s.str().c_str(), po::value<double>()->default_value(5e-4),
+       "probability for local attachment");
     s.str("");
     s << edgeLabels[i] << "-pr";
     co->add_options()
@@ -902,6 +907,15 @@ int main(int argc, char* argv[])
         std::cerr << *com_options[i] << std::endl;
         return 1;
       }
+      optStr = std::string(1,edgeLabels[i]) + "-pl";
+      if (vm.count(optStr)) {
+        opt.pl = vm[optStr].as<double>();
+      } else {
+        std::cerr << "ERROR: no " << optStr << " specified"
+                  << std::endl;
+        std::cerr << *com_options[i] << std::endl;
+        return 1;
+      }
       optStr = std::string(1,edgeLabels[i]) + "-pr";
       if (vm.count(optStr)) {
         opt.pr = vm[optStr].as<double>();
@@ -936,7 +950,7 @@ int main(int argc, char* argv[])
       typedef boost::community_iterator<boost::mt19937, onetype_graph>
         community_iterator;
       
-      community_iterator com(gen, &temp_graph, opt.delta, opt.pr, opt.pd,
+      community_iterator com(gen, &temp_graph, opt.delta, opt.pl, opt.pr, opt.pd,
                              opt.iterations);
       community_iterator com_end;
       

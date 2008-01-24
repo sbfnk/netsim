@@ -58,11 +58,12 @@ namespace boost {
       \param[in] m Number of vertices to connect new nodes to at each step.
     */
     community_iterator(RandomGenerator& r, Graph* const g, 
-                       double delta = 0.5, double pr = 5e-4, 
-                       double pd = 1e-3, unsigned int iterations = 25)
+                       double delta = 0.5, double pl = 1e-3,
+                       double pr = 5e-4, double pd = 1e-3, 
+                       unsigned int iterations = 25000)
       : gen(new uniform_gen(r, boost::uniform_real<> (0,1))),
-        graph(g), n(num_vertices(*graph)), delta(delta), pd(pd), 
-        pr(pr), itCount(iterations)
+        graph(g), n(num_vertices(*graph)), delta(delta), pl(pl), pr(pr), pd(pd),
+        itCount(iterations)
          
     {
       if (n<2) {
@@ -73,12 +74,14 @@ namespace boost {
         double x;
         unsigned int s, t;
         for (s = 0; s < n; ++s) {
+//         std::cout << "Choosing random link for " << s << std::endl;
           do {
             x = (*gen)();
             t = static_cast<unsigned int>(x*n);
             // choose as t only if it is not a t yet
           } while ((s == t) || (edge(s, t, *graph).second));
           edges.push_back(std::make_pair(s, t));
+//           std::cout << s << "--" << t << " (random)" << std::endl;
         }
         current.first = edges[0].first;
         current.second = edges[0].second;
@@ -92,13 +95,14 @@ namespace boost {
     community_iterator& operator++()
     {
       if (edges.size() == 0) {
-        std::cout << "Deletion cycle" << std::endl;
         // we have added all edges, so we go through a deletion cycle
         double x;
         vertex_iterator vi, vi_end;
         for (tie(vi, vi_end) = vertices(*graph); vi != vi_end; vi++) {
           x = (*gen)();
-          if (x < pd) clear_vertex(*vi, *graph);
+          if (x < pd) {
+            clear_vertex(*vi, *graph);
+          }
         }
 
         --itCount;
@@ -113,8 +117,7 @@ namespace boost {
               do {
                 x = (*gen)();
                 t = static_cast<unsigned int>(x*n);
-              } while ((s == t) ||
-                       (edge(s, t, *graph).second));
+              } while ((s == t) || (edge(s, t, *graph).second));
               edges.push_back(std::make_pair(s, t));
             } else {
               // perform first local search
@@ -131,7 +134,8 @@ namespace boost {
                 x -= (*graph)[*oi].weight;
                 oi++;
               }
-              vertex_descriptor temp_vertex = target(*oi, *graph);
+              edge_descriptor first_edge = *oi;
+              vertex_descriptor temp_vertex = target(first_edge, *graph);
               // perform second local search
               if (out_degree(temp_vertex, *graph) > 1) {
                 strength = 0;
@@ -149,16 +153,25 @@ namespace boost {
                   oi++;
                 }
                 if (target(*oi, *graph) == s) oi++;
+		edge_descriptor second_edge = *oi;
                 std::pair<edge_descriptor, bool> chosen_edge =
-                  edge(s, target(*oi, *graph), *graph);
+                  edge(s, target(second_edge, *graph), *graph);
                 if (chosen_edge.second) {
-                  // edge exists, so add weight
+                  // edge exists, so weight will be increased
+//                   edges.push_back(std::make_pair(s, target(second_edge, *graph)));
                   (*graph)[chosen_edge.first].weight += delta;
                 } else {
-                  // edge does not exist yet, so create it
-                  if (s == target(*oi, *graph)) std::cout << "ERROR: " << s << std::endl;
-                  edges.push_back(std::make_pair(s, target(*oi, *graph)));
+                  x = (*gen)();
+                  if (x < pl) {
+                    edges.push_back(std::make_pair(s, target(second_edge, *graph)));
+                  }
                 }
+                (*graph)[first_edge].weight += delta;
+                (*graph)[second_edge].weight += delta;
+//                   edges.push_back(std::make_pair(source(first_edge, *graph),
+//                                                  target(first_edge, *graph)));
+//                   edges.push_back(std::make_pair(source(second_edge, *graph),
+//                                                  target(second_edge, *graph)));
               }
             }
           }
@@ -169,14 +182,21 @@ namespace boost {
           } else {
             ++(*this);
           }
-        }
+        } else {
+	  return *this;
+	}
       } else {
         current.first = edges[0].first;
         current.second = edges[0].second;
         edges.erase(edges.begin());
         // check if we have already added this one
-        if (edge(current.first, current.second, *graph).second) ++(*this);
-        //        else std::cout << "Adding edge: " << current.first << "--" << current.second << std::endl;
+        std::pair<edge_descriptor, bool> newEdge =
+          edge(current.first, current.second, *graph);
+        if (newEdge.second) {
+          (*graph)[newEdge.first].weight += delta;
+          ++(*this);
+        }
+
       }
 
       return *this;
@@ -210,7 +230,7 @@ namespace boost {
     uniform_gen* gen;
     Graph* graph;
     unsigned int n;
-    double delta, pd, pr;
+    double delta, pl, pr, pd;
     unsigned int itCount;
     std::vector<std::pair<vertices_size_type, vertices_size_type> > edges;
     value_type current;
