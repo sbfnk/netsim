@@ -87,14 +87,32 @@ class Label
 
 public:
 
+  struct rgbColour
+  {
+    rgbColour(unsigned int r, unsigned int g, unsigned int b):
+      red(r), green(g), blue(b) {;}
+
+    unsigned int red;
+    unsigned int green;
+    unsigned int blue;
+    
+  };
+
   /*! \brief Constructor.
   \param[in] t text initialiser
   \param[in] c colour initialiser
   \param[in] i id initialiser
   \param[in] d drawOption initialiser
   */
-  Label(std::string t, std::string c, unsigned int i, std::string d = "") :
-    text(t), colour(c), id(i), drawOption(d) {}
+  Label(std::string t, std::string c, unsigned int i,
+        std::string drawOption = "",
+        rgbColour r = rgbColour(255,255,255)):
+    text(t), colour(c), id(i), rgb(3)
+  {
+    rgb[0] = r.red;
+    rgb[1] = r.green;
+    rgb[2] = r.blue;
+  }
   
   //! Accessor for the text variable.
   const std::string& getText() const
@@ -104,10 +122,14 @@ public:
   void print(std::ostream &os) const
   { os << "\033[" << colour << "m" << text << "\033[0m"; }
 
+  //! Accessor for the rgb variable
+  unsigned int getRGB(unsigned int i) const
+  { return rgb[i]; }
+  
   //! Accessor for the drawOption variable
   const std::string& getDrawOption() const
   { return drawOption; }
-  
+
   //! Accessor for the colour variable
   const std::string& getColour() const
   { return colour; }
@@ -121,7 +143,9 @@ private:
   std::string text; //!< The letter marking the state of the variable
   std::string colour; //!< The colour marking the state of the variable
   unsigned int id; //!< A unique id assigned to the Label
-  std::string drawOption;   //!< The drawOption used for graphviz output
+
+  std::vector<unsigned int> rgb; //!< The rgb intensities used for graphviz
+  std::string drawOption; //!< Any extra graphviz drawOption
   
 };
 
