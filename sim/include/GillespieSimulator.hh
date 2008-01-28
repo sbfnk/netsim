@@ -193,6 +193,7 @@ namespace Simulators {
       return true;
     } else {
       // something went wrong in picking the vertex, should not happen
+      std::cout << "something went wrong in picking the vertex" << std::endl;
       return false;
     }
   }
