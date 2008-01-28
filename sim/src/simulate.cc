@@ -941,7 +941,6 @@ int main(int argc, char* argv[])
                 << std::endl;
       std::cout << "Cumulative number of informations: " << sim->getNumInformations() 
                 << std::endl;
-      boost::graph_traits<multitype_graph>::vertex_iterator vi, vi_end;
     }
     
     if (verbose) print_sim_status(graph, *model, pairs, triples);
