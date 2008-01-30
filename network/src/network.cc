@@ -979,16 +979,16 @@ int main(int argc, char* argv[])
       if (num_edges(graph) > 0) {
         boost::copy_edges(graph, temp_graph, Edge(i));
       } else {
-        // push back for later
-        edgeTypes.push_back(edgeTypes[i]);
-        if (edgeTypes.size() == 2*nEdgeTypes) {
+        if (edgeTypes.size() == (2*nEdgeTypes-1) || i == (edgeTypes.size()-1)) {
           std::cerr << "ERROR: no edges to copy from, " << edgeTypes[i]
                     << "-graph to remain empty" << std::endl;
           std::cerr << main_options << graph_options << std::endl;
           return 1;
-        }
+        } else {
+          // push back for later
+          edgeTypes.push_back(edgeTypes[i]);
+	}
       }
-
     } else if (topology == "read") {
       
       /******************************************************************/
@@ -1092,7 +1092,7 @@ int main(int argc, char* argv[])
     // copy edges to main graph
     boost::copy_edges(temp_graph, graph);
   }
-  
+
   // checking graph  
   if (num_vertices(graph) == 0) {
     std::cerr << "ERROR: no vertices" << std::endl;
@@ -1190,12 +1190,13 @@ int main(int argc, char* argv[])
 
   if (vm.count("all-stats")) {
     allStats = true;
+    if (verbose == 0) verbose = 1;
   }
 
   /******************************************************************/
   // count vertices
   /******************************************************************/
-  if (vm.count("pairs") || vm.count("triples") || verbose || allStats) {
+  if (vm.count("pairs") || vm.count("triples") || verbose) {
     std::stringstream output;
     if (baseFileName.length() == 0 || verbose) {
       output << "\nVertex count:" << std::endl;
@@ -1205,7 +1206,7 @@ int main(int argc, char* argv[])
     /******************************************************************/
     // count pairs
     /******************************************************************/
-    if (vm.count("pairs") || verbose || allStats) {
+    if (vm.count("pairs") || verbose) {
       
       if (baseFileName.length() == 0 || verbose) {
         output << "\nPair count:" << std::endl;
