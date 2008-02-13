@@ -69,11 +69,14 @@ namespace boost {
     void operator()(std::ostream& out, const VertexID& v) const
     {
       std::stringstream rgbString;
-      unsigned int darkening = static_cast<unsigned int>((1-state[v].detail)*200);
-      int red = model.getVertexStates()[state[v].base].getRGB(0) - darkening;
-      int green = model.getVertexStates()[state[v].base].getRGB(1) - darkening;
-      int blue = model.getVertexStates()[state[v].base].getRGB(2) - darkening;
-
+      double darkening = 1 - (1 - state[v].detail)*4/5;
+      int red = static_cast<unsigned int>
+        (model.getVertexStates()[state[v].base].getRGB(0) * darkening);
+      int green = static_cast<unsigned int>
+        (model.getVertexStates()[state[v].base].getRGB(1) * darkening);
+      int blue = static_cast<unsigned int>
+        (model.getVertexStates()[state[v].base].getRGB(2) * darkening);
+      
       rgbString << "#" 
                 << std::hex << std::setw(2) << std::setfill('0') 
                 << (red > 0 ? red : 0)
@@ -503,11 +506,24 @@ namespace boost {
     // initialize color2state vertex map
     typedef std::map<std::string, unsigned int> ColorToState;
     ColorToState color2state;
+    typedef std::map<unsigned int, unsigned int> RgbToState;
+    RgbToState rgb2state;
     
     for (unsigned int i = 0; i < m.getVertexStates().size(); i++) {
       std::string color = extractDrawOption("fillcolor",
                                             m.getVertexStates()[i].getDrawOption());
-      color2state.insert(std::make_pair(color,i));
+      if (color == "") {
+        // color information is rgb type
+        unsigned int colorCode =
+          (m.getVertexStates()[i].getRGB(0) > 0)*1 +
+          (m.getVertexStates()[i].getRGB(1) > 0)*2 +
+          (m.getVertexStates()[i].getRGB(2) > 0)*4;
+        std::cout << "color information is rgb type: " << colorCode << " " << i << std::endl;
+        rgb2state.insert(std::make_pair(colorCode, i));
+      } else {
+        // color information is name type
+        color2state.insert(std::make_pair(color,i));
+      }
     }
     
     if (file.is_open()) {
@@ -525,8 +541,33 @@ namespace boost {
             
             // set default if no drawoption is given
             unsigned int state = defaultState;
+            double detail = 1.;
             if (line.find("fillcolor") != std::string::npos) {
-              state = color2state[extractDrawOption("fillcolor", line)];
+              std::string color = extractDrawOption("fillcolor", line);
+              if (color.find("#") != std::string::npos) {
+                // color information is rgb type
+                unsigned int red, green, blue;
+                std::stringstream test(color.substr(1,2));
+                unsigned int test2;
+                test >> std::hex >> test2;
+                std::cout << "Test: " << test.str() << " " << test2 << std::endl;
+                std::stringstream(color.substr(2,2)) >> std::hex >> red;
+                std::stringstream(color.substr(4,2)) >> std::hex >> green;
+                std::stringstream(color.substr(6,2)) >> std::hex >> blue;
+                state = rgb2state[(red > 0)*1 + (green > 0)*2 + (blue > 0) * 4];
+                detail = 1 - 5/4. * (1 - (red+green+blue)/ static_cast<double>
+                                    (m.getVertexStates()[state].getRGB(0) +
+                                     m.getVertexStates()[state].getRGB(1) +
+                                     m.getVertexStates()[state].getRGB(2)));
+                // brush up rounding errors
+                detail = detail > 0 ? detail : 0;
+                std::cout << "color information in file is rgb type: " << color
+                          << " " << red << " " << green << " " << blue << " -- "
+                          << state << " " << detail << " " << std::endl;
+              } else {
+                // color information is name type
+                state = color2state[color];
+              }
             } else if (line.find("state") != std::string::npos) {
               state =
                 cast_stream<unsigned int>(extractDrawOption("state", line));
@@ -537,6 +578,7 @@ namespace boost {
             
             if (src < num_vertices(g)) {
               g[src].state.base = state;
+              g[src].state.detail = detail;
               ++vertexCount;
             }
           }
