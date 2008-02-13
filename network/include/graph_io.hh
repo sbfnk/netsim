@@ -68,8 +68,26 @@ namespace boost {
     template <class VertexID>
     void operator()(std::ostream& out, const VertexID& v) const
     {
-      out << "[" << model.getVertexStates()[state[v].base].getDrawOption()
-          << " label=\"\"]";
+      std::stringstream rgbString;
+      unsigned int darkening = static_cast<unsigned int>((1-state[v].detail)*200);
+      int red = model.getVertexStates()[state[v].base].getRGB(0) - darkening;
+      int green = model.getVertexStates()[state[v].base].getRGB(1) - darkening;
+      int blue = model.getVertexStates()[state[v].base].getRGB(2) - darkening;
+
+      rgbString << "#" 
+                << std::hex << std::setw(2) << std::setfill('0') 
+                << (red > 0 ? red : 0)
+                << std::hex << std::setw(2) << std::setfill('0') 
+                << (green > 0 ? green : 0)
+                << std::hex << std::setw(2) << std::setfill('0') 
+                << (blue > 0 ? blue : 0);
+
+      if (model.getEdgeTypes()[state[v].base].getDrawOption().find("fillcolor") != std::string::npos) {
+        out << "[" << model.getEdgeTypes()[state[v].base].getDrawOption();
+      } else {
+        out << "[fillcolor=\"" << rgbString.str() << "\"";
+      }
+      out << " label=\"\"]";
     }
     
   private:
@@ -242,7 +260,7 @@ namespace boost {
   {
     typedef typename boost::edge_property_type<Graph>::type::value_type
       edge_property_type;
-  
+
     std::ofstream out(fileName.c_str());
     std::stringstream s;
 
@@ -487,9 +505,8 @@ namespace boost {
     ColorToState color2state;
     
     for (unsigned int i = 0; i < m.getVertexStates().size(); i++) {
-      std::string color =
-        extractDrawOption("fillcolor",
-                          m.getVertexStates()[i].getDrawOption());
+      std::string color = extractDrawOption("fillcolor",
+                                            m.getVertexStates()[i].getDrawOption());
       color2state.insert(std::make_pair(color,i));
     }
     
