@@ -154,10 +154,16 @@ namespace Simulators {
       it--;
             
       if (verbose >= 2) {
-        std::cout << "Vertex #" << v << " changes state: " 
-                  << model.getVertexStates()[graph[v].state.base]
-                  << "->" << model.getVertexStates()[(*it).newState.base]
-                  << ", induced by " << it->nb << std::endl;
+        std::cout << "Vertex #" << v << " changes state: ";
+	if (graph[v].state.base == (*it).newState.base) {
+          std::cout << model.getVertexStates()[graph[v].state.base]
+                    << " (" << graph[v].state.detail << "->"
+                    << (*it).newState.detail << ")";
+	} else {
+          std::cout << model.getVertexStates()[graph[v].state.base]
+                    << "->" << model.getVertexStates()[(*it).newState.base];
+	}
+        std::cout << ", induced by " << it->nb << std::endl;
       }
 
       // collect statistics
