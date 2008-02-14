@@ -547,10 +547,6 @@ namespace boost {
               if (color.find("#") != std::string::npos) {
                 // color information is rgb type
                 unsigned int red, green, blue;
-                std::stringstream test(color.substr(1,2));
-                unsigned int test2;
-                test >> std::hex >> test2;
-                std::cout << "Test: " << test.str() << " " << test2 << std::endl;
                 std::stringstream(color.substr(2,2)) >> std::hex >> red;
                 std::stringstream(color.substr(4,2)) >> std::hex >> green;
                 std::stringstream(color.substr(6,2)) >> std::hex >> blue;
@@ -561,9 +557,6 @@ namespace boost {
                                      m.getVertexStates()[state].getRGB(2)));
                 // brush up rounding errors
                 detail = detail > 0 ? detail : 0;
-                std::cout << "color information in file is rgb type: " << color
-                          << " " << red << " " << green << " " << blue << " -- "
-                          << state << " " << detail << " " << std::endl;
               } else {
                 // color information is name type
                 state = color2state[color];
