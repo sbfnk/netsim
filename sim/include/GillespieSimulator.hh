@@ -163,7 +163,11 @@ namespace Simulators {
           std::cout << model.getVertexStates()[graph[v].state.base]
                     << "->" << model.getVertexStates()[(*it).newState.base];
 	}
-        std::cout << ", induced by " << it->nb << std::endl;
+        if (it->nb == v) {
+          std::cout << std::endl;
+        } else {
+          std::cout << ", induced by " << it->nb << std::endl;
+        }
       }
 
       // collect statistics
