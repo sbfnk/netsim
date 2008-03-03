@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
   sim_options.add_options()
     ("sim", po::value<std::string>()->default_value("Gillespie"),
      "simulator to use (Gillespie, Chris)")
-    ("usemodel,m", po::value<std::string>()->default_value("InfoSIRS"),
+    ("usemodel,m", po::value<std::string>()->default_value("DimInfoSIRS"),
      "model to use (InfoSIRS, DimInfoSIRS, VaccinationSIRS, ProtectiveSIRS, SingleSIRS)")
     ("tmax", po::value<double>()->default_value(stopTime),
      "time after which to stop\n(use tmax=0 to run until extinction)")
@@ -656,7 +656,7 @@ int main(int argc, char* argv[])
 
     std::string runOutputDir = outputDir + "/" + runStr.str();
     
-    mkdir(runOutputDir.c_str(), 0755);
+    if (doIO) mkdir(runOutputDir.c_str(), 0755);
     
     std::string runDataDir = runOutputDir;
     std::string runGraphDir = runOutputDir + "/images";
