@@ -50,13 +50,15 @@ void Model::Init(po::variables_map& vm)
 //! Print the model parameters to ostream.
 void Model::print(std::ostream &os) const
 {
-  os << "Model parameters:" << std::endl;
-  os << "=================" << std::endl;
-  for (std::map<std::string, double*>::const_iterator it =
-         params.begin(); it != params.end(); it++) {
-    os << it->first << ": " << *(it->second) << std::endl; 
+  if (params.size() > 0) {
+    os << "Model parameters:" << std::endl;
+    os << "=================" << std::endl;
+    for (std::map<std::string, double*>::const_iterator it =
+           params.begin(); it != params.end(); it++) {
+      os << it->first << ": " << *(it->second) << std::endl; 
+    }
+    os << std::endl;
   }
-  os << std::endl;
   os << "Model rates:" << std::endl;
   os << "=================" << std::endl;
   for (std::map<std::string, unsigned int*>::const_iterator it =
