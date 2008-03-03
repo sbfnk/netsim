@@ -61,13 +61,14 @@ Models::DimInfoSIRS::DimInfoSIRS(unsigned int v)
   /*************************************/
   // assign model parameters to variables
   /************************************/
-  params.insert(std::make_pair("beta", &beta));
-  params.insert(std::make_pair("gamma", &gamma));
-  params.insert(std::make_pair("delta", &delta));
-  params.insert(std::make_pair("alpha", &alpha));
-  params.insert(std::make_pair("nu", &nu));
-  params.insert(std::make_pair("omega", &omega));
-  params.insert(std::make_pair("lambda", &lambda));
+  rates.insert(std::make_pair("beta", &beta));
+  rates.insert(std::make_pair("gamma", &gamma));
+  rates.insert(std::make_pair("delta", &delta));
+  rates.insert(std::make_pair("alpha", &alpha));
+  rates.insert(std::make_pair("nu", &nu));
+  rates.insert(std::make_pair("omega", &omega));
+  rates.insert(std::make_pair("lambda", &lambda));
+
   params.insert(std::make_pair("rho", &rho));
   params.insert(std::make_pair("threshold", &threshold));
   params.insert(std::make_pair("dim_alpha", &dim_alpha));
@@ -80,11 +81,11 @@ void Models::DimInfoSIRS::Init(po::variables_map& vm)
 }
 
 //----------------------------------------------------------
-double Models::DimInfoSIRS::getNodeEvents(eventList& events,
-                                          State state,
-                                          unsigned int nb) const
+unsigned int Models::DimInfoSIRS::getNodeEvents(eventList& events,
+                                                State state,
+                                                unsigned int nb) const
 {
-   double rateSum(.0);
+   unsigned int rateSum(0);
 
    if (getDisease(state) == Recovered) {
      // loss of immunity
@@ -97,7 +98,7 @@ double Models::DimInfoSIRS::getNodeEvents(eventList& events,
         rateSum += immunityLoss.rate;
         if (verbose >= 2) {
           std::cout << "Adding loss of immunity event with rate " 
-	            << immunityLoss.rate << std::endl;
+	            << immunityLoss.rate/1e+4 << std::endl;
         }
       }
    } else
@@ -111,7 +112,7 @@ double Models::DimInfoSIRS::getNodeEvents(eventList& events,
         events.push_back(recovery);
         rateSum += recovery.rate;
         if (verbose >= 2) {
-          std::cout << "Adding recovery event with rate " << recovery.rate
+          std::cout << "Adding recovery event with rate " << recovery.rate/1e+4
                     << std::endl;
         }
       }
@@ -126,7 +127,7 @@ double Models::DimInfoSIRS::getNodeEvents(eventList& events,
           rateSum += localInfo.rate;
           if (verbose >= 2) {
             std::cout << "Adding local information event with rate " 
-	              << localInfo.rate << std::endl;
+	              << localInfo.rate/1e+4 << std::endl;
           }
         }
       }
@@ -143,7 +144,7 @@ double Models::DimInfoSIRS::getNodeEvents(eventList& events,
         rateSum += infoLoss.rate;
         if (verbose >= 2) {
           std::cout << "Adding information loss event with rate " 
-	            << infoLoss.rate << std::endl;
+	            << infoLoss.rate/1e+4 << std::endl;
         }
       }
    }
@@ -152,19 +153,20 @@ double Models::DimInfoSIRS::getNodeEvents(eventList& events,
 }
 
 //----------------------------------------------------------
-double Models::DimInfoSIRS::getEdgeEvents(eventList& events,
-                                          State state,
-                                          unsigned int edge,
-                                          State nbState,
-                                          unsigned int nb) const
+unsigned int Models::DimInfoSIRS::getEdgeEvents(eventList& events,
+                                                State state,
+                                                unsigned int edge,
+                                                State nbState,
+                                                unsigned int nb) const
 {
-   double rateSum(.0);
+   unsigned int rateSum(0);
    if (edge == Disease) {
       // infection
       if (getDisease(state) == Susceptible &&
           getDisease(nbState) == Infected) {
          Event infection;
-         infection.rate = (1 - state.detail) * beta;
+         infection.rate =
+           static_cast<unsigned int>((1 - state.detail) * beta + .5);
          infection.newState = State(Infected, -1);
          infection.nb = nb;
          infection.et = edge;
@@ -172,8 +174,8 @@ double Models::DimInfoSIRS::getEdgeEvents(eventList& events,
            events.push_back(infection);
            rateSum += infection.rate;
            if (verbose >= 2) {
-             std::cout << "Adding infection event with rate " << infection.rate
-                       << std::endl;
+             std::cout << "Adding infection event with rate "
+                       << infection.rate << std::endl;
            }
          }
       }
@@ -182,7 +184,8 @@ double Models::DimInfoSIRS::getEdgeEvents(eventList& events,
       if (state.detail < nbState.detail * rho && nbState.detail > threshold) {
          Event infoTransmission;
          if (dim_alpha) {
-           infoTransmission.rate = nbState.detail * alpha;
+           infoTransmission.rate =
+             static_cast<unsigned int>(nbState.detail * alpha + .5);
          } else {
            infoTransmission.rate = alpha;
          }
@@ -194,7 +197,7 @@ double Models::DimInfoSIRS::getEdgeEvents(eventList& events,
            rateSum += infoTransmission.rate;
            if (verbose >= 2) {
              std::cout << "Adding information transmission event with rate " 
-                       << infoTransmission.rate << std::endl;
+                       << infoTransmission.rate/1e+4 << std::endl;
            }
          }
       }
@@ -211,7 +214,7 @@ double Models::DimInfoSIRS::getEdgeEvents(eventList& events,
            rateSum += infoGeneration.rate;
            if (verbose >= 2) {
              std::cout << "Adding information generation event with rate " 
-                       << infoGeneration.rate << std::endl;
+                       << infoGeneration.rate/1e+4 << std::endl;
            }
          }
       }

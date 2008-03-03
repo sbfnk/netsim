@@ -93,7 +93,7 @@ namespace Tree {
 
     \param[in] rate The difference between old and new rate sum
   */
-  void Bin::updateRateSum(double rate)
+  void Bin::updateRateSum(unsigned int rate)
   {
     if (parent) {
       // we are not the top level bin, so we update the higher level bin
@@ -115,15 +115,15 @@ namespace Tree {
     which Child should be picked.
     \return A pointer the leaf ultimately selected.
   */
-  Bin* Bin::pickChild(double& randNo)
+  Bin* Bin::pickChild(unsigned int& randNo)
   {
     // check if we are at the lowest level already
     if (children.size() > 0) {
       // we are not yet on the lowest level, so we further go down the tree
       std::vector<Bin*>::iterator it = children.begin();
-      double randSum(.0);
+      unsigned int randSum(0);
       // get the rate represented by the first slot
-      double tempSum((*it)->getRateSum());
+      unsigned int tempSum((*it)->getRateSum());
       // find correct bin. This could be a simple comparison for the binary
       // case, but like this it can account for any container size
       while (it != children.end() && randNo > tempSum) {
@@ -150,7 +150,7 @@ namespace Tree {
 
     \param[in] rate The new rate sum.
   */
-  void Bin::setRateSum(double rate)
+  void Bin::setRateSum(unsigned int rate)
   {
     if (parent) {
       // we are not the top level bin, so we update the higher level bin

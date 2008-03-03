@@ -15,6 +15,25 @@ the command line parameters.
 void Model::Init(po::variables_map& vm)
 {
   // loop over all model parameters
+  for (std::map<std::string, unsigned int*>::iterator it = rates.begin();
+       it != rates.end(); it++) {
+    if (vm.count(it->first)) {
+      // command line parameter has been specified, assign to rate
+      if (vm[it->first].as<double>() > 1e+5) {
+        std::cerr << "WARNING: rates bigger than 1e+5 not supported."
+                  << std::endl;
+        std::cerr << "setting " << it->first << " to 1e+5." << std::endl;
+        *(it->second) = static_cast<unsigned int>(1e+5);
+      } else {
+        *(it->second) =
+          static_cast<unsigned int>(vm[it->first].as<double>() * 1e+4 + .5);
+      }
+    } else {
+      std::cerr << "WARNING: no " << it->first << " given" << std::endl;
+      std::cerr << "setting to 0." << std::endl;
+      *(it->second) = 0;
+    }
+  }
   for (std::map<std::string, double*>::iterator it = params.begin();
        it != params.end(); it++) {
     if (vm.count(it->first)) {
@@ -33,9 +52,16 @@ void Model::print(std::ostream &os) const
 {
   os << "Model parameters:" << std::endl;
   os << "=================" << std::endl;
-  for (std::map<std::string, double*>::const_iterator it = params.begin();
-       it != params.end(); it++) {
+  for (std::map<std::string, double*>::const_iterator it =
+         params.begin(); it != params.end(); it++) {
     os << it->first << ": " << *(it->second) << std::endl; 
+  }
+  os << std::endl;
+  os << "Model rates:" << std::endl;
+  os << "=================" << std::endl;
+  for (std::map<std::string, unsigned int*>::const_iterator it =
+         rates.begin(); it != rates.end(); it++) {
+    os << it->first << ": " << (*(it->second))/1e+4 << std::endl; 
   }
 }
 

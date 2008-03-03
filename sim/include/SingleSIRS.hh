@@ -26,11 +26,11 @@ namespace Models {
     SingleSIRS(unsigned int v = 0);
     ~SingleSIRS() {;}
 
-    double getNodeEvents(eventList& events, State state,
-                         unsigned int nb) const;
-    double getEdgeEvents(eventList& events, State state,
-                         unsigned int edge, State nbState, 
-                         unsigned int nb) const;
+    unsigned int getNodeEvents(eventList& events, State state,
+                               unsigned int nb) const;
+    unsigned int getEdgeEvents(eventList& events, State state,
+                               unsigned int edge, State nbState, 
+                               unsigned int nb) const;
 
     bool isInfection(State before_state, State after_state) const
     { return ((before_state.base == Susceptible) &&
@@ -41,9 +41,9 @@ namespace Models {
 
   private:
 
-    double gamma; //!< Recovery rates.
-    double delta; //!< Loss of immunity rates.
-    double beta; //!< Infection rates.
+    unsigned int gamma; //!< Recovery rates.
+    unsigned int delta; //!< Loss of immunity rates.
+    unsigned int beta; //!< Infection rates.
   
   };
 

@@ -30,7 +30,7 @@ namespace Tree{
   public:
 
     //! Constructor
-    Bin(): parent(0), rateSum(0.), containerSize(2) {;}
+    Bin(): parent(0), rateSum(0), containerSize(2) {;}
 
     /*! \brief Destructor.
       
@@ -47,21 +47,21 @@ namespace Tree{
     //! Accessor for the parent variable.
     Bin* getParent() const { return parent; } 
     //! Accessor for the rateSum variable.
-    double getRateSum() const { return rateSum; } 
+    unsigned int getRateSum() const { return rateSum; } 
     //! Accessor for the children variable.
     short getNChildren() const { return children.size(); } 
   
     short addChild(Bin& newChild);
     
-    void updateRateSum(double rate);
+    void updateRateSum(unsigned int rate);
   
-    Bin* pickChild(double& randNo);
-    void setRateSum(double rate);
+    Bin* pickChild(unsigned int& randNo);
+    void setRateSum(unsigned int rate);
   
   private:
   
     Bin* parent; //!< Pointer to the parent Bin
-    double rateSum; //!< The sum of all rates contained in the Bin
+    unsigned rateSum; //!< The sum of all rates contained in the Bin
   
     std::vector<Bin*> children; //!< Vector of pointers to the children
     const unsigned short containerSize; //!< Size of the Bin (usually 2)

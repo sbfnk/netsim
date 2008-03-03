@@ -45,17 +45,17 @@ Models::SingleSIRS::SingleSIRS(unsigned int v)
   /*************************************/
   // assign model parameters to variables
   /************************************/
-  params.insert(std::make_pair("beta", &beta));
-  params.insert(std::make_pair("gamma", &gamma));
-  params.insert(std::make_pair("delta", &delta));
+  rates.insert(std::make_pair("beta", &beta));
+  rates.insert(std::make_pair("gamma", &gamma));
+  rates.insert(std::make_pair("delta", &delta));
 }
 
 //----------------------------------------------------------
-double Models::SingleSIRS::getNodeEvents(eventList& events,
-                                       State state,
-                                       unsigned int nb) const
+unsigned int Models::SingleSIRS::getNodeEvents(eventList& events,
+                                               State state,
+                                               unsigned int nb) const
 {
-   double rateSum(.0);
+   unsigned int rateSum(0);
 
    if (state.base == Recovered) {
      // loss of immunity
@@ -68,7 +68,7 @@ double Models::SingleSIRS::getNodeEvents(eventList& events,
         rateSum += immunityLoss.rate;
         if (verbose >= 2) {
           std::cout << "Adding loss of immunity event with rate " 
-	            << immunityLoss.rate << std::endl;
+	            << immunityLoss.rate/1e+4 << std::endl;
         }
       }
    } else if (state.base == Infected) {
@@ -81,7 +81,7 @@ double Models::SingleSIRS::getNodeEvents(eventList& events,
         events.push_back(recovery);
         rateSum += recovery.rate;
         if (verbose >= 2) {
-          std::cout << "Adding recovery event with rate " << recovery.rate
+          std::cout << "Adding recovery event with rate " << recovery.rate/1e+4
                     << std::endl;
         }
       }
@@ -90,13 +90,13 @@ double Models::SingleSIRS::getNodeEvents(eventList& events,
 }
 
 //----------------------------------------------------------
-double Models::SingleSIRS::getEdgeEvents(eventList& events,
-                                       State state,
-                                       unsigned int edge,
-                                       State nbState,
-                                       unsigned int nb) const
+unsigned int Models::SingleSIRS::getEdgeEvents(eventList& events,
+                                               State state,
+                                               unsigned int edge,
+                                               State nbState,
+                                               unsigned int nb) const
 {
-   double rateSum(.0);
+   unsigned int rateSum(0);
    // infection
    if (state.base == Susceptible &&
        nbState.base == Infected) {
@@ -109,8 +109,8 @@ double Models::SingleSIRS::getEdgeEvents(eventList& events,
        events.push_back(infection);
        rateSum += infection.rate;
        if (verbose >= 2) {
-         std::cout << "Adding infection event with rate " << infection.rate
-                   << std::endl;
+         std::cout << "Adding infection event with rate "
+                   << infection.rate/1e+4 << std::endl;
        }
      }
    }

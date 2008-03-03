@@ -69,20 +69,20 @@ Models::InfoSIRS::InfoSIRS(unsigned int v)
     ;
 
   /*************************************/
-  // assign model parameters to variables
+  // assign model parameters and rates to variables
   /************************************/
-  params.insert(std::make_pair("beta--", &beta[0][0]));
-  params.insert(std::make_pair("beta+-", &beta[1][0]));
-  params.insert(std::make_pair("beta-+", &beta[0][1]));
-  params.insert(std::make_pair("beta++", &beta[1][1]));
-  params.insert(std::make_pair("gamma-", &gamma[0]));
-  params.insert(std::make_pair("gamma+", &gamma[1]));
-  params.insert(std::make_pair("delta-", &delta[0]));
-  params.insert(std::make_pair("delta+", &delta[1]));
-  params.insert(std::make_pair("alpha", &alpha));
-  params.insert(std::make_pair("nu", &nu));
-  params.insert(std::make_pair("omega", &omega));
-  params.insert(std::make_pair("lambda", &lambda));
+  rates.insert(std::make_pair("beta--", &beta[0][0]));
+  rates.insert(std::make_pair("beta+-", &beta[1][0]));
+  rates.insert(std::make_pair("beta-+", &beta[0][1]));
+  rates.insert(std::make_pair("beta++", &beta[1][1]));
+  rates.insert(std::make_pair("gamma-", &gamma[0]));
+  rates.insert(std::make_pair("gamma+", &gamma[1]));
+  rates.insert(std::make_pair("delta-", &delta[0]));
+  rates.insert(std::make_pair("delta+", &delta[1]));
+  rates.insert(std::make_pair("alpha", &alpha));
+  rates.insert(std::make_pair("nu", &nu));
+  rates.insert(std::make_pair("omega", &omega));
+  rates.insert(std::make_pair("lambda", &lambda));
   params.insert(std::make_pair("sigma", &sigma));
 }
 
@@ -92,21 +92,21 @@ void Models::InfoSIRS::Init(po::variables_map& vm)
   Model::Init(vm);
   if (vm.count("sigma")) {
     // if sigma is defined, beta+- and beta++ are overwritten
-    beta[1][0]=sigma*beta[0][0];
-    beta[1][1]=sigma*beta[0][1];
+    beta[1][0]=static_cast<unsigned int>(sigma * beta[0][0] + .5);
+    beta[1][1]=static_cast<unsigned int>(sigma * beta[0][1] + .5);
     if (verbose >= 1) {
-      std::cout << "sigma given, setting beta+-=" << beta[1][0]
-                << " and beta++=" << beta[1][1] << std::endl;
+      std::cout << "sigma given, setting beta+-=" << beta[1][0]/1e+4
+                << " and beta++=" << beta[1][1]/1e+4 << std::endl;
     }
   }
 }
 
 //----------------------------------------------------------
-double Models::InfoSIRS::getNodeEvents(eventList& events,
-                                       State state,
-                                       unsigned int nb) const
+unsigned int Models::InfoSIRS::getNodeEvents(eventList& events,
+                                             State state,
+                                             unsigned int nb) const
 {
-   double rateSum(.0);
+   unsigned int rateSum(0);
 
    if (getDisease(state) == Recovered) {
      // loss of immunity
@@ -119,7 +119,7 @@ double Models::InfoSIRS::getNodeEvents(eventList& events,
         rateSum += immunityLoss.rate;
         if (verbose >= 2) {
           std::cout << "Adding loss of immunity event with rate " 
-	            << immunityLoss.rate << std::endl;
+	            << immunityLoss.rate/1e+4 << std::endl;
         }
       }
    } else
@@ -133,7 +133,7 @@ double Models::InfoSIRS::getNodeEvents(eventList& events,
         events.push_back(recovery);
         rateSum += recovery.rate;
         if (verbose >= 2) {
-          std::cout << "Adding recovery event with rate " << recovery.rate
+          std::cout << "Adding recovery event with rate " << recovery.rate/1e+4
                     << std::endl;
         }
       }
@@ -148,7 +148,7 @@ double Models::InfoSIRS::getNodeEvents(eventList& events,
           rateSum += localInfo.rate;
           if (verbose >= 2) {
             std::cout << "Adding local information event with rate " 
-	              << localInfo.rate << std::endl;
+	              << localInfo.rate/1e+4 << std::endl;
           }
         }
       }
@@ -164,7 +164,7 @@ double Models::InfoSIRS::getNodeEvents(eventList& events,
         rateSum += infoLoss.rate;
         if (verbose >= 2) {
           std::cout << "Adding information loss event with rate " 
-	            << infoLoss.rate << std::endl;
+	            << infoLoss.rate/1e+4 << std::endl;
         }
       }
    }
@@ -173,13 +173,13 @@ double Models::InfoSIRS::getNodeEvents(eventList& events,
 }
 
 //----------------------------------------------------------
-double Models::InfoSIRS::getEdgeEvents(eventList& events,
-                                       State state,
-                                       unsigned int edge,
-                                       State nbState,
-                                       unsigned int nb) const
+unsigned int Models::InfoSIRS::getEdgeEvents(eventList& events,
+                                             State state,
+                                             unsigned int edge,
+                                             State nbState,
+                                             unsigned int nb) const
 {
-   double rateSum(.0);
+   unsigned int rateSum(0);
    if (edge == Disease) {
       // infection
       if (getDisease(state) == Susceptible &&
@@ -193,8 +193,8 @@ double Models::InfoSIRS::getEdgeEvents(eventList& events,
            events.push_back(infection);
            rateSum += infection.rate;
            if (verbose >= 2) {
-             std::cout << "Adding infection event with rate " << infection.rate
-                       << std::endl;
+             std::cout << "Adding infection event with rate "
+                       << infection.rate/1e+4 << std::endl;
            }
          }
       }
@@ -212,7 +212,7 @@ double Models::InfoSIRS::getEdgeEvents(eventList& events,
            rateSum += infoTransmission.rate;
            if (verbose >= 2) {
              std::cout << "Adding information transmission event with rate " 
-                       << infoTransmission.rate << std::endl;
+                       << infoTransmission.rate/1e+4 << std::endl;
            }
          }
       }
@@ -227,7 +227,7 @@ double Models::InfoSIRS::getEdgeEvents(eventList& events,
            rateSum += infoGeneration.rate;
            if (verbose >= 2) {
              std::cout << "Adding information generation event with rate " 
-                       << infoGeneration.rate << std::endl;
+                       << infoGeneration.rate/1e+4 << std::endl;
            }
          }
       }

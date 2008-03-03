@@ -41,20 +41,20 @@ Models::ProtectiveSIRS::ProtectiveSIRS(unsigned int v)
      "loss of information rate")
     ;
 
-  params.insert(std::make_pair("beta", &beta));
+  rates.insert(std::make_pair("beta", &beta));
+  rates.insert(std::make_pair("gamma", &gamma));
+  rates.insert(std::make_pair("delta", &delta));
+  rates.insert(std::make_pair("nu", &nu));
+  rates.insert(std::make_pair("lambda", &lambda));
   params.insert(std::make_pair("sigma", &sigma));
-  params.insert(std::make_pair("gamma", &gamma));
-  params.insert(std::make_pair("delta", &delta));
-  params.insert(std::make_pair("nu", &nu));
-  params.insert(std::make_pair("lambda", &lambda));
 }
 
 //----------------------------------------------------------
-double Models::ProtectiveSIRS::getNodeEvents(eventList& events,
-                                             State state,
-                                             unsigned int nb) const
+unsigned int Models::ProtectiveSIRS::getNodeEvents(eventList& events,
+                                                   State state,
+                                                   unsigned int nb) const
 {
-   double rateSum(.0);
+   unsigned int rateSum(0);
 
    // loss of immunity
    if (getDisease(state) == Recovered) {
@@ -91,20 +91,23 @@ double Models::ProtectiveSIRS::getNodeEvents(eventList& events,
 }
 
 //----------------------------------------------------------
-double Models::ProtectiveSIRS::getEdgeEvents(eventList& events,
-                                             State state,
-                                             unsigned int edge,
-                                             State nbState,
-                                             unsigned int nb) const
+unsigned int Models::ProtectiveSIRS::getEdgeEvents(eventList& events,
+                                                   State state,
+                                                   unsigned int edge,
+                                                   State nbState,
+                                                   unsigned int nb) const
 {
-   double rateSum(.0);
+   unsigned int rateSum(0);
    if (edge == Disease) {
       // infection
       if (getDisease(state) == Susceptible &&
           getDisease(nbState) == Infected) {
          Event infection;
          infection.rate = beta;
-         if (getInfo(state) == 1) infection.rate *= sigma;
+         if (getInfo(state) == 1) {
+           infection.rate =
+             static_cast<unsigned int>(infection.rate * sigma + .5);
+         }
          infection.newState = State(getState(Infected, getInfo(state)));
          if (infection.rate > 0) {
            events.push_back(infection);

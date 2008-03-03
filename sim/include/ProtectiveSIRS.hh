@@ -32,11 +32,11 @@ namespace Models {
     ProtectiveSIRS(unsigned int v = 0);
     ~ProtectiveSIRS() {;}
   
-    double getNodeEvents(eventList& events, State state,
-                         unsigned int nb) const;
-    double getEdgeEvents(eventList& events, State state,
-                         unsigned int edge, State nbState,
-                         unsigned int nb) const;
+    unsigned int getNodeEvents(eventList& events, State state,
+                               unsigned int nb) const;
+    unsigned int getEdgeEvents(eventList& events, State state,
+                               unsigned int edge, State nbState,
+                               unsigned int nb) const;
 
     bool isInfection(State before_state, State after_state) const
     { return ((getDisease(before_state) == Susceptible) &&
@@ -55,11 +55,11 @@ namespace Models {
   
   private:
 
-    double gamma; //!< Recovery rate.
-    double delta; //!< Loss of immunity rate.
-    double beta; //!< Infection rate.
-    double nu; //!< Information generateion rate over i-edges.
-    double lambda; //!< Rate of forgetting.
+    unsigned int gamma; //!< Recovery rate.
+    unsigned int delta; //!< Loss of immunity rate.
+    unsigned int beta; //!< Infection rate.
+    unsigned int nu; //!< Information generateion rate over i-edges.
+    unsigned int lambda; //!< Rate of forgetting.
     double sigma; //!< Ratio between informed and uninformed susceptibility.
   
   };

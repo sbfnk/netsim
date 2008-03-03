@@ -160,7 +160,7 @@ plot 'FILE_ID.mf.dat' u 1:($2+$5) ls 1 title 'S' w l \
 ######################################
 #
 #### CHANGE AS NEEDED !!!!!!!!!!!!!
-##N=1e5
+##N=1e+4
 ##Qd=3
 ##Qi=3
 #### CHANGE AS NEEDED !!!!!!!!!!!!!

@@ -116,37 +116,38 @@ namespace Simulators {
     const Model& model = this->getModel();
     unsigned int verbose = this->getVerbose();
 
-    // exit if nothing can happen -- exit also if the rate sum is very small
-    // to prevent rounding problems
-    if (tree.getTopBin()->getRateSum() < 1e-8) {
+    // exit if nothing can happen
+    if (tree.getTopBin()->getRateSum() < 1) {
       return false;
     }
   
     if (verbose >= 2) {
       std::cout << "choose event, total sum of rates is "
-                << tree.getTopBin()->getRateSum() << std::endl;
+                << tree.getTopBin()->getRateSum()/1e+5 << std::endl;
       print();
     }
          
     // draw a random number from [0,1) for the timestep advance
-    double randNo = (randGen)();
-    updateTime(-log(randNo)/tree.getTopBin()->getRateSum());
+    double randTime = (randGen)();
+    updateTime(-log(randTime)*1e+4/tree.getTopBin()->getRateSum());
          
-    // draw another random number from [0,1) for picking the event
-    randNo = (randGen)();
-    unsigned int* eventVertex = tree.pickRandomElement(randNo);
+    // draw another random number from [0,rateSum) for picking the event
+    unsigned int randEvent =
+      static_cast<unsigned int>((randGen)() *
+                                tree.getTopBin()->getRateSum() + .5);
+    unsigned int* eventVertex = tree.pickRandomElement(randEvent);
     if (eventVertex) {
       // process vertex event
-      double tempSum = .0;
+      unsigned int tempSum = 0;
       vertex_descriptor v = vertex(*eventVertex, graph);
 
       // find event corresponding to randNo
       std::vector<Event>::iterator it = graph[v].events.begin();
-      while (it != graph[v].events.end() && tempSum < randNo) {
+      while (it != graph[v].events.end() && tempSum < randEvent) {
         tempSum += (*it).rate;
         it++;
       }
-      if (tempSum < randNo) {
+      if (tempSum < randEvent) {
         // should not happen
         std::cerr << "Could not pick event" << std::endl;
         return false;
@@ -186,7 +187,7 @@ namespace Simulators {
       }
             
       // update vertex event list
-      double rateDiff = generateEventList(graph, v, model, verbose);
+      unsigned int rateDiff = generateEventList(graph, v, model, verbose);
             
       // update sum of rates for the vertex
       vertex_index_type index = get(boost::vertex_index, graph);
@@ -223,7 +224,7 @@ namespace Simulators {
     
     std::vector<Tree::Leaf<unsigned int>*>::iterator it;
     for (it = tree.getLeaves().begin(); it != tree.getLeaves().end(); it++) {
-      if ((*it)->getRateSum() > 1e-8) {
+      if ((*it)->getRateSum() > 0) {
         std::cout << "Vertex #" << *((*it)->getItem()) << " ["
                   << model.getVertexState(graph[*((*it)->getItem())].state.base);
         if (graph[*((*it)->getItem())].state.detail > 0) {
@@ -234,7 +235,7 @@ namespace Simulators {
         for (eit = graph[*((*it)->getItem())].events.begin();
              eit != graph[*((*it)->getItem())].events.end(); eit++) {
           std::cout << " " << model.getVertexState((*eit).newState.base) << " ("
-                    << (*eit).rate;
+                    << (*eit).rate/1e+4;
           if (eit->newState.detail > 0) {
             std::cout << "," << eit->newState.detail;
           }

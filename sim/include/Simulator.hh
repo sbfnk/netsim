@@ -105,10 +105,10 @@ happen to a node by itself, as well as events transmitted over edges.
 \ingroup gillespie_simulator
 */
 template <class Graph, class Model>
-double generateEventList(Graph& graph,
-                         typename boost::graph_traits<Graph>::vertex_descriptor v,
-                         const Model& model,
-                         unsigned int verbose = 0)
+unsigned int generateEventList(Graph& graph,
+                      typename boost::graph_traits<Graph>::vertex_descriptor v,
+                               const Model& model,
+                               unsigned int verbose = 0)
 {
   // definitions of boost types for quick access
   typedef typename boost::graph_traits<Graph>::out_edge_iterator
@@ -123,7 +123,7 @@ double generateEventList(Graph& graph,
    
   // temporary sum for the new sum of rates of all events
   // that can affect the vertex v
-  double tempSum = .0;
+  unsigned int tempSum = 0;
 
   if (verbose >= 2) {
     std::cout << "Generating events list for vertex #" << v << " ("
@@ -151,7 +151,7 @@ double generateEventList(Graph& graph,
   }
    
   // calculate difference between new and old sum of rates
-  double diff = tempSum - graph[v].rateSum;
+  unsigned int diff = tempSum - graph[v].rateSum;
   // set rateSum to new value
   graph[v].rateSum = tempSum;
    
@@ -174,10 +174,10 @@ are deleted and a new list of these events is generated
 \ingroup gillespie_simulator
 */
 template <class Graph, class Model>
-double updateEventList(Graph& graph,
-                       typename boost::graph_traits<Graph>::edge_descriptor e,
-                       const Model& model,
-                       unsigned int verbose = 0)
+unsigned int updateEventList(Graph& graph,
+                        typename boost::graph_traits<Graph>::edge_descriptor e,
+                             const Model& model,
+                             unsigned int verbose = 0)
 {
   typename boost::graph_traits<Graph>::vertex_descriptor v = target(e, graph);
   typename boost::graph_traits<Graph>::vertex_descriptor n = source(e, graph);
@@ -187,7 +187,7 @@ double updateEventList(Graph& graph,
    
   // temporary sum for the new sum of rates of all events
   // that can affect the vertex v
-  double tempSum = .0;
+  unsigned int tempSum = 0;
 
   if (verbose >= 2) {
     std::streamsize prec = std::cout.precision();

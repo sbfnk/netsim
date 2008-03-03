@@ -61,11 +61,12 @@ struct Event
   \param[in] n nb initialiser
   \param[in] e et initialiser
   */
-  Event(double r=0., State s = State(), unsigned int n=0, unsigned int e=0) :
+  Event(unsigned int r=0, State s = State(), unsigned int n=0, unsigned int e=0) :
     rate(r), newState(s), nb(n), et(e) {}
   
-  //! The rate at which an event occurs (depends on model parameters)
-  double rate; 
+  //! The rate at which an event occurs (depends on model parameters),
+  //  multiplied by 10^5 for integer representation
+  unsigned int rate; 
   //! The state an event will change a vertex to
   State newState; 
   //! The neighbour "responsible" for the event
@@ -193,9 +194,9 @@ public:
   \return The sum of the rates of all events that have been stored in the
   event list 
   */
-  virtual double getNodeEvents(eventList& events,
-                               State state,
-                               unsigned int nb) const = 0;
+  virtual unsigned int getNodeEvents(eventList& events,
+                                     State state,
+                                     unsigned int nb) const = 0;
   /*! \brief Get edge events.
 
   This is implemented by classes derived from Model. It considers all edge events
@@ -214,9 +215,9 @@ public:
   \return The sum of the rates of all events that have been stored in the
   event list
   */
-  virtual double getEdgeEvents(eventList& events, State state, 
-                               unsigned int edge, State nbState,
-                               unsigned int nb) const = 0;
+  virtual unsigned int getEdgeEvents(eventList& events, State state, 
+                                     unsigned int edge, State nbState,
+                                     unsigned int nb) const = 0;
 
   /*! \brief Check whether an event is an infection.
 
@@ -315,6 +316,11 @@ protected:
   A map of command line options to the model paramters
   */
   std::map<std::string, double*> params;
+  /*! \brief The model rates
+    
+  A map of command line options to the model rates
+  */
+  std::map<std::string, unsigned int*> rates;
 
   //! Verbosity level
   unsigned int verbose;

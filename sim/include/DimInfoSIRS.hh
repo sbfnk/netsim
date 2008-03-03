@@ -35,11 +35,11 @@ namespace Models {
 
     void Init(po::variables_map& vm);
   
-    double getNodeEvents(eventList& events, State state,
-                         unsigned int nb) const;
-    double getEdgeEvents(eventList& events, State state,
-                         unsigned int edge, State nbState,
-                         unsigned int nb) const;
+    unsigned int getNodeEvents(eventList& events, State state,
+                               unsigned int nb) const;
+    unsigned int getEdgeEvents(eventList& events, State state,
+                               unsigned int edge, State nbState,
+                               unsigned int nb) const;
 
     bool isInfection(State before_state, State after_state) const
     { return ((getDisease(before_state) == Susceptible) &&
@@ -65,17 +65,16 @@ namespace Models {
     
   private:
 
-    double gamma; //!< Recovery rates.
-    double delta; //!< Loss of immunity rates.
-    double beta; //!< Infection rates.
-    double alpha; //!< Information transmission rate.
-    double lambda; //!< Rate of forgetting.
-    double omega; //!< Local infromation generation rate.
-    double nu; //!< Information generation rate over i-edges.
+    unsigned int gamma; //!< Recovery rates.
+    unsigned int delta; //!< Loss of immunity rates.
+    unsigned int beta; //!< Infection rates.
+    unsigned int alpha; //!< Information transmission rate.
+    unsigned int lambda; //!< Rate of forgetting.
+    unsigned int omega; //!< Local infromation generation rate.
+    unsigned int nu; //!< Information generation rate over i-edges.
+
     double rho; //!< Ratio between informed and uninformed susceptibility.
-
     double threshold; //!< Threshold below which information will not be passed
-
     double dim_alpha; //!< Whether to diminish alpha or not
 
   };

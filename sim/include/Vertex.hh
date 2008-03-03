@@ -32,7 +32,7 @@ public:
   State state;
   
   //! The sum of rates of all events that can change the state of the vertex.
-  double rateSum;
+  unsigned int rateSum;
       
   eventList events; //!< A list of events associated with vertex.
 };

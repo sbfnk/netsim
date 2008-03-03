@@ -40,7 +40,7 @@ namespace Tree {
     void clear()
     { if (topBin) delete topBin; leaves.clear(); lastLeaf = 0; topBin = 0; }
     
-    T* pickRandomElement(double& randNo);
+    T* pickRandomElement(unsigned int& randNo);
 
     //! Accessor for the topBin variable
     Bin* getTopBin() { return topBin; }
@@ -67,21 +67,19 @@ namespace Tree {
   \return A pointer to the item contained in the chosen Leaf.
   */
   template <class T>  
-  T* Tree<T>::pickRandomElement(double& randNo)
+  T* Tree<T>::pickRandomElement(unsigned int& randNo)
   {
     // check if we have a topBin (if not we either have no vertex
     // or something else is seriously wrong)
     if (topBin) {
       // get the sum of the two slots for the topBin, corresponding
       // to the total sum of rates of the whole tree
-      double rateSum = topBin->getRateSum();
-      if (rateSum > 0.) {
+      unsigned int rateSum = topBin->getRateSum();
+      if (rateSum > 0) {
         // call pickBin of the topBin, which will traverse down the tree
         // using randNo, store the vertex eventually picked in eventBin
-        // and make randNo a random number in [0, eventBin->rateSum),
-        // which the leafBin can use to pick its own event
-        randNo *= rateSum;
-        
+        // have leafBin us randNo (a random number in [0, eventBin->rateSum))
+        // to pick its own event
         Leaf<T>* pickedLeaf =
           dynamic_cast<Leaf<T>*>(topBin->pickChild(randNo));
         if (pickedLeaf) {
