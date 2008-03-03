@@ -177,7 +177,7 @@ int main(int argc, char* argv[])
           // get time of next line
           currentTime = *(line_contents.begin());
           // need to write data?
-          while ((currentTime) >= (currentStep*timeStep)) {
+          while ((currentTime) > (currentStep*timeStep)) {
 
             if ((firstFile) || (stopTime < currentStep*timeStep)) {
               values.push_back(std::vector<float>(previous_line_contents.begin()+1,
