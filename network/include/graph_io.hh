@@ -565,14 +565,9 @@ namespace boost {
                 cast_stream<unsigned int>(extractDrawOption("state", line));
             }
               
-            // typecasting string to int
-            unsigned int src = cast_stream<unsigned int>(s);
-            
-            if (src < num_vertices(g)) {
-              g[src].state.base = state;
-              g[src].state.detail = detail;
-              ++vertexCount;
-            }
+            g[vertexCount].state.base = state;
+            g[vertexCount].state.detail = detail;
+            ++vertexCount;
           }
         }
       }
