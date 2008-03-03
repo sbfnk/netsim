@@ -76,6 +76,8 @@ namespace Models {
 
     double threshold; //!< Threshold below which information will not be passed
 
+    double dim_alpha; //!< Whether to diminish alpha or not
+
   };
 
 }

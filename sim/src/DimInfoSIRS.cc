@@ -54,6 +54,8 @@ Models::DimInfoSIRS::DimInfoSIRS(unsigned int v)
      "loss of information rate")
     ("threshold", po::value<double>(),
      "threshold below which not to consider information transmission")
+    ("dim_alpha", po::value<double>()->default_value(0.),
+     "whether alpha diminishes or not")
     ;
 
   /*************************************/
@@ -68,6 +70,7 @@ Models::DimInfoSIRS::DimInfoSIRS(unsigned int v)
   params.insert(std::make_pair("lambda", &lambda));
   params.insert(std::make_pair("rho", &rho));
   params.insert(std::make_pair("threshold", &threshold));
+  params.insert(std::make_pair("dim_alpha", &dim_alpha));
 }
 
 //----------------------------------------------------------
@@ -176,9 +179,13 @@ double Models::DimInfoSIRS::getEdgeEvents(eventList& events,
       }
    } else if (edge == Information) {
       // information transmission
-      if (state.detail < nbState.detail && nbState.detail > threshold) {
+      if (state.detail < nbState.detail * rho && nbState.detail > threshold) {
          Event infoTransmission;
-         infoTransmission.rate = alpha;
+         if (dim_alpha) {
+           infoTransmission.rate = nbState.detail * alpha;
+         } else {
+           infoTransmission.rate = alpha;
+         }
          infoTransmission.newState = State(state.base, nbState.detail * rho);
          infoTransmission.nb = nb;
          infoTransmission.et = edge;
