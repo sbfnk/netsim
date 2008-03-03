@@ -518,7 +518,6 @@ namespace boost {
           (m.getVertexStates()[i].getRGB(0) > 0)*1 +
           (m.getVertexStates()[i].getRGB(1) > 0)*2 +
           (m.getVertexStates()[i].getRGB(2) > 0)*4;
-        std::cout << "color information is rgb type: " << colorCode << " " << i << std::endl;
         rgb2state.insert(std::make_pair(colorCode, i));
       } else {
         // color information is name type
