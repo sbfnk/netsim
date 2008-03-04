@@ -483,10 +483,10 @@ int main(int argc, char* argv[])
       std::cerr << "ERROR: could not read from file " << icFileName
                 << std::endl;
       return 1;
-    } else if (static_cast<unsigned int>(verticesRead) < num_vertices(graph)) {
-      std::cerr << "ERROR: found only " << verticesRead << " vertex "
-                << "states in " << icFileName << std::endl;
-      return 1;
+    } else if (verticesRead < static_cast<int>(num_vertices(graph))) {
+      std::cerr << "WARNING: found only " << verticesRead << " vertex "
+                << "states in " << icFileName << " with " << num_vertices(graph)
+		<< " vertices in the graph" << std::endl;
     } else if (verbose) {
       std::cout << "Read " << verticesRead << " initial states from "
                 << icFileName << std::endl;
