@@ -18,11 +18,11 @@ Models::SingleSIRS::SingleSIRS(unsigned int v)
   // define vertex classes
   /************************************/
   // susceptible
-  vertexStates.push_back(Label("S","00;32", 0, "fillcolor=\"royalblue4\""));
-  // infected
-  vertexStates.push_back(Label("I","00;31", 1, "fillcolor=\"red\""));
+  vertexStates.push_back(Label("S","01;32", 0, "", Label::rgbColour(0,0,255)));
+  // infected 
+  vertexStates.push_back(Label("I","01;31", 1, "", Label::rgbColour(255,0,0)));
   // recovered
-  vertexStates.push_back(Label("R","00;34", 2, "fillcolor=\"green\""));
+  vertexStates.push_back(Label("R","01;34", 2, "", Label::rgbColour(0,255,0)));
 
   /*************************************/
   // define edge types
