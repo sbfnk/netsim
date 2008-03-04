@@ -23,7 +23,7 @@ Models::DimInfoSIRS::DimInfoSIRS(unsigned int v)
   vertexStates.push_back(Label("S","01;32", 0, "", Label::rgbColour(0,0,255)));
   // infected 
   vertexStates.push_back(Label("I","01;31", 1, "", Label::rgbColour(255,0,0)));
-  // recoveredn
+  // recovered
   vertexStates.push_back(Label("R","01;34", 2, "", Label::rgbColour(0,255,0)));
 
   /*************************************/
