@@ -123,7 +123,7 @@ namespace Simulators {
   
     if (verbose >= 2) {
       std::cout << "choose event, total sum of rates is "
-                << tree.getTopBin()->getRateSum()/1e+5 << std::endl;
+                << tree.getTopBin()->getRateSum()/1e+4 << std::endl;
       print();
     }
          
@@ -133,8 +133,7 @@ namespace Simulators {
          
     // draw another random number from [0,rateSum) for picking the event
     unsigned int randEvent =
-      static_cast<unsigned int>((randGen)() *
-                                tree.getTopBin()->getRateSum() + .5);
+      static_cast<unsigned int>((randGen)() * tree.getTopBin()->getRateSum())+1;
     unsigned int* eventVertex = tree.pickRandomElement(randEvent);
     if (eventVertex) {
       // process vertex event
