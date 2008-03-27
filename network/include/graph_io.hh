@@ -458,7 +458,11 @@ namespace boost {
           } else { // if vertex
 
             if (addVertices) {
-              add_vertex(g);
+              std::string s = line.substr(0, bpos);
+              unsigned int src = cast_stream<unsigned int>(s);
+            
+	      // add vertices until we have enough to accomodate what is in graph file
+              while (src >= num_vertices(g)) add_vertex(g);
             }
           }
         }
@@ -565,8 +569,13 @@ namespace boost {
                 cast_stream<unsigned int>(extractDrawOption("state", line));
             }
               
-            g[vertexCount].state.base = state;
-            g[vertexCount].state.detail = detail;
+            // typecasting string to int
+            unsigned int src = cast_stream<unsigned int>(s);
+            
+	    // add vertices until we have enough to accomodate what is in ic file
+            while (src >= num_vertices(g)) add_vertex(g);
+            g[src].state.base = state;
+            g[src].state.detail = detail;
             ++vertexCount;
           }
         }
@@ -576,7 +585,7 @@ namespace boost {
     }
           
     file.close();
-  
+
     return vertexCount;
   
   }
