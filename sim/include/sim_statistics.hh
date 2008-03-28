@@ -402,5 +402,64 @@ std::string write_sim_data(const Graph& g, const Model& m,
 }
 
 //----------------------------------------------------------
+/*! \brief Detail states in pair participants
+  
+Calculate the average detailed state in on part of a given pair of states.
+
+\param[in] g The graph containing the vertices and edges
+\param[in] edgeType The edge type to consider
+\param[in] state1 State of the first neighbour
+\param[in] state2 State of the second neighbours (to be averaged)
+\return A vector containg the detail values of the state2 neighbours
+\ingroup sim_statistics
+*/
+template <typename Graph>
+std::vector<double> pair_detail_states(Graph& g, unsigned int edgeType,
+                                       unsigned int state1, unsigned int state2)
+{
+  typedef typename boost::graph_traits<Graph>::edge_iterator
+    edge_iterator;
+
+  std::vector<double> detail_states;
+    
+  // count all edges of type et, including parallel
+  edge_iterator ei, ei_end;
+  for (boost::tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
+    if (g[source(*ei, g)].state.base == state1 &&
+        g[target(*ei, g)].state.base == state2) {
+      detail_states.push_back(g[target(*ei, g)].state.detail);
+    } else if (g[source(*ei, g)].state.base == state2 &&
+               g[target(*ei, g)].state.base == state1) {
+      detail_states.push_back(g[source(*ei, g)].state.detail);
+    }
+  }
+
+  return detail_states;
+}
+
+template <typename Graph>
+void write_risk_info(const Graph& g, std::string fileName)
+{
+  std::ofstream riskFile;
+  try {
+    riskFile.open(fileName.c_str(), std::ios::out);
+  }
+  catch (std::exception &e) {
+    std::cerr << "... unable to open risk-info output file " 
+              << fileName << std::endl;
+    std::cerr << "... Standard exception: " << e.what() << std::endl;      
+    return;
+  }
+
+  std::vector<double> detail_states = pair_detail_states(g, 0, 1, 0);
+
+  for (std::vector<double>::iterator vi = detail_states.begin();
+       vi != detail_states.end(); ++vi) {
+    riskFile << *vi << std::endl;
+  }
+}
+
+
+//----------------------------------------------------------
 
 #endif
