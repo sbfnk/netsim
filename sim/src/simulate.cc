@@ -69,6 +69,7 @@ int main(int argc, char* argv[])
   double stopTime = 0;
   unsigned int stopInfections;
   unsigned int stopInformations;
+  unsigned int infLimit;
 
   double outputData = 0.;
   double outputGraphviz = -1.;
@@ -138,6 +139,8 @@ int main(int argc, char* argv[])
      "number of infections after which to stop (if >0)")
     ("pmax", po::value<unsigned int>()->default_value(0),
      "number of informations after which to stop (if >0)")
+    ("limit", po::value<unsigned int>()->default_value(0),
+     "limit to the number of infectives (stop if reached)")
     ("data,d", po::value<double>()->default_value(outputData),
      "write output data at arg timesteps (0 for no data output)")
     ("graphviz,g", po::value<double>()->default_value(outputGraphviz),
@@ -446,8 +449,8 @@ int main(int argc, char* argv[])
     outputRiskInfo = vm["risk-info"].as<double>();
   }
 
-  doIO = (outputData > 0 || outputGraphviz >= 0 || outputDist >= 0 || outputCorr >= 0 ||
-          outputRiskInfo > 0);
+  doIO = (outputData > 0 || outputGraphviz >= 0 || outputDist >= 0 || 
+  	  outputCorr >= 0 || outputRiskInfo > 0);
 
   // paint images as lattice
   if (vm.count("lattice")) {
@@ -550,7 +553,8 @@ int main(int argc, char* argv[])
     stopTime = vm["tmax"].as<double>();
     stopInfections = vm["imax"].as<unsigned int>();
     stopInformations = vm["pmax"].as<unsigned int>();
-
+    infLimit = vm["limit"].as<unsigned int>();
+        
     if (doIO) {
       // remove existing data
       if (fs::exists(outputDir)) {
@@ -787,11 +791,13 @@ int main(int argc, char* argv[])
 
     while ((stopTime == 0 || sim->getTime() < stopTime) &&
            (stopInfections == 0 || (sim->getNumInfections() < stopInfections &&
-                                    sim->getNumInfections() + 1 > sim->getNumRecoveries())) &&
-           (stopInformations == 0 || (sim->getNumInformations() < stopInformations &&
-                                      sim->getNumInformations() + 1 > sim->getNumForgettings())) &&
-           sim->updateState()) {
-
+                                    sim->getNumInfections()+1 > sim->getNumRecoveries())) &&
+           (sim->getNumInfections()+1 > sim->getNumRecoveries()) &&
+           (stopInformations == 0 || (sim->getNumInformations() < stopInformations && 
+                                      sim->getNumInformations()+1 > sim->getNumForgettings())) &&
+           (infLimit ==0 || count_vertices(graph, model->getVertexStates().size())[1] < infLimit) &&
+            sim->updateState()) {
+      
       if (verbose >= 2) {
         print_sim_status(graph, *model, pairs, triples);
       }
@@ -979,6 +985,8 @@ int main(int argc, char* argv[])
   delete sim;
   delete model;
 
+  std::cout << std::endl;
+  
   return 0;
 
 }
