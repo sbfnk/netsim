@@ -425,12 +425,14 @@ std::vector<double> pair_detail_states(Graph& g, unsigned int edgeType,
   // count all edges of type et, including parallel
   edge_iterator ei, ei_end;
   for (boost::tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
-    if (g[source(*ei, g)].state.base == state1 &&
-        g[target(*ei, g)].state.base == state2) {
-      detail_states.push_back(g[target(*ei, g)].state.detail);
-    } else if (g[source(*ei, g)].state.base == state2 &&
-               g[target(*ei, g)].state.base == state1) {
-      detail_states.push_back(g[source(*ei, g)].state.detail);
+    if (g[*ei].type == edgeType) {
+      if (g[source(*ei, g)].state.base == state1 &&
+          g[target(*ei, g)].state.base == state2) {
+        detail_states.push_back(g[target(*ei, g)].state.detail);
+      } else if (g[source(*ei, g)].state.base == state2 &&
+                 g[target(*ei, g)].state.base == state1) {
+        detail_states.push_back(g[source(*ei, g)].state.detail);
+      }
     }
   }
 
