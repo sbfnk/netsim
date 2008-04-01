@@ -168,6 +168,9 @@ int main(int argc, char* argv[])
           if (nColumns == 0) {
             // set number of columns
             nColumns = line_contents.size();
+            if (verbose) {
+              std::cout << "Number of columns: " << nColumns << std::endl;
+            }
           } else if (nColumns != line_contents.size()) {
             std::cerr << "Warning: wrong number of columns in line "
                       << lineCount << ": " << line_contents.size()
@@ -210,8 +213,12 @@ int main(int argc, char* argv[])
       ifs.close();
     } else {
       std::cerr << "Error reading " << *it << "." << std::endl;
+      --nFiles;
     }
   }
+  if (verbose) {
+    std::cout << "Stop time: " << stopTime << std::endl;;
+  }          
   float time = 0.;
   if (verbose) {
     std::cout << "Opening output file " << outputBase << ".sim.dat" 
@@ -219,6 +226,9 @@ int main(int argc, char* argv[])
   }
   std::ofstream ofs((outputBase+".sim.dat").c_str(), std::ios::out);
   
+  if (verbose) {
+    std::cout << "Number of lines: " << values.size() << std::endl;;
+  }          
   if (ofs.is_open()) {
     for (unsigned int i = 0; i < values.size(); i++, time+=timeStep) {
       if (no_files[i] > nFiles/2) {
