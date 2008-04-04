@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
     ("Output options");
   
   output_options.add_options()
-    ("file,f", po::value<std::string>(),
+    ("output-file,o", po::value<std::string>(),
      "output graph to file (.graph will be appended)")
     ("split,s", 
      "split graph output input")
@@ -1039,7 +1039,7 @@ int main(int argc, char* argv[])
     }
 
     // do graph modifications if desired
-    if (num_edges(graph) > 0 &&
+    if (num_edges(temp_graph) > 0 &&
         vm.count(currentEdgeLabel+"-remove")) {
       double removeFraction =
         vm[currentEdgeLabel+"-remove"].as<double>();
@@ -1047,7 +1047,7 @@ int main(int argc, char* argv[])
         boost::removeEdges(temp_graph, gen, removeFraction);
       }
     }
-    if (num_edges(graph) > 0 &&
+    if (num_edges(temp_graph) > 0 &&
         vm.count(currentEdgeLabel+"-rewire")) {
       double rewireFraction =
         vm[currentEdgeLabel+"-rewire"].as<double>();
@@ -1067,7 +1067,7 @@ int main(int argc, char* argv[])
         }
       }
     }
-    if (num_edges(graph) > 0 &&
+    if (num_edges(temp_graph) > 0 &&
         vm.count(currentEdgeLabel+"-rewire-clustered")) {
       double clusteredRewireFraction =
         vm[currentEdgeLabel+"-rewire-clustered"].as<double>();
@@ -1079,7 +1079,7 @@ int main(int argc, char* argv[])
         }
       }
     }
-    if (num_edges(graph) > 0 && vm.count(currentEdgeLabel+"-add")) {
+    if (num_edges(temp_graph) > 0 && vm.count(currentEdgeLabel+"-add")) {
       double addFraction = vm[currentEdgeLabel+"-add"].as<double>();
       boost::addEdges(temp_graph, gen, addFraction);
     }
