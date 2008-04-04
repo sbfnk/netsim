@@ -59,6 +59,8 @@ int main(int argc, char* argv[])
      "discretized time step")    
     ("output-file,o", po::value<std::string>(),
      "output file")    
+    ("init,i",
+     "produce initial conditions file")    
     ("errors,e",
      "include errors in output file")    
     ("verbose,v",
@@ -251,24 +253,26 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  // write file with averaged initial conditions
-  if (verbose) {
-    std::cout << "Opening " << outputBase << ".init to write initial conditions"
-              << std::endl;
-  }
-  ofs.open((outputBase+".init").c_str(), std::ios::out);
-  if (ofs.is_open()) {
-    std::vector<float> firstLine = (*values.begin());
-    for (std::vector<float>::iterator it = firstLine.begin();
-         it != firstLine.end(); it++) {
-      ofs << (*it)/nFiles << std::endl;
+  if (vm.count("init")) {
+    // write file with averaged initial conditions
+    if (verbose) {
+      std::cout << "Opening " << outputBase << ".init to write initial conditions"
+                << std::endl;
     }
-    ofs << std::endl;
-    ofs.close();
-  } else {
-    std::cerr << "Error writing to " << outputBase << ".init" << std::endl;
-    return 1;
+    ofs.open((outputBase+".init").c_str(), std::ios::out);
+    if (ofs.is_open()) {
+      std::vector<float> firstLine = (*values.begin());
+      for (std::vector<float>::iterator it = firstLine.begin();
+           it != firstLine.end(); it++) {
+        ofs << (*it)/nFiles << std::endl;
+      }
+      ofs << std::endl;
+      ofs.close();
+    } else {
+      std::cerr << "Error writing to " << outputBase << ".init" << std::endl;
+      return 1;
+    }
   }
-
+  
   return 0;
 }
