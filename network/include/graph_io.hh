@@ -656,7 +656,7 @@ namespace boost {
       for (unsigned int i = 0; i < colourCode.size(); ++i) {
         // if we have a light colour, shade by detailed state
         if (colourCode[i] == 1.) {
-          colourCode[i] -= (1 - g[*vi].state.detail)*0.7;
+          colourCode[i] -= (1 - g[*vi].state.detail)*0.8;
         }
       }
       lattice_image.plot(x,y,colourCode[0], colourCode[1], colourCode[2]);
