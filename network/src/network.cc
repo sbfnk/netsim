@@ -1151,8 +1151,8 @@ int main(int argc, char* argv[])
   // Write graph files
   /******************************************************************/
   std::string baseFileName;
-  if (vm.count("file")) {
-    baseFileName = vm["file"].as<std::string>();
+  if (vm.count("output-file")) {
+    baseFileName = vm["output-file"].as<std::string>();
     std::string ext = ".graph";
     
     if (vm.count("split")) {
