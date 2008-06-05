@@ -585,6 +585,15 @@ int main(int argc, char* argv[])
       } else {
         mkdir(outputDir.c_str(), 0755);
       }
+      std::ofstream cmdLineFile;
+      std::string cmdLineFileName = outputDir + "/cmd_line.txt";
+      cmdLineFile.open(cmdLineFileName.c_str(), std::ios::out);
+      cmdLineFile << argv[0] << " ";
+      for (int i = 1; i < argc; i++) {
+          cmdLineFile << argv[i] << " ";
+      }
+      cmdLineFile << std::endl;
+      cmdLineFile.close();
     }
   }
 
