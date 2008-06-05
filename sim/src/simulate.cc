@@ -350,7 +350,7 @@ int main(int argc, char* argv[])
       s.str("");
       s << edgeTypes[i].getText() << "-file";
       if (vm.count(s.str())) {
-        fileNames[i] += vm[s.str()].as<std::string>();
+        fileNames[i] += vm[s.str()].as<std::string>() + ".graph";
       } else {
         fileNames[i] = "";
       }
