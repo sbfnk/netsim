@@ -175,7 +175,7 @@ unsigned int Models::DimInfoSIRS::getEdgeEvents(eventList& events,
            rateSum += infection.rate;
            if (verbose >= 2) {
              std::cout << "Adding infection event with rate "
-                       << infection.rate << std::endl;
+                       << infection.rate/1e+4 << std::endl;
            }
          }
       }
