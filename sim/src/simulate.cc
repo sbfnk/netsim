@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
 
   bool pairs = false;
   bool triples = false;
-  bool effective = false;
+  bool effective = true;
 
   bool doIO = false;
 
