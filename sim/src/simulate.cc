@@ -70,6 +70,7 @@ int main(int argc, char* argv[])
   unsigned int stopInfections;
   unsigned int stopInformations;
   unsigned int infLimit;
+  bool nostop = false;
 
   double outputData = 0.;
   double outputGraphviz = -1.;
@@ -139,6 +140,8 @@ int main(int argc, char* argv[])
      "number of infections after which to stop (if >0)")
     ("pmax", po::value<unsigned int>()->default_value(0),
      "number of informations after which to stop (if >0)")
+    ("nostop", 
+     "do not stop when outbreak has ended")
     ("limit", po::value<unsigned int>()->default_value(0),
      "limit to the number of infectives (stop if reached)")
     ("data,d", po::value<double>()->default_value(outputData),
@@ -231,8 +234,8 @@ int main(int argc, char* argv[])
      "count pairs")
     ("triples",
      "count triples")
-    ("effective",
-     "count effective singles (weighted by detailed state)")
+    ("noeffective",
+     "do not count effective singles (weighted by detailed state)")
     ;
   
   po::options_description ic_options
@@ -243,6 +246,8 @@ int main(int argc, char* argv[])
      "graphviz file to get initial conditions from")
     ("same-ic", 
      "start with the same initial conditions for each run")
+    ("detail", po::value<double>()->default_value(0.),
+     "base detail state of individuals (information quality)")
     ("base,b", po::value<std::string>()->default_value
      (model->getVertexStates().begin()->getText()),
      "base state of individuals")
@@ -405,8 +410,8 @@ int main(int argc, char* argv[])
     triples = true;
   }
   // consider effective singles
-  if (vm.count("effective")) {
-    effective = true;
+  if (vm.count("noeffective")) {
+    effective = false;
   }
   // print stats at end of run
   if (vm.count("print-stats")) {
@@ -487,6 +492,14 @@ int main(int argc, char* argv[])
     baseState = 0;
   }
 
+  double baseDetail = model->getInitDetail(baseState); 
+  if (vm.count("detail")) {
+    if ((vm["detail"].as<double>() >= 0.) &&
+       (vm["detail"].as<double>() <= 1.)) {
+      baseDetail = vm["detail"].as<double>();
+    }
+  }
+
   if (vm.count("init")) { // read initial state from file
 
     std::string icFileName = vm["init"].as<std::string>();
@@ -554,6 +567,9 @@ int main(int argc, char* argv[])
     stopInfections = vm["imax"].as<unsigned int>();
     stopInformations = vm["pmax"].as<unsigned int>();
     infLimit = vm["limit"].as<unsigned int>();
+    if (vm.count("nostop")) {
+      nostop = true;
+    }
         
     if (doIO) {
       // remove existing data
@@ -616,7 +632,7 @@ int main(int argc, char* argv[])
       boost::graph_traits<multitype_graph>::vertex_iterator vi, vi_end;
       for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
         graph[*vi].state =
-          State(baseState, model->getInitDetail(baseState));
+          State(baseState, baseDetail);
       }
 
       // sum over vector init to make sure the sum is less than N
@@ -737,7 +753,7 @@ int main(int argc, char* argv[])
 
     // print time
     if (verbose)
-      std::cout << "time elapsed: " << sim->getTime() << std::endl;
+      std::cout << std::endl << "time elapsed: " << sim->getTime() << std::endl;
 
     // GraphViz output
     if (outputGraphviz >= 0) {
@@ -783,7 +799,9 @@ int main(int argc, char* argv[])
     double nextCorrStep = outputCorr;
     double nextRiskStep = outputRiskInfo;
 
-    unsigned int steps = 0;
+    double outputStep = 1;
+    double nextOutputStep = outputStep;
+
     unsigned int graphOutputNum = 1;
     unsigned int distOutputNum = 1;
     unsigned int corrOutputNum = 1;
@@ -792,7 +810,7 @@ int main(int argc, char* argv[])
     while ((stopTime == 0 || sim->getTime() < stopTime) &&
            (stopInfections == 0 || (sim->getNumInfections() < stopInfections &&
                                     sim->getNumInfections()+1 > sim->getNumRecoveries())) &&
-           (sim->getNumInfections()+1 > sim->getNumRecoveries()) &&
+           (nostop || sim->getNumInfections()+1 > sim->getNumRecoveries()) &&
            (stopInformations == 0 || (sim->getNumInformations() < stopInformations && 
                                       sim->getNumInformations()+1 > sim->getNumForgettings())) &&
            (infLimit ==0 || count_vertices(graph, model->getVertexStates().size())[1] < infLimit) &&
@@ -802,8 +820,10 @@ int main(int argc, char* argv[])
         print_sim_status(graph, *model, pairs, triples);
       }
 
-      if (verbose && steps % 100 == 0) {
-        std::cout << "time elapsed: " << sim->getTime() << std::endl;
+      if (verbose && sim->getTime() > nextOutputStep) {
+        std::cout << "time elapsed: " << nextOutputStep << std::endl;
+        print_sim_status(graph, *model, pairs, triples);
+        nextOutputStep += outputStep;
       }
 
       if (outputFile && sim->getTime() > nextDataStep) {
@@ -857,7 +877,6 @@ int main(int argc, char* argv[])
         } while (sim->getTime() > nextRiskStep);
         ++riskOutputNum;
       }
-      ++steps;
       //      std::cout << "1:" << (stopTime == 0) << " "
       //		<< "2:" << (sim->getTime() < stopTime) << " "
       //		<< "3:" << (stopInfections == 0) << " "
