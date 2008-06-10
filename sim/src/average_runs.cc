@@ -228,14 +228,14 @@ int main(int argc, char* argv[])
       }
       firstFile = false;
       ifs.close();
+      if (verbose) {
+        std::cout << "Stop time: " << stopTime << std::endl;;
+      }          
     } else {
       std::cerr << "Error reading " << *it << "." << std::endl;
       --nFiles;
     }
   }
-  if (verbose) {
-    std::cout << "Stop time: " << stopTime << std::endl;;
-  }          
   float time = 0.;
   if (verbose) {
     std::cout << "Opening output file " << outputBase << ".sim.dat" 
@@ -248,7 +248,7 @@ int main(int argc, char* argv[])
   }          
   if (ofs.is_open()) {
     for (unsigned int i = 0; i < values.size(); i++, time+=timeStep) {
-      if (no_files[i] > nFiles/2) {
+//      if (no_files[i] > nFiles/2) {
         ofs << time;
         for (unsigned int j = 0; j < values[i].size() ; j++) {
           ofs << " " << values[i][j]/no_files[i];
@@ -260,7 +260,7 @@ int main(int argc, char* argv[])
           }
          }
         ofs << std::endl;
-      }
+//      }
     }
     ofs.close();
   } else {
