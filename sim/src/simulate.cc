@@ -70,6 +70,7 @@ int main(int argc, char* argv[])
   unsigned int stopInfections;
   unsigned int stopInformations;
   unsigned int infLimit;
+  bool belowInfLimit = true;
   bool nostop = false;
 
   double outputData = 0.;
@@ -170,7 +171,7 @@ int main(int argc, char* argv[])
               allow_unregistered().run(), vm);
   }
   catch (std::exception& e) {
-    std::cerr << "Error parsing command line parameters: " << e.what()
+    std::cerr << "ERROR parsing command line parameters: " << e.what()
               << std::endl;
     return 1;
   }
@@ -200,11 +201,11 @@ int main(int argc, char* argv[])
     } else if (modelString == "SingleSIRS") {
       model = new Models::SingleSIRS(verbose); 
     } else {
-      std::cerr << "Error: unknown model: " << modelString << std::endl;
+      std::cerr << "ERROR: unknown model: " << modelString << std::endl;
       return 1;
     }
   } else {
-    std::cerr << "Error: no model specified" << std::endl;
+    std::cerr << "ERROR: no model specified" << std::endl;
     return 1;
   }
 
@@ -279,7 +280,7 @@ int main(int argc, char* argv[])
       po::collect_unrecognized(parsed.options, po::exclude_positional);
   }
   catch (std::exception& e) {
-    std::cerr << "Error parsing command line parameters: " << e.what()
+    std::cerr << "ERROR parsing command line parameters: " << e.what()
               << std::endl;
     return 1;
   }
@@ -301,7 +302,7 @@ int main(int argc, char* argv[])
       po::store(po::parse_config_file(ifs, all_options), vm);
     }
     catch (std::exception& e) {
-      std::cerr << "Error parsing model file: " << e.what() << std::endl;
+      std::cerr << "ERROR parsing model file: " << e.what() << std::endl;
       return 1;
     }
   }
@@ -551,11 +552,11 @@ int main(int argc, char* argv[])
         sim = new Simulators::ChrisSimulator<boost::mt19937, multitype_graph>
           (gen, graph, *model, verbose);
       } else {
-        std::cerr << "Error: unknown simulator: " << simType << std::endl;
+        std::cerr << "ERROR: unknown simulator: " << simType << std::endl;
         return 1;
       }
     } else {
-      std::cerr << "Error: no simulator specified" << std::endl;
+      std::cerr << "ERROR: no simulator specified" << std::endl;
       return 1;
     }
 
@@ -567,6 +568,10 @@ int main(int argc, char* argv[])
     stopInfections = vm["imax"].as<unsigned int>();
     stopInformations = vm["pmax"].as<unsigned int>();
     infLimit = vm["limit"].as<unsigned int>();
+    if (infLimit > 0 && outputData == 0) {
+      std::cerr << "WARNING: infLimit ignored because outputData == 0" << std::endl;
+      infLimit = 0;
+    }
     if (vm.count("nostop")) {
       nostop = true;
     }
@@ -794,8 +799,9 @@ int main(int argc, char* argv[])
     // prints data to outputFile
     std::string lastLine = "";
     if (outputFile) {
-      lastLine = write_sim_data(graph, *model, sim->getTime(), *outputFile,
-                                pairs, triples, effective);
+      belowInfLimit =
+        write_sim_data(graph, *model, sim->getTime(), *outputFile,
+                       lastLine, infLimit, pairs, triples, effective);
     }
     if (verbose) print_sim_status(graph, *model, pairs, triples);
 
@@ -822,7 +828,7 @@ int main(int argc, char* argv[])
            (nostop || sim->getNumInfections()+1 > sim->getNumRecoveries()) &&
            (stopInformations == 0 || (sim->getNumInformations() < stopInformations && 
                                       sim->getNumInformations()+1 > sim->getNumForgettings())) &&
-           (infLimit ==0 || count_vertices(graph, model->getVertexStates().size())[1] < infLimit) &&
+            belowInfLimit &&
             sim->updateState()) {
       
       if (verbose >= 2) {
@@ -836,9 +842,9 @@ int main(int argc, char* argv[])
       }
 
       if (outputFile && sim->getTime() > nextDataStep) {
-        lastLine =
-          write_sim_data(graph, *model, sim->getTime(), *outputFile, pairs,
-                         triples, effective);
+        belowInfLimit =
+          write_sim_data(graph, *model, sim->getTime(), *outputFile,
+                         lastLine, infLimit, pairs, triples, effective);
         if (outputData > 0) {
           do {
             nextDataStep += outputData;
@@ -918,9 +924,9 @@ int main(int argc, char* argv[])
 
     if (outputFile) {
       if (sim->getTime() < stopTime) {
-        lastLine =
-          write_sim_data(graph, *model, sim->getTime(), *outputFile, pairs,
-                         triples, effective);
+        belowInfLimit =
+          write_sim_data(graph, *model, sim->getTime(), *outputFile,
+                         lastLine, infLimit, pairs, triples, effective);
       }
       *outputFile << stopTime << '\t' << lastLine;
       outputFile->close();
