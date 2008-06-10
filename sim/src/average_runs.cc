@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
   float stopTime = 0.;
 
   bool do_errors = false;
-  bool verbose = false;
+  unsigned int verbose = 0;
   
   std::vector<std::string> inputFiles;
   std::string outputBase;
@@ -65,6 +65,8 @@ int main(int argc, char* argv[])
      "include errors in output file")    
     ("verbose,v",
      "produce verbose output")    
+    ("very-verbose,V",
+     "produce very verbose output")    
     ;
     
   po::options_description hidden_options;
@@ -113,7 +115,11 @@ int main(int argc, char* argv[])
   }
 
   if(vm.count("verbose")) {
-    verbose = true;
+    verbose = 1;
+  }
+
+  if(vm.count("very-verbose")) {
+    verbose = 2;
   }
 
   std::vector< std::vector<float> > values;
@@ -184,6 +190,11 @@ int main(int argc, char* argv[])
           // need to write data?
           while ((currentTime) > (currentStep*timeStep)) {
 
+            if (verbose >= 2) {
+              std::cout << "processing data: current " << currentTime
+                        << " time step " << currentStep << std::endl;
+            }
+
             if ((firstFile) || (stopTime < currentStep*timeStep)) {
               values.push_back(std::vector<float>(previous_line_contents.begin()+1,
                                                   previous_line_contents.end()));
@@ -201,6 +212,10 @@ int main(int argc, char* argv[])
                 }
               }
               no_files[currentStep]++;
+              if (verbose >= 2) {
+                std::cout << "processing data: current " << currentTime
+                          << " time step " << currentStep;
+              }
             }
             ++currentStep;
           }
