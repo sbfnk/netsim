@@ -212,10 +212,13 @@ int main(int argc, char* argv[])
                 }
               }
               no_files[currentStep]++;
-              if (verbose >= 2) {
-                std::cout << "processing data: current " << currentTime
-                          << " time step " << currentStep;
+            }
+            if (verbose >= 2) {
+              std::cout << currentStep*timeStep;
+              for (unsigned int j = 1; j < nColumns ; j++) {
+                std::cout << " " << values[currentStep][j-1];
               }
+              std::cout << " files: " << no_files[currentStep] << std::endl;
             }
             ++currentStep;
           }
@@ -249,6 +252,10 @@ int main(int argc, char* argv[])
   if (ofs.is_open()) {
     for (unsigned int i = 0; i < values.size(); i++, time+=timeStep) {
 //      if (no_files[i] > nFiles/2) {
+        if (verbose >=2 ) {
+	  std::cout << "Writing timeStep " << time << ", files: " << no_files[i]
+	  	    << std::endl;
+	}
         ofs << time;
         for (unsigned int j = 0; j < values[i].size() ; j++) {
           ofs << " " << values[i][j]/no_files[i];
