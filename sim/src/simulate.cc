@@ -817,6 +817,8 @@ int main(int argc, char* argv[])
     double outputStep = 1;
     double nextOutputStep = outputStep;
 
+    double lastDataStep = 0;
+
     unsigned int graphOutputNum = 1;
     unsigned int distOutputNum = 1;
     unsigned int corrOutputNum = 1;
@@ -845,6 +847,7 @@ int main(int argc, char* argv[])
         belowInfLimit =
           write_sim_data(graph, *model, sim->getTime(), *outputFile,
                          lastLine, infLimit, pairs, triples, effective);
+	lastDataStep = sim->getTime();
         if (outputData > 0) {
           do {
             nextDataStep += outputData;
@@ -922,19 +925,18 @@ int main(int argc, char* argv[])
                                            corrOutputNum));
     }
 
+    double endTime = (stopTime == 0) ? sim->getTime() : stopTime;
     if (outputFile) {
-      if (sim->getTime() < stopTime) {
+      if (lastDataStep < endTime) {
         belowInfLimit =
           write_sim_data(graph, *model, sim->getTime(), *outputFile,
                          lastLine, infLimit, pairs, triples, effective);
       }
-      *outputFile << stopTime << '\t' << lastLine;
       outputFile->close();
     }
 
     if (outputData > 0) {
 
-      double endTime = (stopTime == 0) ? sim->getTime() : stopTime;
       if (endTime > 0) {
         std::ofstream gpFile;
         std::string gpFileName = runDataDir+"/"+runStr.str()+".gp";
