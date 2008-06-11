@@ -328,14 +328,16 @@ computation) or not
 \ingroup sim_statistics
 */
 template<typename Graph>
-std::string write_sim_data(const Graph& g, const Model& m,
-                           double t, std::ofstream& ofile,
-                           bool pairs = true, bool triples = true,
-                           bool effective = true)
+bool write_sim_data(const Graph& g, const Model& m,
+                    double t, std::ofstream& ofile,
+		    std::string& lastLine, unsigned int limit,
+                    bool pairs = true, bool triples = true,
+                    bool effective = true)
 {
   unsigned int nVertexStates = m.getVertexStates().size();
   unsigned int nEdgeTypes = m.getEdgeTypes().size();
     
+  bool belowLimit = true;
   std::stringstream line("");
 
   // first in line is current time
@@ -346,6 +348,7 @@ std::string write_sim_data(const Graph& g, const Model& m,
   for (unsigned int i = 0; i < nVertexStates; i++) {
     line << vertexCount[i] << '\t';
   }
+  if (limit > 0 && vertexCount[1] > limit) belowLimit = false;
 
   if (effective) {
     std::vector<double> effVertexCount =
@@ -398,7 +401,9 @@ std::string write_sim_data(const Graph& g, const Model& m,
   line << std::endl;
 
   ofile << line.str();
-  return line.str();
+  lastLine = line.str();
+
+  return belowLimit;
 }
 
 //----------------------------------------------------------
