@@ -59,6 +59,8 @@ int main(int argc, char* argv[])
      "discretized time step")    
     ("output-file,o", po::value<std::string>(),
      "output file")    
+    ("steps-file,s", 
+     "write steps into a file")    
     ("init,i",
      "produce initial conditions file")    
     ("errors,e",
@@ -132,10 +134,15 @@ int main(int argc, char* argv[])
 
   for (std::vector<std::string>::iterator it = inputFiles.begin();
        it != inputFiles.end(); it++) {
+    std::string baseName = it->substr(0,it->rfind(".dat", it->size()));
     if (verbose) {
       std::cout << "Opening " << (*it) << " for reading" << std::endl;
     }
     std::ifstream ifs((*it).c_str());
+    std::ofstream ofs_steps;
+    if ("steps-file" ) {
+      ofs_steps.open((baseName + ".steps").c_str(), std::ios::out);
+    }
 
     if (ifs.is_open()) {
       std::string line;
@@ -220,6 +227,9 @@ int main(int argc, char* argv[])
               }
               std::cout << " files: " << no_files[currentStep] << std::endl;
             }
+            if (ofs_steps.is_open()) {
+              ofs_steps << currentTime << " " << currentStep << std::endl;
+            }
             ++currentStep;
           }
           previous_line_contents = std::vector<float>(line_contents);
@@ -230,6 +240,9 @@ int main(int argc, char* argv[])
         }
       }
       firstFile = false;
+      if (ofs_steps.is_open()) {
+        ofs_steps.close();
+      }
       ifs.close();
       if (verbose) {
         std::cout << "Stop time: " << stopTime << std::endl;;
