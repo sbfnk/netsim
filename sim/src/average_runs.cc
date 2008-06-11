@@ -228,7 +228,7 @@ int main(int argc, char* argv[])
               std::cout << " files: " << no_files[currentStep] << std::endl;
             }
             if (ofs_steps.is_open()) {
-              ofs_steps << currentTime << " " << currentStep << std::endl;
+              ofs_steps << previous_line_contents[0] << " " << currentStep << std::endl;
             }
             ++currentStep;
           }
