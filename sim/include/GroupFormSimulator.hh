@@ -161,10 +161,11 @@ namespace Simulators {
 
       // remove randActive from active nodes
       active.erase(active.begin() + randActive);
+
+      // update time if group formation phase is finished
+      if (active.size() == 0) updateTime(1.);
       
     } else {
-      updateTime(1.);
-      
       // network update stage
       std::cout << "Network update stage, time=" << getTime() << std::endl;
 
