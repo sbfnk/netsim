@@ -9,7 +9,7 @@ fi
 
 images_dir=$DATADIR/$1/images
 run_no=$2
-run_dir=`find $DATADIR/$1/images -type d -name run\* | grep -E "run0*$run_no"`
+run_dir=`find $DATADIR/$1 -type d -name run\* | grep -E "run0*$run_no"`/images
 
 if [ -z "$run_dir" ]; then
   echo "ERROR: run $run_no does not have directory in $images_dir"
