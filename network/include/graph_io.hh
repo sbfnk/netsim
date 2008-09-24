@@ -149,7 +149,8 @@ namespace boost {
     {
       out << "[";
       if (saveType) out << "type=" << edge[e] << " ";
-      out << "len=0.1 color=white" << "]";
+//      out << "len=0.1 color=white" << "]";
+      out << "color=white" << "]";
     }
 
   private:
@@ -235,14 +236,16 @@ namespace boost {
     //! Operator for the graph entry in graphviz files
     void operator()(std::ostream& out) const {
       // graph options
-      out << "graph [overlap=scalexy bgcolor=black outputorder=edgesfirst";
+//      out << "graph [overlap=scalexy bgcolor=black outputorder=edgesfirst";
+      out << "graph [overlap=false bgcolor=black outputorder=edgesfirst";
       // graph title
       if (title.size() > 0) out << " label=\"" << title << "\" labelloc=\"t\"";
       // more graph options
       out << " fontcolor=white normalize=true]" << std::endl;
       // default node options
-      out << "node [shape=circle style=filled width=0.2 height=0.2 "
-          << "fixedsize=true]" << std::endl;
+//      out << "node [shape=circle style=filled width=0.2 height=0.2 "
+//          << "fixedsize=true]" << std::endl;
+      out << "node [shape=circle style=filled]" << std::endl;
     }
 
     std::string title; //!< The title of the graph
