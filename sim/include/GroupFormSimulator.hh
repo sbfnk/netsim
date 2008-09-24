@@ -145,7 +145,7 @@ namespace Simulators {
           std::cout << "Invitation to " << target(*oi, graph) << " ("
                     << graph[active[randActive]].state.detail << ","
                     << graph[target(*oi, graph)].state.detail << ")";   
-          if (randAccept < (1-alpha*fabs(graph[active[randActive]].state.detail -
+          if (randAccept < alpha*(1-fabs(graph[active[randActive]].state.detail -
                                          graph[target(*oi, graph)].state.detail))) {
             // accept invitation
             graph[target(*oi, graph)].state.base =
