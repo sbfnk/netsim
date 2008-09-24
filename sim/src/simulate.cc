@@ -29,6 +29,7 @@
 
 #include "sim_statistics.hh"
 
+#include "GroupFormSimulator.hh"
 #include "GillespieSimulator.hh"
 #include "ChrisSimulator.hh"
 #include "Vertex.hh"
@@ -132,7 +133,7 @@ int main(int argc, char* argv[])
 
   sim_options.add_options()
     ("sim", po::value<std::string>()->default_value("Gillespie"),
-     "simulator to use (Gillespie, Chris)")
+     "simulator to use (Gillespie, Chris, GroupForm)")
     ("usemodel,m", po::value<std::string>()->default_value("DimInfoSIRS"),
      "model to use (InfoSIRS, DimInfoSIRS, VaccinationSIRS, ProtectiveSIRS, SingleSIRS)")
     ("tmax", po::value<double>()->default_value(stopTime),
@@ -161,6 +162,11 @@ int main(int argc, char* argv[])
      "output directory for graph and data output (as subdir of $DATADIR)")
     ("nsims", po::value<unsigned int>()->default_value(1),
      "number of simulation runs to produce (on a given graph)")
+    // to change
+    ("groups", po::value<unsigned int>()->default_value(1),
+     "number of seed groups")
+    ("alpha", po::value<double>()->default_value(0.),
+     "alpha")
     ;
   
   po::options_description temp_options;
@@ -551,6 +557,10 @@ int main(int argc, char* argv[])
       } else if (simType == "Chris") {
         sim = new Simulators::ChrisSimulator<boost::mt19937, multitype_graph>
           (gen, graph, *model, verbose);
+      } else if (simType == "GroupForm") {
+        sim = new Simulators::GroupFormSimulator<boost::mt19937, multitype_graph>
+          (gen, graph, *model, vm["groups"].as<unsigned int>(),
+           vm["alpha"].as<double>(), verbose);
       } else {
         std::cerr << "ERROR: unknown simulator: " << simType << std::endl;
         return 1;
