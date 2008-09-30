@@ -79,6 +79,7 @@ int main(int argc, char* argv[])
   double outputDist = -1.;
   double outputCorr = -1.;
   double outputRiskInfo = -1.;
+  double outputComponent = -1.;
 
   char* dataDirEnv = getenv("DATADIR");
   std::string outputDir = "";
@@ -156,6 +157,8 @@ int main(int argc, char* argv[])
      "create correlation between information and infection in the corr directory at arg timesteps")
     ("risk-info,r",po::value<double>()->default_value(outputRiskInfo),
      "create informedness of population at risk in risk directory at arg timesteps")
+    ("component-dist,t",po::value<double>()->default_value(outputComponent),
+     "write component distribution in comp directory at arg timesteps")
     ("lattice,l", 
      "paint output as pixelised lattices")
     ("output-dir,o",po::value<std::string>(),
@@ -461,8 +464,13 @@ int main(int argc, char* argv[])
     outputRiskInfo = vm["risk-info"].as<double>();
   }
 
+  // timesteps after which to write component distribution
+  if (vm.count("component-dist")) {
+    outputComponent = vm["component-dist"].as<double>();
+  }
+
   doIO = (outputData > 0 || outputGraphviz >= 0 || outputDist >= 0 || 
-  	  outputCorr >= 0 || outputRiskInfo > 0);
+  	  outputCorr >= 0 || outputRiskInfo >= 0 || outputComponent >=0);
 
   // paint images as lattice
   if (vm.count("lattice")) {
@@ -716,6 +724,7 @@ int main(int argc, char* argv[])
     std::string runDistDir = runOutputDir + "/dist";
     std::string runCorrDir = runOutputDir + "/corr";
     std::string runRiskDir = runOutputDir + "/risk";
+    std::string runCompDir = runOutputDir + "/comp";
 
     /******************************************************************/
     // write model parameters
@@ -803,6 +812,12 @@ int main(int argc, char* argv[])
       mkdir(runRiskDir.c_str(), 0755);
       write_risk_info(graph, (runRiskDir + "/risk000000"));
     }
+    // Information of component distribution output
+    if (outputComponent >= 0) {
+      // create distribution directory
+      mkdir(runCompDir.c_str(), 0755);
+      write_component_dist(graph, (runCompDir + "/comp000000"));
+    }
 
 
 
@@ -823,6 +838,7 @@ int main(int argc, char* argv[])
     double nextDistStep = outputDist;
     double nextCorrStep = outputCorr;
     double nextRiskStep = outputRiskInfo;
+    double nextCompStep = outputComponent;
 
     double outputStep = 1;
     double nextOutputStep = outputStep;
@@ -833,6 +849,7 @@ int main(int argc, char* argv[])
     unsigned int distOutputNum = 1;
     unsigned int corrOutputNum = 1;
     unsigned int riskOutputNum = 1;
+    unsigned int compOutputNum = 1;
 
     while ((stopTime == 0 || sim->getTime() < stopTime) &&
            (stopInfections == 0 || (sim->getNumInfections() < stopInfections &&
@@ -904,6 +921,15 @@ int main(int argc, char* argv[])
           nextRiskStep += outputRiskInfo;
         } while (sim->getTime() > nextRiskStep);
         ++riskOutputNum;
+      }
+      if ((outputComponent > 0) && (sim->getTime() > nextCompStep)) {
+        write_component_dist(graph, generateFileName((runCompDir+"/comp"),
+                                                     compOutputNum));
+
+        do {
+          nextCompStep += outputComponent;
+        } while (sim->getTime() > nextCompStep);
+        ++compOutputNum;
       }
       //      std::cout << "1:" << (stopTime == 0) << " "
       //		<< "2:" << (sim->getTime() < stopTime) << " "
