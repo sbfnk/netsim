@@ -70,9 +70,12 @@ int main(int argc, char* argv[])
   double stopTime = 0;
   unsigned int stopInfections;
   unsigned int stopInformations;
+  unsigned int stopComponent;
   unsigned int infLimit;
   bool belowInfLimit = true;
   bool nostop = false;
+
+  unsigned int largest_component = 0;
 
   double outputData = 0.;
   double outputGraphviz = -1.;
@@ -147,6 +150,8 @@ int main(int argc, char* argv[])
      "do not stop when outbreak has ended")
     ("limit", po::value<unsigned int>()->default_value(0),
      "limit to the number of infectives (stop if reached)")
+    ("cmin", po::value<unsigned int>()->default_value(0),
+     "limit to the size of the largest component (stop if drops to that value")
     ("data,d", po::value<double>()->default_value(outputData),
      "write output data at arg timesteps (0 for no data output)")
     ("graphviz,g", po::value<double>()->default_value(outputGraphviz),
@@ -214,6 +219,7 @@ int main(int argc, char* argv[])
       return 1;
     }
   } else {
+    
     std::cerr << "ERROR: no model specified" << std::endl;
     return 1;
   }
@@ -585,6 +591,8 @@ int main(int argc, char* argv[])
     stopTime = vm["tmax"].as<double>();
     stopInfections = vm["imax"].as<unsigned int>();
     stopInformations = vm["pmax"].as<unsigned int>();
+    stopComponent = vm["cmin"].as<unsigned int>();
+
     infLimit = vm["limit"].as<unsigned int>();
     if (infLimit > 0 && outputData == 0) {
       std::cerr << "WARNING: infLimit ignored because outputData == 0" << std::endl;
@@ -816,7 +824,9 @@ int main(int argc, char* argv[])
     if (outputComponent >= 0) {
       // create distribution directory
       mkdir(runCompDir.c_str(), 0755);
-      write_component_dist(graph, (runCompDir + "/comp000000"));
+      largest_component = 
+	write_component_dist(graph, (runCompDir + "/comp000000"));
+      std::cout << "largest component " << largest_component << std::endl;
     }
 
 
@@ -857,6 +867,7 @@ int main(int argc, char* argv[])
            (nostop || sim->getNumInfections()+1 > sim->getNumRecoveries()) &&
            (stopInformations == 0 || (sim->getNumInformations() < stopInformations && 
                                       sim->getNumInformations()+1 > sim->getNumForgettings())) &&
+           (largest_component > stopComponent) &&
             belowInfLimit &&
             sim->updateState()) {
       
@@ -923,8 +934,10 @@ int main(int argc, char* argv[])
         ++riskOutputNum;
       }
       if ((outputComponent > 0) && (sim->getTime() > nextCompStep)) {
-        write_component_dist(graph, generateFileName((runCompDir+"/comp"),
-                                                     compOutputNum));
+        largest_component = 
+	  write_component_dist(graph, generateFileName((runCompDir+"/comp"),
+                                                        compOutputNum));
+        std::cout << "largest component " << largest_component << std::endl;
 
         do {
           nextCompStep += outputComponent;
