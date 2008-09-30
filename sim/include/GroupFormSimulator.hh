@@ -54,7 +54,7 @@ namespace Simulators {
                        unsigned int numGroups = 1, double alpha=0.,
                        unsigned int v = 0) :
       Simulator(m, v), randGen(r, boost::uniform_real<> (0,1)), graph(g),
-      groups(numGroups), alpha(alpha), active() {;}
+      groups(numGroups), alpha(alpha), active(), verbose(v) {;}
     
   
     ~GroupFormSimulator() {;}
@@ -72,6 +72,8 @@ namespace Simulators {
     unsigned int groups; //!< Number of seed groups
     double alpha;
     std::vector<vertex_descriptor> active; //!< Active nodes
+
+    unsigned int verbose;
   
   };
 
@@ -90,8 +92,10 @@ namespace Simulators {
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
       graph[*vi].state = State(0, (randGen)());
-      std::cout << "Associating trait " << graph[*vi].state.detail
-                << " with vertex " << *vi << std::endl;
+      if (verbose >=1) {
+        std::cout << "Associating trait " << graph[*vi].state.detail
+                  << " with vertex " << *vi << std::endl;
+      }
     }
 
     // seed groups
@@ -100,7 +104,9 @@ namespace Simulators {
       if (graph[v].state.base == 0) {
         graph[v].state.base = i;
         active.push_back(v);
-        std::cout << "Seeding group " << i << " with vertex " << v << std::endl;
+        if (verbose >=1) {
+          std::cout << "Seeding group " << i << " with vertex " << v << std::endl;
+        }
       } else {
         --i;
       }
@@ -120,20 +126,25 @@ namespace Simulators {
     
     if (active.size() > 0) {
 
-      std::cout << "Active nodes: " << std::endl;
-      for (unsigned int i = 0; i < active.size(); ++i) {
-        std::cout << active[i] << std::endl;
+      if (verbose >=2) {
+        std::cout << "Active nodes: " << std::endl;
+        for (unsigned int i = 0; i < active.size(); ++i) {
+          std::cout << active[i] << std::endl;
+        }
       }
 
       // group formation stage
-      std::cout << "Group formation" << std::endl;
+      if (verbose >=1) {
+        std::cout << "Group formation" << std::endl;
+      }
 
       // choose an active node at random
       unsigned int randActive =
         static_cast<unsigned int>((randGen)() * active.size());
-      std::cout << "Active node " << active[randActive]
-                << " is sending out invitations" << std::endl;
-      
+      if (verbose >=2) {
+        std::cout << "Active node " << active[randActive]
+                  << " is sending out invitations" << std::endl;
+      }
     
       // invite all neighbours to group
       out_edge_iterator oi, oi_end;;
@@ -142,9 +153,11 @@ namespace Simulators {
            oi != oi_end; ++oi) {
         if (graph[target(*oi, graph)].state.base == 0) {
           double randAccept = randGen();
-          std::cout << "Invitation to " << target(*oi, graph) << " ("
-                    << graph[active[randActive]].state.detail << ","
-                    << graph[target(*oi, graph)].state.detail << ")";   
+          if (verbose >=2) {
+            std::cout << "Invitation to " << target(*oi, graph) << " ("
+                      << graph[active[randActive]].state.detail << ","
+                      << graph[target(*oi, graph)].state.detail << ")";
+          }
           if (randAccept < alpha*(1-fabs(graph[active[randActive]].state.detail -
                                          graph[target(*oi, graph)].state.detail))) {
             // accept invitation
@@ -152,9 +165,13 @@ namespace Simulators {
               graph[active[randActive]].state.base;
             // add to active nodes
             active.push_back(target(*oi, graph));
-            std::cout << " accepted." << std::endl;
+            if (verbose >=2) {
+              std::cout << " accepted." << std::endl;
+            }
           } else {
-            std::cout << " refused." << std::endl;
+            if (verbose >=2) {
+              std::cout << " refused." << std::endl;
+            }
           }
         }
       }
@@ -167,13 +184,17 @@ namespace Simulators {
       
     } else {
       // network update stage
-      std::cout << "Network update stage, time=" << getTime() << std::endl;
+      if (verbose >=1) {
+        std::cout << "Network update stage, time=" << getTime() << std::endl;
+      }
 
       // go through members group by group
       std::vector<vertex_descriptor> group;
       
       for (unsigned int i = 1; i <= groups; ++i) {
-        std::cout << "Group " << i << std::endl;
+        if (verbose >=2) {
+          std::cout << "Group " << i << std::endl;
+        }
         group.clear();
         
         vertex_iterator vi, vi_end;
@@ -183,7 +204,9 @@ namespace Simulators {
 
         // loop over all member of group and update ties
         for (unsigned int i = 0; i < group.size(); ++i) {
-          std::cout << "Group member " << i << ": " << group[i] << std::endl;
+          if (verbose >=2) {
+            std::cout << "Group member " << i << ": " << group[i] << std::endl;
+          }
           
           out_edge_iterator oi, oi_end;;
 
@@ -219,13 +242,17 @@ namespace Simulators {
           }
 
           if (lowest_distance < 1 && biggest_distance > 0) {
-            std::cout << "removing link to " << target(weakest_link, graph)
-                      << std::endl;
+            if (verbose >=2) {
+              std::cout << "removing link to " << target(weakest_link, graph)
+                        << std::endl;
+            }
             // remove weakest link
             boost::remove_edge(weakest_link, graph);
             // link to group node
-            std::cout << "adding link to " << similar_neighbour
-                      << std::endl;
+            if (verbose >=2) {
+              std::cout << "adding link to " << similar_neighbour
+                        << std::endl;
+            }
             boost::add_edge(group[i], similar_neighbour, graph);
           }
         }
@@ -240,7 +267,9 @@ namespace Simulators {
         if (graph[v].state.base == 0) {
           graph[v].state.base = i;
           active.push_back(v);
-          std::cout << "Seeding group " << i << " with vertex " << v << std::endl;
+          if (verbose >=2) {
+            std::cout << "Seeding group " << i << " with vertex " << v << std::endl;
+          }
         } else {
           --i;
         }
@@ -259,32 +288,6 @@ namespace Simulators {
   template <typename RandomGenerator, typename Graph>
   void GroupFormSimulator<RandomGenerator, Graph>::print()
   {
-//     std::cout << std::endl;
-//     // get simulation variable
-//     const Model& model = this->getModel();
-    
-//     std::vector<Tree::Leaf<unsigned int>*>::iterator it;
-//     for (it = tree.getLeaves().begin(); it != tree.getLeaves().end(); it++) {
-//       if ((*it)->getRateSum() > 0) {
-//         std::cout << "Vertex #" << *((*it)->getItem()) << " ["
-//                   << model.getVertexState(graph[*((*it)->getItem())].state.base);
-//         if (graph[*((*it)->getItem())].state.detail > 0) {
-//           std::cout << "," << graph[*((*it)->getItem())].state.detail;
-//         }
-//         std::cout << "]:";
-//         eventList::iterator eit;
-//         for (eit = graph[*((*it)->getItem())].events.begin();
-//              eit != graph[*((*it)->getItem())].events.end(); eit++) {
-//           std::cout << " " << model.getVertexState((*eit).newState.base) << " ("
-//                     << (*eit).rate/1e+4;
-//           if (eit->newState.detail > 0) {
-//             std::cout << "," << eit->newState.detail;
-//           }
-//           std::cout << ")";
-//         }
-//         std::cout << std::endl;
-//       }
-//     }
     std::cout << std::endl;
   }
   
