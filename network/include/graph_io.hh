@@ -729,13 +729,15 @@ namespace boost {
   }
 
   template <typename Graph>
-  void write_component_dist(const Graph& g, std::string fileName)
+  unsigned int write_component_dist(const Graph& g, std::string fileName)
   {
     std::vector<int> component(num_vertices(g));
 
     int num = boost::connected_components(g, &component[0]);
     std::vector<unsigned int> comp_dist(num, 0);
     boost::connected_components(g, &component[0]);
+
+    unsigned int largest_comp = 0;
     
     std::ofstream distFile;
     try {
@@ -746,17 +748,21 @@ namespace boost {
                 << fileName << " for writing the connected component distribution"
                 << std::endl;
       std::cerr << "... Standard exception: " << e.what() << std::endl;      
-      return;
+      return 0;
     }
     
     for (std::vector<int>::iterator it = component.begin();
          it != component.end(); it++) {
-      ++comp_dist[*it];
+      if (++comp_dist[*it] > largest_comp) {
+	++largest_comp;
+      }
     }
     for (std::vector<unsigned int>::iterator it = comp_dist.begin();
          it != comp_dist.end(); it++) {
       distFile << *it << std::endl;
     }
+
+    return largest_comp;
   }
 
 
