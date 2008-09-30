@@ -6,6 +6,7 @@
 #define GRAPH_IO_HH
 
 #include <boost/graph/graphviz.hpp>
+#include <boost/graph/connected_components.hpp>
 
 #include <iostream>
 #include <string>
@@ -726,6 +727,39 @@ namespace boost {
       ++vertex_counter;
     }
   }
+
+  template <typename Graph>
+  void write_component_dist(const Graph& g, std::string fileName)
+  {
+    std::vector<int> component(num_vertices(g));
+
+    int num = boost::connected_components(g, &component[0]);
+    std::vector<unsigned int> comp_dist(num, 0);
+    boost::connected_components(g, &component[0]);
+    
+    std::ofstream distFile;
+    try {
+      distFile.open(fileName.c_str(), std::ios::out);
+    }
+    catch (std::exception &e) {
+      std::cerr << "... unable to open output file " 
+                << fileName << " for writing the connected component distribution"
+                << std::endl;
+      std::cerr << "... Standard exception: " << e.what() << std::endl;      
+      return;
+    }
+    
+    for (std::vector<int>::iterator it = component.begin();
+         it != component.end(); it++) {
+      ++comp_dist[*it];
+    }
+    for (std::vector<unsigned int>::iterator it = comp_dist.begin();
+         it != comp_dist.end(); it++) {
+      distFile << *it << std::endl;
+    }
+  }
+
+
 }
   
 //----------------------------------------------------------
