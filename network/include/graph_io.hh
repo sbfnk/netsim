@@ -70,15 +70,13 @@ namespace boost {
     void operator()(std::ostream& out, const VertexID& v) const
     {
       std::stringstream rgbString;
-      // XXXXXXXXXXXXXXXXX UPDATE XXXXXXXXXXXXXXXXXXXXXXXXXX
-//       double darkening = 1 - (1 - state[v].detail)*4/5;
-      double darkening = 1;
+      double darkening = 1 - (1 - state[v].detail)*4/5;
       int red = static_cast<unsigned int>
-        (model.getVertexStates()[state[v]->getState()].getRGB(0) * darkening);
+        (model.getVertexStates()[state[v].base].getRGB(0) * darkening);
       int green = static_cast<unsigned int>
-        (model.getVertexStates()[state[v]->getState()].getRGB(1) * darkening);
+        (model.getVertexStates()[state[v].base].getRGB(1) * darkening);
       int blue = static_cast<unsigned int>
-        (model.getVertexStates()[state[v]->getState()].getRGB(2) * darkening);
+        (model.getVertexStates()[state[v].base].getRGB(2) * darkening);
       
       rgbString << "#" 
                 << std::hex << std::setw(2) << std::setfill('0') 
@@ -88,8 +86,8 @@ namespace boost {
                 << std::hex << std::setw(2) << std::setfill('0') 
                 << (blue > 0 ? blue : 0);
 
-      if (model.getEdgeTypes()[state[v]->getState()].getDrawOption().find("fillcolor") != std::string::npos) {
-        out << "[" << model.getEdgeTypes()[state[v]->getState()].getDrawOption();
+      if (model.getEdgeTypes()[state[v].base].getDrawOption().find("fillcolor") != std::string::npos) {
+        out << "[" << model.getEdgeTypes()[state[v].base].getDrawOption();
       } else {
         out << "[fillcolor=\"" << rgbString.str() << "\"";
       }
@@ -580,9 +578,8 @@ namespace boost {
             
 	    // add vertices until we have enough to accomodate what is in ic file
             while (src >= num_vertices(g)) add_vertex(g);
-            g[src].state->setState(state);
-	    //XXXXXXXXXXXXXXXXXXXX UPDATE XXXXXXXXXXXXXXXXXXXXXXXX
-//             g[src].state.detail = detail;
+            g[src].state.base = state;
+            g[src].state.detail = detail;
             ++vertexCount;
           }
         }
@@ -659,13 +656,12 @@ namespace boost {
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi) {
       // get colour code corresponding to the state of the current vertex
       std::vector<double> colourCode =
-        getColourCode(m.getVertexStates()[g[*vi].state->getState()].getColour());
+        getColourCode(m.getVertexStates()[g[*vi].state.base].getColour());
       for (unsigned int i = 0; i < colourCode.size(); ++i) {
         // if we have a light colour, shade by detailed state
-	// XXXXXXXXXXXXXXXXXXXXX UPDATE XXXXXXXXXXXXXXXXXXXXXXXXXXXX
-//         if (colourCode[i] == 1.) {
-//           colourCode[i] -= (1 - g[*vi].state.detail)*0.8;
-//         }
+        if (colourCode[i] == 1.) {
+          colourCode[i] -= (1 - g[*vi].state.detail)*0.8;
+        }
       }
       lattice_image.plot(x,y,colourCode[0], colourCode[1], colourCode[2]);
       ++x;
@@ -697,10 +693,9 @@ namespace boost {
     }
     
     vertex_iterator vi, vi_end;
-    // XXXXXXXXXXXXXXXXXXXXXXXXXXXX UPDATE XXXXXXXXXXXXXXXXXXXXXXX
-//     for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi) {
-//       distFile << g[*vi].state.detail << std::endl;
-//     }
+    for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi) {
+      distFile << g[*vi].state.detail << std::endl;
+    }
   }
 
 
@@ -727,9 +722,8 @@ namespace boost {
     
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi) {
-      // XXXXXXXXXXXXXXXXXXXXXX UPDATE XXXXXXXXXXXXXXXXXXXXX
-//       corrFile << g[*vi].state.detail << '\t'
-//                << infected_distances[vertex_counter] << std::endl;
+      corrFile << g[*vi].state.detail << '\t'
+               << infected_distances[vertex_counter] << std::endl;
       ++vertex_counter;
     }
   }
