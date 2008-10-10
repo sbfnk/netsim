@@ -38,7 +38,9 @@ namespace boost {
         u = source(e, g), v = target(e, g);
       put(m_distance, v, get(m_distance, u) + 1);
       
-      if (m.isInfected(g[v].state)) throw (unsigned long)get(m_distance, v);
+      // XXXXXXXXXXXX UPDATE XXXXXXXXXXXXXXXXX
+//       if (m.isInfected(g[v].state)) throw (unsigned long)get(m_distance, v);
+      throw (unsigned long)get(m_distance, v);
     }
     DistanceMap m_distance;
     const Model& m;
