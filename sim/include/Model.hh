@@ -114,10 +114,12 @@ public:
 
   \param[in] v verbose initialiser
   */
-  Model(unsigned int v = 0):
-    model_options(po::options_description("\nModel options:")), verbose(v) {;}
+  Model(std::string name = "", unsigned int v = 0):
+    model_options(po::options_description("\nModel options ("+name+")")),
+    verbose(v)
+  {;}
   //! Destructor.
-  virtual ~Model() {}
+  virtual ~Model() = 0;
   
   virtual void Init(const po::variables_map& vm,
                     std::vector<StatRecorder<Graph>*>& rec);
@@ -125,7 +127,7 @@ public:
   void print(std::ostream &os) const;
   void Print() const;
 
-  virtual Model<Graph>* clone() { return new Model<Graph>(*this); }
+  virtual Model<Graph>* clone() = 0;
 
   /*! \brief Get node events.
 
@@ -319,6 +321,9 @@ void Model<Graph>::Init(const po::variables_map& vm,
     }
   }
 }
+
+template<class Graph>
+inline Model<Graph>::~Model() {;}
 
 //! Print the model parameters to ostream.
 template<class Graph>

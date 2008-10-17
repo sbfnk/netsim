@@ -140,7 +140,7 @@ namespace Models {
 */
 template <class Graph>
 Models::DimInfoSIRS<Graph>::DimInfoSIRS(unsigned int v)
-  : EpiModel<DimInfoState, Graph>(v)
+  : EpiModel<DimInfoState, Graph>("DimInfoSIRS", v)
 {
   
   /*************************************/

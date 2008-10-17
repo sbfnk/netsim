@@ -31,7 +31,7 @@ namespace Models {
   public:
 
     InfoSIRS(unsigned int v = 0);
-    ~InfoSIRS() {;}
+    virtual ~InfoSIRS() {;}
 
     virtual Model<Graph>* clone() { return new InfoSIRS<Graph>(*this); }
 
@@ -93,7 +93,7 @@ namespace Models {
 */
 template <class Graph>
 Models::InfoSIRS<Graph>::InfoSIRS(unsigned int v)
-  : EpiModel<State, Graph>(v)
+  : EpiModel<State, Graph>("InfoSIRS", v)
 {
   /*************************************/
   // define vertex classes

@@ -63,7 +63,7 @@ namespace Models {
 */
 template <class Graph>
 Models::SingleSIRS<Graph>::SingleSIRS(unsigned int v)
-  : EpiModel<State, Graph>(v)
+  : EpiModel<State, Graph>("SingleSIRS", v)
 {
   /*************************************/
   // define vertex classes

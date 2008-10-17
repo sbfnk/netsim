@@ -79,7 +79,7 @@ namespace Models {
 */
 template <class Graph>
 Models::ProtectiveSIRS<Graph>::ProtectiveSIRS(unsigned int v)
-  : EpiModel<State, Graph>(v)
+  : EpiModel<State, Graph>("ProtectiveSIRS", v)
 {
 //   // susceptible uninformed
 //   vertexStates.push_back(Label("S-","00;32", 0, "fillcolor=\"royalblue4\""));

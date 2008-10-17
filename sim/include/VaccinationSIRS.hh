@@ -97,7 +97,7 @@ namespace Models {
 */
 template <class Graph>
 Models::VaccinationSIRS<Graph>::VaccinationSIRS(unsigned int v)
-  : EpiModel<State, Graph>(v)
+  : EpiModel<State, Graph>("VaccinationSIRS", v)
 {
   /*************************************/
   // define vertex classes
