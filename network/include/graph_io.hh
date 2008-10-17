@@ -70,24 +70,18 @@ namespace boost {
     void operator()(std::ostream& out, const VertexID& v) const
     {
       std::stringstream rgbString;
-      double darkening = 1 - (1 - state[v].detail)*4/5;
-      int red = static_cast<unsigned int>
-        (model.getVertexStates()[state[v].base].getRGB(0) * darkening);
-      int green = static_cast<unsigned int>
-        (model.getVertexStates()[state[v].base].getRGB(1) * darkening);
-      int blue = static_cast<unsigned int>
-        (model.getVertexStates()[state[v].base].getRGB(2) * darkening);
+      std::vector<unsigned int> rgb = model.getRGB(state[v]);
       
       rgbString << "#" 
                 << std::hex << std::setw(2) << std::setfill('0') 
-                << (red > 0 ? red : 0)
+                << (rgb[0] > 0 ? rgb[0] : 0)
                 << std::hex << std::setw(2) << std::setfill('0') 
-                << (green > 0 ? green : 0)
+                << (rgb[1] > 0 ? rgb[1] : 0)
                 << std::hex << std::setw(2) << std::setfill('0') 
-                << (blue > 0 ? blue : 0);
+                << (rgb[2] > 0 ? rgb[2] : 0);
 
-      if (model.getEdgeTypes()[state[v].base].getDrawOption().find("fillcolor") != std::string::npos) {
-        out << "[" << model.getEdgeTypes()[state[v].base].getDrawOption();
+      if (model.getEdgeTypes()[state[v]->getState()].getDrawOption().find("fillcolor") != std::string::npos) {
+        out << "[" << model.getEdgeTypes()[state[v]->getState()].getDrawOption();
       } else {
         out << "[fillcolor=\"" << rgbString.str() << "\"";
       }
@@ -548,7 +542,7 @@ namespace boost {
             
             // set default if no drawoption is given
             unsigned int state = defaultState;
-            double detail = 1.;
+//             double detail = 1.;
             if (line.find("fillcolor") != std::string::npos) {
               std::string color = extractDrawOption("fillcolor", line);
               if (color.find("#") != std::string::npos) {
@@ -558,12 +552,12 @@ namespace boost {
                 std::stringstream(color.substr(4,2)) >> std::hex >> green;
                 std::stringstream(color.substr(6,2)) >> std::hex >> blue;
                 state = rgb2state[(red > 0)*1 + (green > 0)*2 + (blue > 0) * 4];
-                detail = 1 - 5/4. * (1 - (red+green+blue)/ static_cast<double>
-                                    (m.getVertexStates()[state].getRGB(0) +
-                                     m.getVertexStates()[state].getRGB(1) +
-                                     m.getVertexStates()[state].getRGB(2)));
+//                 detail = 1 - 5/4. * (1 - (red+green+blue)/ static_cast<double>
+//                                     (m.getVertexStates()[state].getRGB(0) +
+//                                      m.getVertexStates()[state].getRGB(1) +
+//                                      m.getVertexStates()[state].getRGB(2)));
                 // brush up rounding errors
-                detail = detail > 0 ? detail : 0;
+//                 detail = detail > 0 ? detail : 0;
               } else {
                 // color information is name type
                 state = color2state[color];
@@ -578,8 +572,9 @@ namespace boost {
             
 	    // add vertices until we have enough to accomodate what is in ic file
             while (src >= num_vertices(g)) add_vertex(g);
-            g[src].state.base = state;
-            g[src].state.detail = detail;
+            g[src].state->setState(state);
+	    //XXXXXXXXXXXXXXXXXXXX UPDATE XXXXXXXXXXXXXXXXXXXXXXXX
+//             g[src].state.detail = detail;
             ++vertexCount;
           }
         }
@@ -592,39 +587,6 @@ namespace boost {
 
     return vertexCount;
   
-  }
-
-  //----------------------------------------------------------
-  /*! \brief Get the RGB colour code corresponding to an ASCII colour
-    
-  \param[in] colour The ASCII colour code
-  \return A vector of size three, corresponding to red, green and blue colour
-  intensity
-  \ingroup helper_functions
-  */
-  std::vector<double> getColourCode(std::string colour)
-  {
-    std::vector<double> code(3, 0.0);
-    if (colour == "00;32") {
-      // dark blue
-      code[2]=0.3;
-    } else if (colour == "00;31") {
-      // dark red
-      code[0]=0.3;
-    } else if (colour == "00;34") {
-      // dark green
-      code[1]=0.3;
-    } else if (colour == "01;32") {
-      // light blue
-      code[2]=1.0;
-    } else if (colour == "01;31") {
-      // light red
-      code[0]=1.0;
-    } else if (colour == "01;34") {
-      // light green
-      code[1]=1.0;
-    }
-    return code;
   }
 
   //----------------------------------------------------------
@@ -644,7 +606,7 @@ namespace boost {
   {   
     typedef typename boost::graph_traits<Graph>::vertex_iterator
       vertex_iterator;
-    
+
     unsigned int sideLength = static_cast<unsigned int>(sqrt(num_vertices(g)));
     
     // create canvas
@@ -655,14 +617,7 @@ namespace boost {
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi) {
       // get colour code corresponding to the state of the current vertex
-      std::vector<double> colourCode =
-        getColourCode(m.getVertexStates()[g[*vi].state.base].getColour());
-      for (unsigned int i = 0; i < colourCode.size(); ++i) {
-        // if we have a light colour, shade by detailed state
-        if (colourCode[i] == 1.) {
-          colourCode[i] -= (1 - g[*vi].state.detail)*0.8;
-        }
-      }
+      std::vector<double> colourCode = m.getColour(g[*vi].state);
       lattice_image.plot(x,y,colourCode[0], colourCode[1], colourCode[2]);
       ++x;
       if (x > sideLength) {
@@ -674,62 +629,9 @@ namespace boost {
     lattice_image.close();
   }
 
-  template <typename Graph>
-  void write_detail_dist(const Graph& g, std::string fileName)
-  {
-    typedef typename boost::graph_traits<Graph>::vertex_iterator
-      vertex_iterator;
-
-    std::ofstream distFile;
-    try {
-      distFile.open(fileName.c_str(), std::ios::out);
-    }
-    catch (std::exception &e) {
-      std::cerr << "... unable to open output file " 
-                << fileName << " for writing the information distribution"
-                << std::endl;
-      std::cerr << "... Standard exception: " << e.what() << std::endl;      
-      return;
-    }
-    
-    vertex_iterator vi, vi_end;
-    for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi) {
-      distFile << g[*vi].state.detail << std::endl;
-    }
-  }
-
-
-  template <typename Graph, typename EdgeType, typename Model>
-  void write_info_dis_corr(const Graph& g, const Model& m,
-                           EdgeType et, std::string fileName)
-  {
-    typedef typename boost::graph_traits<Graph>::vertex_iterator
-      vertex_iterator;
-
-    std::ofstream corrFile;
-    try {
-      corrFile.open(fileName.c_str(), std::ios::out);
-    }
-    catch (std::exception &e) {
-      std::cerr << "... unable to open correlation output file " 
-                << fileName << std::endl;
-      std::cerr << "... Standard exception: " << e.what() << std::endl;      
-      return;
-    }
-
-    std::vector<unsigned int> infected_distances = nearest_infected(g, et, m);
-    unsigned int vertex_counter = 0;
-    
-    vertex_iterator vi, vi_end;
-    for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi) {
-      corrFile << g[*vi].state.detail << '\t'
-               << infected_distances[vertex_counter] << std::endl;
-      ++vertex_counter;
-    }
-  }
 
   template <typename Graph>
-  unsigned int write_component_dist(const Graph& g, std::string fileName)
+  unsigned int write_component_dist(const Graph& g, std::string fileName = "")
   {
     std::vector<int> component(num_vertices(g));
 
@@ -739,33 +641,34 @@ namespace boost {
 
     unsigned int largest_comp = 0;
     
-    std::ofstream distFile;
-    try {
-      distFile.open(fileName.c_str(), std::ios::out);
-    }
-    catch (std::exception &e) {
-      std::cerr << "... unable to open output file " 
-                << fileName << " for writing the connected component distribution"
-                << std::endl;
-      std::cerr << "... Standard exception: " << e.what() << std::endl;      
-      return 0;
-    }
-    
     for (std::vector<int>::iterator it = component.begin();
          it != component.end(); it++) {
       if (++comp_dist[*it] > largest_comp) {
-	++largest_comp;
+        ++largest_comp;
       }
     }
-    for (std::vector<unsigned int>::iterator it = comp_dist.begin();
-         it != comp_dist.end(); it++) {
-      distFile << *it << std::endl;
+    
+    if (fileName != "") {
+      std::ofstream distFile;
+      try {
+        distFile.open(fileName.c_str(), std::ios::out);
+      }
+      catch (std::exception &e) {
+        std::cerr << "... unable to open output file " 
+                  << fileName << " for writing the connected component distribution"
+                  << std::endl;
+        std::cerr << "... Standard exception: " << e.what() << std::endl;      
+        return 0;
+      }
+      for (std::vector<unsigned int>::iterator it = comp_dist.begin();
+           it != comp_dist.end(); it++) {
+        distFile << *it << std::endl;
+      }
+      distFile.close();
     }
-
+    
     return largest_comp;
   }
-
-
 }
   
 //----------------------------------------------------------

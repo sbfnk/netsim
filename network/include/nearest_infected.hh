@@ -38,7 +38,9 @@ namespace boost {
         u = source(e, g), v = target(e, g);
       put(m_distance, v, get(m_distance, u) + 1);
       
-      if (m.isInfected(g[v].state)) throw (unsigned long)get(m_distance, v);
+      // XXXXXXXXXXXX UPDATE XXXXXXXXXXXXXXXXX
+//       if (m.isInfected(g[v].state)) throw (unsigned long)get(m_distance, v);
+      throw (unsigned long)get(m_distance, v);
     }
     DistanceMap m_distance;
     const Model& m;
@@ -62,7 +64,8 @@ namespace boost {
 
   template <class Graph, class EdgeType, class Model>
   std::vector<unsigned int>
-  nearest_infected(Graph& g, EdgeType et, const Model& m)
+  nearest_infected(const Graph& g, EdgeType et, const Model& m, 
+  		   bool onlyInformed = false)
   {
     typedef typename graph_traits<Graph>::vertex_descriptor
       vertex_descriptor;
@@ -84,14 +87,18 @@ namespace boost {
 
       unsigned int distance = 0;
       
-      // breadth_first_search throws an exception as soon as all the shortest
-      // path lengths for all entries in et1_neighbours have been found
-      try {
-        breadth_first_search(g, *vi, et,
-            visitor(make_bfs_visitor(record_infected_distance(d, m,
-                                                              on_tree_edge()))));
-      } catch (unsigned long e) {
-        distance = e;
+      if (onlyInformed == false || m.isInformed(g[*vi].state)) {
+        // breadth_first_search throws an exception as soon as all the shortest
+        // path lengths for all entries in et1_neighbours have been found
+        try {
+          breadth_first_search(g, *vi, et,
+           visitor(make_bfs_visitor(record_infected_distance(d, m,
+                                                             on_tree_edge()))));
+        } catch (unsigned long e) {
+          distance = e;
+        }
+      } else {
+        distance = 0;
       }
       
       infected_distances.push_back(distance);

@@ -4,7 +4,7 @@
 #ifndef PROTECTIVESIRS_HH
 #define PROTECTIVESIRS_HH
 
-#include "Model.hh"
+#include "EpiModel.hh"
 
 namespace Models {
 
@@ -16,8 +16,9 @@ namespace Models {
   immunity, information generation over i links and forgetting.
   
   */
+  template <class Graph>
   class ProtectiveSIRS :
-    public Model
+    public EpiModel<State, Graph>
   {
   
     //! Possible disease states.
@@ -32,10 +33,12 @@ namespace Models {
     ProtectiveSIRS(unsigned int v = 0);
     ~ProtectiveSIRS() {;}
   
-    unsigned int getNodeEvents(eventList& events, State state,
+    virtual Model<Graph>* clone() { return new ProtectiveSIRS<Graph>(*this); }
+
+    unsigned int getNodeEvents(eventList& events, State* currentState,
                                unsigned int nb) const;
-    unsigned int getEdgeEvents(eventList& events, State state,
-                               unsigned int edge, State nbState,
+    unsigned int getEdgeEvents(eventList& events, State* currentState,
+                               unsigned int edge, State* currentNbState,
                                unsigned int nb) const;
 
     bool isInfection(State before_state, State after_state) const
@@ -44,14 +47,17 @@ namespace Models {
   
     //! Get the disease part of a full vertex state.
     unsigned int getDisease(State state) const
-    { return (state.base < 2 ? 0 : state.base - 1); }
+    { return (state.getState() < 2 ? 0 : state.getState() - 1); }
     //! Get the information part of a full vertex state.
     unsigned int getInfo(State state) const
-    { return (state.base == 1); }
+    { return (state.getState() == 1); }
     //! Get the full vertex state from disease and information parts.
     unsigned int getState(State dState, State iState) const
-    { return (dState.base == 0 ? iState.base : dState.base + 1); }
+    { return (dState.getState() == 0 ? iState.getState() : dState.getState() + 1); }
     
+    std::vector<StatRecorder<Graph>*> 
+    getStatRecorders(const po::variables_map& vm) const
+    {;}
   
   private:
 
@@ -64,6 +70,145 @@ namespace Models {
   
   };
   
+}
+
+//----------------------------------------------------------
+/*! \brief Constructor.
+
+\sa Model::Model
+*/
+template <class Graph>
+Models::ProtectiveSIRS<Graph>::ProtectiveSIRS(unsigned int v)
+  : EpiModel<State, Graph>(v)
+{
+//   // susceptible uninformed
+//   vertexStates.push_back(Label("S-","00;32", 0, "fillcolor=\"royalblue4\""));
+//   // susceptible informed
+//   vertexStates.push_back(Label("S+","01;32", 1, "fillcolor=\"royalblue\""));
+//   // infected 
+//   vertexStates.push_back(Label("I","00;31", 2, "fillcolor=\"red\""));
+//   // recovered
+//   vertexStates.push_back(Label("R","00;34", 3, "fillcolor=\"green\""));
+
+  this->edgeTypes.push_back(Label("d", "", 0, "style=\"solid\""));
+  this->edgeTypes.push_back(Label("i", "", 1, "style=\"dashed\""));
+
+  this->model_options.add_options()
+    ("beta", po::value<double>(),
+     "disease transmission rate")
+    ("sigma", po::value<double>(),
+     "reduction of transmission rate due to information")
+    ("gamma", po::value<double>(),
+     "recovery rate")
+    ("delta", po::value<double>(),
+     "loss of immunity rate")
+    ("nu", po::value<double>(),
+     "information generation rate")
+    ("lambda", po::value<double>(),
+     "loss of information rate")
+    ;
+
+  this->rates.insert(std::make_pair("beta", &beta));
+  this->rates.insert(std::make_pair("gamma", &gamma));
+  this->rates.insert(std::make_pair("delta", &delta));
+  this->rates.insert(std::make_pair("nu", &nu));
+  this->rates.insert(std::make_pair("lambda", &lambda));
+  this->params.insert(std::make_pair("sigma", &sigma));
+}
+
+//----------------------------------------------------------
+template <class Graph>
+unsigned int Models::ProtectiveSIRS<Graph>::getNodeEvents(eventList& events,
+                                                   State* currentState,
+                                                   unsigned int nb) const
+{
+   State* state = currentState;
+
+   unsigned int rateSum(0);
+
+   // loss of immunity
+   if (getDisease(state->getState()) == Recovered) {
+      Event immunityLoss;
+      immunityLoss.rate = delta;
+      immunityLoss.newState = 
+	this->newState(State(getState(Susceptible, getInfo(state->getState()))));
+      if (immunityLoss.rate > 0) {
+        events.push_back(immunityLoss);
+        rateSum += immunityLoss.rate;
+      }
+   } else
+   if (getDisease(state->getState()) == Infected) {
+      // recovery
+      Event recovery;
+      recovery.rate = gamma;
+      recovery.newState = 
+	this->newState(State(getState(Recovered, getInfo(state->getState()))));
+      if (recovery.rate > 0) {
+        events.push_back(recovery);
+        rateSum += recovery.rate;
+      }
+   }
+   // information loss
+   if (getInfo(state->getState()) == Informed) {
+      Event infoLoss;
+      infoLoss.rate = lambda;
+      infoLoss.newState = 
+	this->newState(State(getState(getDisease(state->getState()), Uninformed)));
+      if (infoLoss.rate > 0) {
+        events.push_back(infoLoss);
+        rateSum += infoLoss.rate;
+      }
+   }
+
+   return rateSum;
+}
+
+//----------------------------------------------------------
+template <class Graph>
+unsigned int Models::ProtectiveSIRS<Graph>::getEdgeEvents(eventList& events,
+                                                   State* currentState,
+                                                   unsigned int edge,
+                                                   State* currentNbState,
+                                                   unsigned int nb) const
+{
+   State* state = currentState;
+   State* nbState = currentNbState;
+
+   unsigned int rateSum(0);
+   if (edge == Disease) {
+      // infection
+      if (getDisease(state->getState()) == Susceptible &&
+          getDisease(nbState->getState()) == Infected) {
+         Event infection;
+         infection.rate = beta;
+         if (getInfo(state->getState()) == 1) {
+           infection.rate =
+             static_cast<unsigned int>(infection.rate * sigma + .5);
+         }
+         infection.newState = 
+	   this->newState(State(getState(Infected, getInfo(state->getState()))));
+         if (infection.rate > 0) {
+           events.push_back(infection);
+           rateSum += infection.rate;
+         }
+      }
+   } else if (edge == Information) {
+     if (getDisease(state->getState()) == Susceptible &&
+         getInfo(state->getState()) == Uninformed && 
+	 getDisease(nbState->getState()) == Infected) {
+      // information generation
+         Event infoGeneration;
+         infoGeneration.rate = nu;
+         infoGeneration.newState = 
+	   this->newState(State(getState(getDisease(state->getState()), Informed)));
+         if (infoGeneration.rate > 0) {
+           events.push_back(infoGeneration);
+           rateSum += infoGeneration.rate;
+         }
+      }
+   }
+
+   return rateSum;
 }
 
 #endif

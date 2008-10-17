@@ -4,41 +4,79 @@
 #ifndef SIMULATOR_HH
 #define SIMULATOR_HH
 
+#include <vector>
+
+#include <boost/program_options.hpp>
+
 #include "Model.hh"
 
-//! \addtogroup gillespie_simulator Gillespie simulator
+namespace po = boost::program_options;
 
-/*! \brief Base class for simulation classes
+//! \addtogroup epi_simulator Epidemic simulator
+//! \addtogroup simulator Simulator
+
+/*! \brief Base class for epidemic simulation classes
   
 Classes derived from this class implement a given simulation algorithm, e.g. the
 Gillespie algorithm or, possibly, other algorithms with different waiting times
 etc. Most importantly, this class provides a declaration for the updateState and
 getTime methods used by the main simulation code.
 
-\ingroup gillespie_simulator
+\ingroup simulator
+\ingroup epi_simulator
 */
+
+template <typename Graph>
 class Simulator
 {
 
 public:
 
   /*! \brief Constructor.
-  \param[in] m model initialiser
   \param[in] v verbose intialiser
   */
-  Simulator(const Model& m, unsigned int v = 0) :
-    model(m), verbose(v), time(0.),
-    numInfections(0), numInformations(0), numRecoveries(0), numForgettings(0)
-  {}
+  Simulator(Graph& g, unsigned int v = 0) :
+    graph(g), model(0), verbose(v), time(0.)
+  {
+    po::options_description new_options1("\nSimulator options");
+    new_options1.add_options()
+      ("model,m", po::value<std::string>(),
+       "model to use")
+        ;
+    po::options_description new_options2("\nStats options");
+    new_options2.add_options()
+      ("data,d", po::value<double>(), 
+       "write output data at arg timesteps")
+      ("pairs",
+       "count pairs")
+      ("triples",
+       "count triples")
+      ("graphviz,g", po::value<double>(),
+       "create graphviz output in the images directory at arg timesteps")
+      ("lattice,l", po::value<double>(),
+       "create pixelised lattice output at arg timesteps")
+      ;
+    po::options_description new_options3("\nStop condition options");
+    new_options3.add_options()
+    ("tmax", po::value<double>()->default_value(0.),
+     "time after which to stop\n(use tmax=0 to run until extinction)")
+      ;
+    simulator_options.add(new_options1);
+    recorder_options.add(new_options2);
+    stop_options.add(new_options3);
+  }
 
   //! Destructor.
-  virtual ~Simulator() {;}
+  virtual ~Simulator() { if (model) delete model;}
 
   //! Initialise the simulation. Implemented by derived classes.
   virtual void initialise()
   {
-    numInfections = numInformations = numRecoveries = numForgettings = 0;
     time = 0.;
+    for (unsigned int i = 0; i < statRecorders.size(); ++i) {
+      statRecorders[i]->reset(dir);
+      statRecorders[i]->update(graph, time, true);
+    }
   }
   
   //! Perform an update. Implemented by derived classes.
@@ -49,183 +87,138 @@ public:
 
   //! Accessor for the time variable.
   double getTime() const { return time; };
-  /*! \brief Update the current time in the simulation
+  //! Accessor for the verbose variable.
+  unsigned int getVerbose() const { return verbose; };
 
+  /*! \brief Update the current time in the simulation
   \param[in] t The timestep to advance the time by.
   */
   void updateTime(double t) { time += t; };
 
-  //! Accessor for the numInfections variable.
-  unsigned int getNumInfections() const { return numInfections; }
-  //! Accessor for the numRecoveries variable.
-  unsigned int getNumRecoveries() const { return numRecoveries; }
-  //! Accessor for the numInformations variable.
-  unsigned int getNumInformations() const { return numInformations; }
-  //! Accessor for the numForgettings variable.
-  unsigned int getNumForgettings() const { return numForgettings; }
+  //! Check if conditions to stop a run have been reached. 
+  virtual bool stopCondition() const
+  { return ((stopTime > 0 && getTime() > stopTime)); }
 
-  //! Increase the numInfections variable by one.
-  void addInfection() { ++numInfections; }
-  //! Increase the numInformations variable by one.
-  void addInformation() { ++numInformations; }
-  //! Increase the numRecoveries variable by one.
-  void addRecovery() { ++numRecoveries; }
-  //! Increase the numInfections variable by one.
-  void addForgetting() { ++numForgettings; }
+  virtual bool parse_options(const po::variables_map& vm)
+  {
+    if (vm.count("model")) {
+      std::string modelString = vm["model"].as<std::string>();
+      while (knownModels.size() > 0) {
+        if (modelString == knownModels[0].first) {
+          model = knownModels[0].second;
+        } else {
+          delete knownModels[0].second;
+        }
+        knownModels.erase(knownModels.begin());
+      }
+      if (!model) {
+	std::cerr << "ERROR: unknown model: " << modelString << std::endl;
+	return false;
+      }
+    } else {
+      if (knownModels.size() > 0) {
+        std::cerr << "WARNING: no model specified, using first available: "
+                  << knownModels[0].first << std::endl;
+      }
+      model = knownModels[0].second;
+    }
 
-  //! Accessor for the model variable.
-  const Model& getModel() const { return model; }
-  //! Accessor for the verbose variable.
-  unsigned int getVerbose() const { return verbose; }
+    stopTime = vm["tmax"].as<double>();
+    bool pairs = (vm.count("pairs"));
+    bool triples = (vm.count("triples"));
+    if (model) {
+      if (vm.count("data")) {
+        statRecorders.push_back(new StatRecorder<Graph>
+                                (new write_sim_data<Graph, Model<Graph> >
+                                 (*model, pairs, triples),
+                                 vm["data"].as<double>()));
+      }
+      if (vm.count("graphviz")) {
+        statRecorders.push_back(new StatRecorder<Graph>
+                                (new write_sim_graph<Graph, Model<Graph> >(*model),
+                                 vm["graphviz"].as<double>()));
+      }
+      if (vm.count("lattice")) {
+        statRecorders.push_back(new StatRecorder<Graph>
+                                (new write_sim_lattice<Graph, Model<Graph> >(*model),
+                                 vm["lattice"].as<double>()));
+      }
+      if (verbose>=1) {
+        double freq;
+        if (verbose >=2) {
+          freq = -1;
+        } else {
+          freq = (vm.count("data") ? vm["data"].as<double>() : 0.);
+        }
+        statRecorders.push_back(new StatRecorder<Graph>
+                                (new print_sim_status<Graph, Model<Graph> >
+                                 (*model, pairs, triples),
+                                 freq));
+      }
+    }
+    
+    return true;
+  }
+
+  void InitModel(const po::variables_map& vm)
+  {
+    if (model) {
+      model->Init(vm, statRecorders);
+      if (verbose >= 1) model->Print();
+    }
+  }
+
+  void updateStats()
+  {
+    bool force = stopCondition();
+    for (unsigned int i = 0; i < statRecorders.size(); ++i) {
+      statRecorders[i]->update(graph, time, force);
+    }
+  }
+
+  Graph& getGraph() 
+  { return graph; }
+
+  const Graph& getGraph() const
+  { return graph; }
+
+  po::options_description getOptions() const
+  {
+    po::options_description all_options;
+    all_options.add(simulator_options).add(recorder_options).add(stop_options);
+    return all_options;
+  }
+
+  const Model<Graph>* getModel() const
+  { return model; }
+
+  bool doIO() const
+  { return (statRecorders.size() > 0); }
+
+  void setDir(std::string s)
+  { dir = s; }
+
+protected:
+
+  po::options_description simulator_options;
+  po::options_description recorder_options;
+  po::options_description stop_options;
+  std::vector<StatRecorder<Graph>*> statRecorders;
+  Graph& graph; //!< The graph determining how vertices can effect another
+
+  std::vector<std::pair<std::string, Model<Graph>*> > knownModels;
   
 private:
 
-  const Model& model; //!< The model to be used by the simulation.
+  Model<Graph>* model;
+
   unsigned int verbose; //!< The verbosity level.
-
   double time; //!< The current time of the simulation.
-  unsigned int numInfections; //!< A counter for the number of infections.
-  unsigned int numInformations; //!< A counter for the number of informations.
-  unsigned int numRecoveries; //!< A counter for the number of recoveries.
-  unsigned int numForgettings; //!< A counter for the number of forgettings.
-      
+  double stopTime; //!< The time to stop the simulation
+
+  std::string dir;
+
 };
-
-//----------------------------------------------------------
-/*! \brief Generate event list for a vertex.
-
-Generates an event list for a given vertex. This collects both events which can
-happen to a node by itself, as well as events transmitted over edges.
-
-\param[in] graph The graph variable defining the edge structure.
-\param[in] v The vertex to consider.
-\param[in] model The model to use to generate the events.
-\param[in] verbose The level of verbosity.
-\return The sum of rates for all events which have been generated.
-\ingroup gillespie_simulator
-*/
-template <class Graph, class Model>
-unsigned int generateEventList(Graph& graph,
-                      typename boost::graph_traits<Graph>::vertex_descriptor v,
-                               const Model& model,
-                               unsigned int verbose = 0)
-{
-  // definitions of boost types for quick access
-  typedef typename boost::graph_traits<Graph>::out_edge_iterator
-    out_edge_iterator;
-  typedef typename boost::graph_traits<Graph>::edge_descriptor
-    edge_descriptor;
-  typedef typename boost::graph_traits<Graph>::vertex_descriptor
-    vertex_descriptor;
-
-  typename boost::property_map<Graph, boost::vertex_index_t>::type 
-    id = get(boost::vertex_index, graph);
-   
-  // temporary sum for the new sum of rates of all events
-  // that can affect the vertex v
-  unsigned int tempSum = 0;
-
-  if (verbose >= 2) {
-    std::cout << "Generating events list for vertex #" << v << " ("
-              << model.getVertexStates()[graph[v].state.base] << ")"
-              << std::endl;
-  }
-
-  // clear event list
-  graph[v].events.clear();
-   
-  // get node events
-  tempSum += model.getNodeEvents(graph[v].events, graph[v].state, id[v]);
-   
-  // get edge events
-  out_edge_iterator oi, oi_end;;
-   
-  for (tie(oi, oi_end) = boost::out_edges(v, graph);
-       oi != oi_end; ++oi) {
-    edge_descriptor e = *oi;
-    vertex_descriptor t =  target(e, graph);
-    tempSum +=
-      model.getEdgeEvents(graph[v].events, graph[v].state, graph[e].type,
-                          graph[t].state, id[t]);
-     
-  }
-   
-  // calculate difference between new and old sum of rates
-  unsigned int diff = tempSum - graph[v].rateSum;
-  // set rateSum to new value
-  graph[v].rateSum = tempSum;
-   
-   
-  return diff;
-}
-
-//----------------------------------------------------------
-/*! \brief Update event list for a vertex.
-
-Updates an event list generated by the source of a edge for the target of the
-same edge. The events happening over that edge which were previously in the list
-are deleted and a new list of these events is generated
-
-\param[in] graph The graph variable defining the edge structure.
-\param[in] e The edge to consider.
-\param[in] model The model to use to generate the events.
-\param[in] verbose The level of verbosity.
-\return The sum of rates for all events which have been generated.
-\ingroup gillespie_simulator
-*/
-template <class Graph, class Model>
-unsigned int updateEventList(Graph& graph,
-                        typename boost::graph_traits<Graph>::edge_descriptor e,
-                             const Model& model,
-                             unsigned int verbose = 0)
-{
-  typename boost::graph_traits<Graph>::vertex_descriptor v = target(e, graph);
-  typename boost::graph_traits<Graph>::vertex_descriptor n = source(e, graph);
-  
-  typename boost::property_map<Graph, boost::vertex_index_t>::type 
-    id = get(boost::vertex_index, graph);
-   
-  // temporary sum for the new sum of rates of all events
-  // that can affect the vertex v
-  unsigned int tempSum = 0;
-
-  if (verbose >= 2) {
-    std::streamsize prec = std::cout.precision();
-    std::cout << "Updating events list for vertex #" << v << " ("
-              << model.getVertexStates()[graph[v].state.base];
-    if (graph[v].state.detail > 0.) {
-      std::cout << "," << std::setprecision(1) << std::fixed
-                << graph[v].state.detail;
-    }
-    std::cout << "), as generated by neighbour #" << n << " ("
-              << model.getVertexStates()[graph[n].state.base];
-    if (graph[n].state.detail > 0.) {
-      std::cout << "," << std::setprecision(1) << std::fixed
-                << graph[n].state.detail;
-    }
-    std::cout << ") along "
-              << model.getEdgeTypes()[graph[e].type] << "-edge" << std::endl;
-    std::cout << std::setprecision(prec);
-    std::cout.unsetf(std::ios::fixed);
-  }
-  for (unsigned int i = 0; i < graph[v].events.size(); i++) {
-    if (graph[v].events[i].nb == id[n] &&
-        graph[v].events[i].et == graph[e].type) {
-      tempSum -= graph[v].events[i].rate;
-      graph[v].events.erase(graph[v].events.begin() + i);
-      --i;
-    }
-  }
-
-  tempSum +=
-    model.getEdgeEvents(graph[v].events, graph[v].state, graph[e].type,
-                        graph[n].state, id[n]);
-  
-  // update rateSum
-  graph[v].rateSum += tempSum;
-    
-  return tempSum;
-}
 
 //----------------------------------------------------------
 /*! \brief Simulation algorithms.

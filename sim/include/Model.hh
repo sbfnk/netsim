@@ -11,72 +11,13 @@
 
 #include <boost/program_options.hpp>
 
+#include "Vertex.hh"
+#include "StatRecorder.hh"
+#include "sim_statistics.hh"
+
 //! \addtogroup models Models
 
 namespace po = boost::program_options;
-
-//----------------------------------------------------------
-/*! \brief The state a vertex can assume
-  
-\ingroup models
-\ingroup gillespie_simulator
-*/
-  //! Type denoting the state of an individual
-  struct State {
-
-    //! Constructor.
-    State() : base(0), detail(0.) {;}
-
-    /*! \brief Constructor.
-      \param[in] b base state.
-    */
-    State(unsigned int b) : base(b), detail(0.) {;}
-
-    /*! \brief Constructor.
-      \param[in] b base state.
-      \param[in] d refined state.
-    */
-    State(unsigned int b, double d) : base(b), detail(d) {;}
-    /*! Integer variable corresponding to the current state of the individual,
-      to be defined by the used Model.
-    */
-    unsigned int base;
-    /*! Real-valued variable refining the current state of the individual, to be
-      defined by the used Model.
-    */
-    double detail;
-  };
-
-//----------------------------------------------------------
-/*! \brief An event which can happen to a vertex.
-  
-\ingroup models
-\ingroup gillespie_simulator
-*/
-struct Event
-{
-  /*! \brief Constructor.
-  \param[in] r rate initialiser
-  \param[in] s newState initialiser
-  \param[in] n nb initialiser
-  \param[in] e et initialiser
-  */
-  Event(unsigned int r=0, State s = State(), unsigned int n=0, unsigned int e=0) :
-    rate(r), newState(s), nb(n), et(e) {}
-  
-  //! The rate at which an event occurs (depends on model parameters),
-  //  multiplied by 10^5 for integer representation
-  unsigned int rate; 
-  //! The state an event will change a vertex to
-  State newState; 
-  //! The neighbour "responsible" for the event
-  unsigned int nb; 
-  //! The edge type over which event is transmitted (if applicable)
-  unsigned int et;
-
-};
-
-typedef std::vector<Event> eventList;
 
 //----------------------------------------------------------
 /*!
@@ -96,7 +37,7 @@ public:
     unsigned int red;
     unsigned int green;
     unsigned int blue;
-    
+
   };
 
   /*! \brief Constructor.
@@ -114,7 +55,7 @@ public:
     rgb[1] = r.green;
     rgb[2] = r.blue;
   }
-  
+
   //! Accessor for the text variable.
   const std::string& getText() const
   { return text; }
@@ -126,7 +67,7 @@ public:
   //! Accessor for the rgb variable
   unsigned int getRGB(unsigned int i) const
   { return rgb[i]; }
-  
+
   //! Accessor for the drawOption variable
   const std::string& getDrawOption() const
   { return drawOption; }
@@ -134,20 +75,20 @@ public:
   //! Accessor for the colour variable
   const std::string& getColour() const
   { return colour; }
-  
+
   //! Accessor for the id variable
   const unsigned int& getId() const
   { return id; }
 
 private:
-  
+
   std::string text; //!< The letter marking the state of the variable
   std::string colour; //!< The colour marking the state of the variable
   unsigned int id; //!< A unique id assigned to the Label
 
   std::vector<unsigned int> rgb; //!< The rgb intensities used for graphviz
   std::string drawOption; //!< Any extra graphviz drawOption
-  
+
 };
 
 std::ostream& operator<<(std::ostream& os, const Label& l);
@@ -160,6 +101,7 @@ parameters and the state transitions that can happen according to the model.
 
 \ingroup models
 */
+template <class Graph>
 class Model
 {
   
@@ -173,13 +115,17 @@ public:
   \param[in] v verbose initialiser
   */
   Model(unsigned int v = 0):
-    model_options(po::options_description("\nModel options:")), verbose(v) {}
+    model_options(po::options_description("\nModel options:")), verbose(v) {;}
   //! Destructor.
   virtual ~Model() {}
   
-  virtual void Init(po::variables_map& vm);
+  virtual void Init(const po::variables_map& vm,
+                    std::vector<StatRecorder<Graph>*>& rec);
+  
   void print(std::ostream &os) const;
   void Print() const;
+
+  virtual Model<Graph>* clone() { return new Model<Graph>(*this); }
 
   /*! \brief Get node events.
 
@@ -195,8 +141,9 @@ public:
   event list 
   */
   virtual unsigned int getNodeEvents(eventList& events,
-                                     State state,
-                                     unsigned int nb) const = 0;
+                                     State* state,
+                                     unsigned int nb) const
+  { return 0; }
   /*! \brief Get edge events.
 
   This is implemented by classes derived from Model. It considers all edge events
@@ -215,58 +162,13 @@ public:
   \return The sum of the rates of all events that have been stored in the
   event list
   */
-  virtual unsigned int getEdgeEvents(eventList& events, State state, 
-                                     unsigned int edge, State nbState,
-                                     unsigned int nb) const = 0;
+  virtual unsigned int getEdgeEvents(eventList& events, State* state, 
+                                     unsigned int edge, State* nbState,
+                                     unsigned int nb) const
+  { return 0; }
 
-  /*! \brief Check whether an event is an infection.
-
-  This is implemented by classes derived from Model.
-
-  \param[in] before_state The state before the event happens.
-  \param[in] after_state The state after the event happens.
-   */
-  virtual bool isInfection(State before_state, State after_state) const
-  { return false; }
-
-  /*! \brief Check whether an event is a recovery.
-
-  This is implemented by classes derived from Model.
-
-  \param[in] before_state The state before the event happens.
-  \param[in] after_state The state after the event happens.
-   */
-  virtual bool isRecovery(State before_state, State after_state) const
-  { return false; }
-  
-  /*! \brief Check whether an event is an information event
-     
-  This is implemented by classes derived from Model.
-  
-  \param[in] before_state The state before the event happens.
-  \param[in] after_state The state after the event happens.
-  */
-  virtual bool isInformation(State before_state, State after_state) const
-  { return false; }
-
-  /*! \brief Check whether an event is a forgetting event
-     
-  This is implemented by classes derived from Model.
-  
-  \param[in] before_state The state before the event happens.
-  \param[in] after_state The state after the event happens.
-  */
-  virtual bool isForgetting(State before_state, State after_state) const
-  { return false; }
-
-  /*! \brief Check whether a vertex is infected
-     
-  This is implemented by classes derived from Model.
-  
-  \param[in] state The state to check.
-  */
-  virtual bool isInfected(State state) const
-  { return false; }
+  virtual State* newState() const
+  { return new State; }
 
   //! Accessor for vertexStates
   const std::vector<Label>& getVertexStates() const
@@ -292,6 +194,33 @@ public:
   virtual double getInitDetail(unsigned int baseState) const
   { return 0.; }
 
+  unsigned int getVerbose() const
+  { return verbose; }
+
+  virtual std::string printState(State* s) const
+  { std::stringstream ss; ss << getVertexState(s->getState()); return ss.str();}
+  
+  virtual std::vector<unsigned int> getRGB(State* s) const
+  {
+    std::vector<unsigned int> rgb;
+
+    rgb.push_back(this->getVertexStates()[s->getState()].getRGB(0));
+    rgb.push_back(this->getVertexStates()[s->getState()].getRGB(1));
+    rgb.push_back(this->getVertexStates()[s->getState()].getRGB(2));
+    
+    return rgb;
+  }
+
+  std::vector<double> getColour(State* s) const
+  {
+    std::vector<unsigned int> rgb = this->getRGB(s);
+    std::vector<double> colour;
+    for (unsigned int i = 0; i < rgb.size(); ++i) {
+      colour.push_back(rgb[i] / 255.);
+    }
+    return colour;
+  }
+
 protected:
 
   /*! \brief The vertex states.
@@ -316,18 +245,126 @@ protected:
   A map of command line options to the model paramters
   */
   std::map<std::string, double*> params;
+  /*! \brief The model parameters
+    
+  A map of command line options to the model paramters
+  */
+  std::map<std::string, unsigned int*> intParams;
   /*! \brief The model rates
     
   A map of command line options to the model rates
   */
   std::map<std::string, unsigned int*> rates;
 
+private:
   //! Verbosity level
   unsigned int verbose;
   
 };
 
-std::ostream& operator<<(std::ostream& os, const Model& m);
+/*! \brief Initialise model paramters.
+   
+This should be called after the command line parameters of the model haven been
+assigned. It initialises the model parameter variables with the values found in
+the command line parameters.
+
+\param[in] vm The map of command line parameters
+*/
+
+template<class Graph>
+void Model<Graph>::Init(const po::variables_map& vm,
+                        std::vector<StatRecorder<Graph>*>& rec)
+{
+  // loop over all model parameters
+
+  for (std::map<std::string, unsigned int*>::iterator it = rates.begin();
+       it != rates.end(); it++) {
+    if (vm.count(it->first)) {
+      // command line parameter has been specified, assign to rate
+      if (vm[it->first].as<double>() > 1e+5) {
+        std::cerr << "WARNING: rates bigger than 1e+5 not supported."
+                  << std::endl;
+        std::cerr << "setting " << it->first << " to 1e+5." << std::endl;
+        *(it->second) = static_cast<unsigned int>(1e+9);
+      } else {
+        *(it->second) =
+          static_cast<unsigned int>(vm[it->first].as<double>() * 1e+4 + .5);
+      }
+    } else {
+      std::cerr << "WARNING: no " << it->first << " given" << std::endl;
+      std::cerr << "setting to 0." << std::endl;
+      *(it->second) = 0;
+    }
+  }
+  for (std::map<std::string, double*>::iterator it = params.begin();
+       it != params.end(); it++) {
+    if (vm.count(it->first)) {
+      // command line parameter has been specified, assign to model variable
+      *(it->second) = vm[it->first].as<double>();
+    } else {
+      std::cerr << "WARNING: no " << it->first << " given" << std::endl;
+      std::cerr << "setting to 0" << std::endl;
+      *(it->second) = 0;
+    }
+  }
+  for (std::map<std::string, unsigned int*>::iterator it = intParams.begin();
+       it != intParams.end(); it++) {
+    if (vm.count(it->first)) {
+      // command line parameter has been specified, assign to model variable
+      *(it->second) = vm[it->first].as<unsigned int>();
+    } else {
+      std::cerr << "WARNING: no " << it->first << " given" << std::endl;
+      std::cerr << "setting to 0" << std::endl;
+      *(it->second) = 0;
+    }
+  }
+}
+
+//! Print the model parameters to ostream.
+template<class Graph>
+void Model<Graph>::print(std::ostream &os) const
+{
+  if ((params.size() + intParams.size()) > 0) {
+    os << "Model parameters:" << std::endl;
+    os << "=================" << std::endl;
+    for (std::map<std::string, double*>::const_iterator it =
+           params.begin(); it != params.end(); it++) {
+      os << it->first << ": " << *(it->second) << std::endl; 
+    }
+    for (std::map<std::string, unsigned int*>::const_iterator it =
+           intParams.begin(); it != intParams.end(); it++) {
+      os << it->first << ": " << *(it->second) << std::endl; 
+    }
+    os << std::endl;
+  }
+  if (rates.size() > 0) {
+    os << "Model rates:" << std::endl;
+    os << "=================" << std::endl;
+    for (std::map<std::string, unsigned int*>::const_iterator it =
+           rates.begin(); it != rates.end(); it++) {
+      os << it->first << ": " << (*(it->second))/1e+4 << std::endl; 
+    }
+  }
+}
+
+/*! \brief Stream operator for Model.
+
+Stream the model paramters.
+\param[in, out] os The stream to write the Model to
+\param[in] l The Model to stream
+
+\return A reference to the stream written to
+*/
+template <class Graph>
+std::ostream& operator<<(std::ostream& os, const Model<Graph>& m)
+{ m.print(os); return os; }
+
+//! Print the model parameters to the screen.
+template<class Graph>
+void Model<Graph>::Print() const
+{
+  std::cout << *this;
+}
 
 //----------------------------------------------------------
 /*! \brief The models of interaction for usage in the simulation.

@@ -5,24 +5,27 @@
 #ifndef GROUPFORMSIMULATOR_HH
 #define GROUPFORMSIMULATOR_HH
 
-#include "Tree.hh"
+#include <math.h>
+
 #include "Simulator.hh"
+#include "Vertex.hh"
+#include "GroupFormModel.hh"
 
 #include <boost/graph/random.hpp>
 #include <boost/random/uniform_real.hpp>
 #include <boost/random/variate_generator.hpp>
 
-//! \addtogroup gillespie_simulator Gillespie simulator
+//! \addtogroup simulator Simulator
 
 namespace Simulators {
   
   /*! \brief The Group formation simulation
     
-  \ingroup gillespie_simulator
+  \ingroup simulator
   */
   template <typename RandomGenerator, typename Graph>
   class GroupFormSimulator :
-    virtual public Simulator
+    virtual public Simulator<Graph>
   {
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
     vertex_descriptor;
@@ -50,59 +53,126 @@ namespace Simulators {
     \param[in] m model initialiser (in Simulator::Simulator)
     \param[in] v verbose initialiser (in Simulator::Simulator)
     */
-    GroupFormSimulator(RandomGenerator& r, Graph& g, const Model& m, 
-                       unsigned int numGroups = 1, double alpha=0.,
-                       unsigned int v = 0) :
-      Simulator(m, v), randGen(r, boost::uniform_real<> (0,1)), graph(g),
-      groups(numGroups), alpha(alpha), active(), verbose(v) {;}
-    
-  
+    GroupFormSimulator(RandomGenerator& r, Graph& g,
+                       unsigned int v = 0);
     ~GroupFormSimulator() {;}
       
     void initialise();
     bool updateState();
   
-   void print();
+    void print();
+
+    bool parse_options(const po::variables_map& vm);
+
+    //! Check if conditions to stop a run have been reached. 
+    bool stopCondition() const
+    {
+      bool ret = Simulator<Graph>::stopCondition();
+      unsigned int largest_component = stopComponent;
+      if (stopComponent > 0) {
+        // find component dist writer if available
+        bool found = false;
+        for (unsigned int i = 0;
+             ((!false) && i < (this->statRecorders.size())); ++i) {
+          const write_comp_dist<Graph>* w =
+            dynamic_cast<const write_comp_dist<Graph>*>
+            (this->statRecorders[i]->getStatFunc());
+          if (w) {
+            largest_component = w->getLargest();
+            found = true;
+          }
+        }
+        if (!found) largest_component = write_component_dist(this->getGraph());
+      }
+      return (ret || (largest_component < stopComponent));
+    }
 
   private:
-  
-    uniform_gen randGen; //!< The random generator to be used for choosing events
-    Graph& graph; //!< The graph determining how vertices can effect another
 
-    unsigned int groups; //!< Number of seed groups
-    double alpha;
+    uniform_gen randGen; //!< The random generator to be used for choosing events
+
     std::vector<vertex_descriptor> active; //!< Active nodes
 
     unsigned int verbose;
+    unsigned int stopComponent;
   
   };
 
+  template <typename RandomGenerator, typename Graph>
+  GroupFormSimulator<RandomGenerator, Graph>::
+  GroupFormSimulator(RandomGenerator& r, Graph& g,
+		     unsigned int v) :
+    Simulator<Graph>(g, v), randGen(r, boost::uniform_real<> (0,1)),
+    active(), verbose(v)
+  {
+    this->recorder_options.add_options()
+      ("component-dist,t",po::value<double>(),
+       "write component distribution in comp directory at arg timesteps")
+      ;
+    this->stop_options.add_options()
+      ("cmin", po::value<unsigned int>()->default_value(0),
+       "limit to the size of the largest component (stop if drops to that value")
+      ;
+    this->knownModels.push_back
+      (std::make_pair("GroupForm",
+                      new Models::GroupFormModel<Graph>
+                      (this->getVerbose())));
+  }
+  
+
+  template <typename RandomGenerator, typename Graph>
+  bool GroupFormSimulator<RandomGenerator, Graph>::
+  parse_options(const po::variables_map& vm)
+  { 
+    bool ret = Simulator<Graph>::parse_options(vm);
+    stopComponent = vm["cmin"].as<unsigned int>();
+    if (vm.count("comp")) {
+      this->statRecorders.push_back(new StatRecorder<Graph>
+                                    (new write_comp_dist<Graph>(this->getGraph()),
+                                     vm["comp"].as<double>()));
+    }
+    return ret;
+  }
+
+
   //----------------------------------------------------------
   /*! \brief Initialise the simulation.
-  
+    
   Initialises the graph with the rates for the possible processes and generates 
   the Tree using these rates.
   */
   template <typename RandomGenerator, typename Graph>
   void GroupFormSimulator<RandomGenerator, Graph>::initialise()
   {
-    Simulator::initialise();
-
+    Simulator<Graph>::initialise();
+    Graph& graph = this->getGraph();
+    const Models::GroupFormModel<Graph>* model =
+      dynamic_cast<const Models::GroupFormModel<Graph>*>(this->getModel());
+    
     // set trait for each vertex 
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-      graph[*vi].state = State(0, (randGen)());
+      std::vector<double> randTraits;
+      for (unsigned int i = 0; i < model->getTraitDim(); ++i) {
+	randTraits.push_back((randGen)());
+      }
+      GroupFormState* myState = dynamic_cast<GroupFormState*>(graph[*vi].state);
+      myState->setTrait(randTraits);
       if (verbose >=1) {
-        std::cout << "Associating trait " << graph[*vi].state.detail
-                  << " with vertex " << *vi << std::endl;
+        std::cout << "Associating trait (";
+	for (unsigned int i = 0; i < model->getTraitDim(); ++i) {
+	  if (i>0) std::cout << ",";
+	  std::cout << myState->getTrait(i);
+	}
+	std::cout  << ") with vertex " << *vi << std::endl;
       }
     }
 
-    // seed groups
-    for (unsigned int i = 1; i <= groups; ++i) {
+    // initially seed groups
+    for (unsigned int i = 1; i <= model->getGroups(); ++i) {
       vertex_descriptor v = random_vertex(graph, randGen);
-      if (graph[v].state.base == 0) {
-        graph[v].state.base = i;
+      if (graph[v].state->getState() == 0) {
+        graph[v].state->setState(i);
         active.push_back(v);
         if (verbose >=1) {
           std::cout << "Seeding group " << i << " with vertex " << v << std::endl;
@@ -123,6 +193,9 @@ namespace Simulators {
   template <typename RandomGenerator, typename Graph>
   bool GroupFormSimulator<RandomGenerator, Graph>::updateState()
   {
+    Graph& graph = this->getGraph();
+    const Models::GroupFormModel<Graph>* model =
+      dynamic_cast<const Models::GroupFormModel<Graph>*>(this->getModel());
     
     if (active.size() > 0) {
 
@@ -142,8 +215,9 @@ namespace Simulators {
       unsigned int randActive =
         static_cast<unsigned int>((randGen)() * active.size());
       if (verbose >=2) {
-        std::cout << "Active node " << active[randActive]
-                  << " is sending out invitations" << std::endl;
+        std::cout << "Active node " << active[randActive] << " ("
+                  << model->printState(graph[active[randActive]].state)
+                  << ") is sending out invitations" << std::endl;
       }
     
       // invite all neighbours to group
@@ -151,18 +225,20 @@ namespace Simulators {
    
       for (tie(oi, oi_end) = boost::out_edges(active[randActive], graph);
            oi != oi_end; ++oi) {
-        if (graph[target(*oi, graph)].state.base == 0) {
+        if (graph[target(*oi, graph)].state->getState() == 0) {
           double randAccept = randGen();
           if (verbose >=2) {
             std::cout << "Invitation to " << target(*oi, graph) << " ("
-                      << graph[active[randActive]].state.detail << ","
-                      << graph[target(*oi, graph)].state.detail << ")";
+                      << model->printState(graph[target(*oi, graph)].state)
+                      << ")" << std::endl;
           }
-          if (randAccept < alpha*(1-fabs(graph[active[randActive]].state.detail -
-                                         graph[target(*oi, graph)].state.detail))) {
+          if (randAccept < model->accept(graph[active[randActive]].state,
+                                         graph[target(*oi, graph)].state)) {
             // accept invitation
-            graph[target(*oi, graph)].state.base =
-              graph[active[randActive]].state.base;
+            GroupFormState* myState =
+              dynamic_cast<GroupFormState*>(graph[target(*oi, graph)].state);
+
+            myState->setState(graph[active[randActive]].state->getState());
             // add to active nodes
             active.push_back(target(*oi, graph));
             if (verbose >=2) {
@@ -180,18 +256,19 @@ namespace Simulators {
       active.erase(active.begin() + randActive);
 
       // update time if group formation phase is finished
-      if (active.size() == 0) updateTime(1.);
+      if (active.size() == 0) this->updateTime(1.);
       
     } else {
       // network update stage
       if (verbose >=1) {
-        std::cout << "Network update stage, time=" << getTime() << std::endl;
+        std::cout << "Network update stage, time=" << this->getTime() 
+		  << std::endl;
       }
 
       // go through members group by group
       std::vector<vertex_descriptor> group;
       
-      for (unsigned int i = 1; i <= groups; ++i) {
+      for (unsigned int i = 1; i <= model->getGroups(); ++i) {
         if (verbose >=2) {
           std::cout << "Group " << i << std::endl;
         }
@@ -199,7 +276,7 @@ namespace Simulators {
         
         vertex_iterator vi, vi_end;
         for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-          if (graph[*vi].state.base == i) group.push_back(*vi);
+          if (graph[*vi].state->getState() == i) group.push_back(*vi);
         }
 
         // loop over all member of group and update ties
@@ -216,12 +293,13 @@ namespace Simulators {
           
           for (tie(oi, oi_end) = boost::out_edges(group[i], graph);
                oi != oi_end; ++oi) {
-            double distance = fabs(graph[group[i]].state.detail -
-                                   graph[target(*oi, graph)].state.detail);
+            double current_distance = 
+              model->distance(graph[group[i]].state,
+                              graph[target(*oi, graph)].state);
             
-            if (distance > biggest_distance) {
+            if (current_distance > biggest_distance) {
               weakest_link = *oi;
-              biggest_distance = distance;
+              biggest_distance = current_distance;
             }
           }
           // find most similar neighbour in group
@@ -229,15 +307,16 @@ namespace Simulators {
           vertex_descriptor similar_neighbour;
 
           for (unsigned int j = 0; j < group.size(); ++j) {
-            double distance = 1.;
+            double current_distance = 1.;
             if (i != j) {
-              distance = fabs(graph[group[i]].state.detail -
-                              graph[group[j]].state.detail);
+              current_distance =
+                model->distance(graph[group[i]].state,
+                                graph[group[j]].state);
             }
-            if (distance < lowest_distance &&
+            if (current_distance < lowest_distance &&
                 edge(group[i], group[j], graph).second == false) {
               similar_neighbour = group[j];
-              lowest_distance = distance;
+              lowest_distance = current_distance;
             }
           }
 
@@ -260,12 +339,12 @@ namespace Simulators {
       // seed groups again
       vertex_iterator vi, vi_end;
       for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-        graph[*vi].state.base = 0;
+        graph[*vi].state->setState(0);
       }
-      for (unsigned int i = 1; i <= groups; ++i) {
+      for (unsigned int i = 1; i <= model->getGroups(); ++i) {
         vertex_descriptor v = random_vertex(graph, randGen);
-        if (graph[v].state.base == 0) {
-          graph[v].state.base = i;
+        if (graph[v].state->getState() == 0) {
+          graph[v].state->setState(i);
           active.push_back(v);
           if (verbose >=2) {
             std::cout << "Seeding group " << i << " with vertex " << v << std::endl;

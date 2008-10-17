@@ -11,7 +11,7 @@
 #include <boost/random/variate_generator.hpp>
 
 #include "Tree.hh"
-#include "Simulator.hh"
+#include "EpiSimulator.hh"
 
 namespace Simulators {
   
@@ -26,7 +26,7 @@ namespace Simulators {
   */
   template <typename RandomGenerator, typename Graph>
   class ChrisSimulator :
-    virtual public Simulator
+    virtual public Simulator<Graph>
   {
     
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
@@ -46,12 +46,11 @@ namespace Simulators {
       
     \param[in] r randGen initialiser
     \param[in] g graph initialiser
-    \param[in] m model initialiser (in Simulator::Simulator)
+    \param[in] m model initialiser (in EpiSimulator::EpiSimulator)
     \param[in] v verbose initialiser (in Simulator::Simulator)
     */
-    ChrisSimulator(RandomGenerator& r, Graph& g, Model& m,
-                   unsigned int v = 0) :
-      Simulator(m, v), randGen(r), graph(g) {;}
+    ChrisSimulator(RandomGenerator& r, Graph& g, unsigned int v = 0) :
+      Simulator<Graph>(g, v), randGen(r), graph(g) {;}
     ~ChrisSimulator() {;}
     
     void initialize();
@@ -64,7 +63,7 @@ namespace Simulators {
     //! \brief An event in the Chris simulator
     struct ChrisEvent
     {
-      State newState; //! The new state after the event happens.
+      State* newState; //! The new state after the event happens.
       vertex_descriptor vertex; //! The affected vertex.
       double eventTime; //! The time at which the event will happen.
       bool valid; //! Whether the event can still happen.
@@ -133,13 +132,13 @@ namespace Simulators {
   template <typename RandomGenerator, typename Graph>
   void ChrisSimulator<RandomGenerator, Graph>::print()
   {
-    const Model& model = this->getModel();
+    const Model<Graph>* model = this->getModel();
 
     ChrisEvent* ev = events.top();
     
     std::cout << "Next event: Vertex #" << ev->vertex << " ["
-              << model.getVertexStates()[graph[ev->vertex].state.base]
-              << " --> " << model.getVertexStates()[ev->newState.base]
+              << model->getVertexStates()[graph[ev->vertex].state->getState()]
+              << " --> " << model->getVertexStates()[ev->newState->getState()]
               << "]" << std::endl;
   }
   
@@ -151,9 +150,9 @@ namespace Simulators {
   template <typename RandomGenerator, typename Graph>
   void ChrisSimulator<RandomGenerator, Graph>::generateEvents(vertex_descriptor v)
   {
-    const Model& model = this->getModel();
-
-    generateEventList(graph, v, model);
+    const Model<Graph>* model = this->getModel();
+    
+    generateEventList(graph, v, *model);
     
     for (eventList::iterator it = graph[v].events.begin();
          it != graph[v].events.end(); it++) {

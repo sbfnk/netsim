@@ -32,14 +32,6 @@
 #include "GroupFormSimulator.hh"
 #include "GillespieSimulator.hh"
 #include "ChrisSimulator.hh"
-#include "Vertex.hh"
-
-// models
-#include "InfoSIRS.hh"
-#include "DimInfoSIRS.hh"
-#include "VaccinationSIRS.hh"
-#include "ProtectiveSIRS.hh"
-#include "SingleSIRS.hh"
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
@@ -49,17 +41,10 @@ typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
 typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
                               Vertex, Edge> onetype_graph;
 
-std::string generateFileName(std::string nameBase, unsigned int id)
-{
-  std::stringstream s;
-  s << nameBase << std::setw(6) << std::setfill('0') << id;
-  return s.str();
-}
-
 int main(int argc, char* argv[])
 {
-  Model* model = 0;
-  Simulator* sim = 0;
+  const Model<multitype_graph>* model = 0;
+  Simulator<multitype_graph>* sim = 0;
 
   std::vector <unsigned int> init;
   
@@ -67,22 +52,6 @@ int main(int argc, char* argv[])
   // read parameters
   /******************************************************************/
   unsigned int N = 0;
-  double stopTime = 0;
-  unsigned int stopInfections;
-  unsigned int stopInformations;
-  unsigned int stopComponent;
-  unsigned int infLimit;
-  bool belowInfLimit = true;
-  bool nostop = false;
-
-  unsigned int largest_component = 0;
-
-  double outputData = 0.;
-  double outputGraphviz = -1.;
-  double outputDist = -1.;
-  double outputCorr = -1.;
-  double outputRiskInfo = -1.;
-  double outputComponent = -1.;
 
   char* dataDirEnv = getenv("DATADIR");
   std::string outputDir = "";
@@ -97,9 +66,6 @@ int main(int argc, char* argv[])
     inputGraphDir = graphDirEnv;
   } 
 
-  std::string outputFileName = "";
-  std::ofstream* outputFile = 0;
-
   unsigned int verbose = 0;
   bool printStats = false;
 
@@ -110,16 +76,14 @@ int main(int argc, char* argv[])
   
   bool allFromOne;
 
-  bool pairs = false;
-  bool triples = false;
   bool effective = true;
 
   bool doIO = false;
 
-  po::options_description command_line_options
+  po::options_description main_options
     ("\nUsage: simulate [options]... \n\nMain options");
 
-  command_line_options.add_options()
+  main_options.add_options()
     ("help,h",
      "produce help message")
     ("longhelp,H",
@@ -130,58 +94,17 @@ int main(int argc, char* argv[])
      "produce very verbose output")
     ("params-file,p",po::value<std::string>(),
      "file containing model parameters")
-    ;
-
-  po::options_description sim_options
-    ("\nSimulation options");
-
-  sim_options.add_options()
-    ("sim", po::value<std::string>()->default_value("Gillespie"),
-     "simulator to use (Gillespie, Chris, GroupForm)")
-    ("usemodel,m", po::value<std::string>()->default_value("DimInfoSIRS"),
-     "model to use (InfoSIRS, DimInfoSIRS, VaccinationSIRS, ProtectiveSIRS, SingleSIRS)")
-    ("tmax", po::value<double>()->default_value(stopTime),
-     "time after which to stop\n(use tmax=0 to run until extinction)")
-    ("imax", po::value<unsigned int>()->default_value(0),
-     "number of infections after which to stop (if >0)")
-    ("pmax", po::value<unsigned int>()->default_value(0),
-     "number of informations after which to stop (if >0)")
-    ("nostop", 
-     "do not stop when outbreak has ended")
-    ("limit", po::value<unsigned int>()->default_value(0),
-     "limit to the number of infectives (stop if reached)")
-    ("cmin", po::value<unsigned int>()->default_value(0),
-     "limit to the size of the largest component (stop if drops to that value")
-    ("data,d", po::value<double>()->default_value(outputData),
-     "write output data at arg timesteps (0 for no data output)")
-    ("graphviz,g", po::value<double>()->default_value(outputGraphviz),
-     "create graphviz output in the images directory at arg timesteps")
-    ("info-dist,i", po::value<double>()->default_value(outputDist),
-     "create information distribution in the dist directory at arg timesteps")
-    ("info-dis-corr,c", po::value<double>()->default_value(outputCorr),
-     "create correlation between information and infection in the corr directory at arg timesteps")
-    ("risk-info,r",po::value<double>()->default_value(outputRiskInfo),
-     "create informedness of population at risk in risk directory at arg timesteps")
-    ("component-dist,t",po::value<double>()->default_value(outputComponent),
-     "write component distribution in comp directory at arg timesteps")
-    ("lattice,l", 
-     "paint output as pixelised lattices")
+    ("sim", po::value<std::string>()->default_value("EpiGillespie"),
+     "simulator to use (EpiGillespie, Chris, GroupForm)")
     ("output-dir,o",po::value<std::string>(),
      "output directory for graph and data output (as subdir of $DATADIR)")
     ("nsims", po::value<unsigned int>()->default_value(1),
      "number of simulation runs to produce (on a given graph)")
-    // to change
-    ("groups", po::value<unsigned int>()->default_value(1),
-     "number of seed groups")
-    ("alpha", po::value<double>()->default_value(0.),
-     "alpha")
     ;
   
-  po::options_description temp_options;
-  temp_options.add(command_line_options).add(sim_options);
   po::variables_map vm;
   try {
-    po::store(po::command_line_parser(argc, argv).options(temp_options).
+    po::store(po::command_line_parser(argc, argv).options(main_options).
               allow_unregistered().run(), vm);
   }
   catch (std::exception& e) {
@@ -198,31 +121,89 @@ int main(int argc, char* argv[])
     verbose = 2;
   }
   if (vm.count("help")) {
-    std::cout << command_line_options << sim_options << std::endl;
+    std::cout << main_options << std::endl;
     return 0;
   }
 
-  if (vm.count("usemodel")) {
-    std::string modelString = vm["usemodel"].as<std::string>();
-    if (modelString == "InfoSIRS") {
-      model = new Models::InfoSIRS(verbose);
-    } else if (modelString == "DimInfoSIRS") {
-      model = new Models::DimInfoSIRS(verbose); 
-    } else if (modelString == "VaccinationSIRS") {
-      model = new Models::VaccinationSIRS(verbose); 
-    } else if (modelString == "ProtectiveSIRS") {
-      model = new Models::ProtectiveSIRS(verbose); 
-    } else if (modelString == "SingleSIRS") {
-      model = new Models::SingleSIRS(verbose); 
+  numSims = vm["nsims"].as<unsigned int>();
+
+  if (numSims < 1) {
+    std::cerr << "nsims smaller than one, not running any simulations" << std::endl;
+    return 0;
+  }
+
+  /******************************************************************/
+  // create graph variable
+  /******************************************************************/
+  multitype_graph graph, saved_graph;
+  
+  /******************************************************************/
+  // initialise random generator
+  /******************************************************************/
+
+  unsigned int seed;
+  struct timeval tv;
+  gettimeofday(&tv, 0);
+  seed = tv.tv_sec + tv.tv_usec;
+  boost::mt19937 gen(seed);
+
+  /******************************************************************/
+  // create simulator
+  /******************************************************************/
+
+  if (vm.count("sim")) {
+    std::string simType = vm["sim"].as<std::string>();
+    if (simType == "EpiGillespie") {
+      sim = new Simulators::EpiSimulator<boost::mt19937, multitype_graph>
+        (gen, graph, verbose);
+    } else if (simType == "Chris") {
+      sim = new Simulators::ChrisSimulator<boost::mt19937, multitype_graph>
+        (gen, graph, verbose);
+    } else if (simType == "GroupForm") {
+      sim = new Simulators::GroupFormSimulator<boost::mt19937, multitype_graph>
+        (gen, graph, verbose);
     } else {
-      std::cerr << "ERROR: unknown model: " << modelString << std::endl;
+      std::cerr << "ERROR: unknown simulator: " << simType << std::endl;
       return 1;
     }
   } else {
-    
-    std::cerr << "ERROR: no model specified" << std::endl;
+    std::cerr << "ERROR: no simulator specified" << std::endl;
     return 1;
   }
+
+  po::options_description temp_options;
+  temp_options.add(main_options).add(sim->getOptions());
+  try {
+    po::store(po::command_line_parser(argc, argv).options(temp_options).
+              allow_unregistered().run(), vm);
+  }
+  catch (std::exception& e) {
+    std::cerr << "ERROR parsing command line parameters: " << e.what()
+              << std::endl;
+    return 1;
+  }
+  po::notify(vm);
+  sim->parse_options(vm);
+
+  model = sim->getModel();
+  if (model == 0) {
+    std::cerr << "ERROR: no model" << std::endl;
+    return 1;
+  }
+
+  temp_options.add(model->getOptions());
+
+  try {
+    po::store(po::command_line_parser(argc, argv).options(temp_options).
+              allow_unregistered().run(), vm);
+  }
+  catch (std::exception& e) {
+    std::cerr << "ERROR parsing command line parameters: " << e.what()
+              << std::endl;
+    return 1;
+  }
+
+  sim->InitModel(vm);
 
   std::vector<Label> edgeTypes = model->getEdgeTypes();
   unsigned int nEdgeTypes = edgeTypes.size();
@@ -240,20 +221,6 @@ int main(int argc, char* argv[])
        ("file to read "+edgeTypes[i].getText()+"-network from (.graph will be appended)").c_str());
   }
   
-  po::options_description statistics_options
-    ("\nStatistics");
-  
-  statistics_options.add_options()
-    ("print-stats",
-     "print stats at the end of run")
-    ("pairs",
-     "count pairs")
-    ("triples",
-     "count triples")
-    ("noeffective",
-     "do not count effective singles (weighted by detailed state)")
-    ;
-  
   po::options_description ic_options
     ("\nInitial conditions");
 
@@ -262,8 +229,6 @@ int main(int argc, char* argv[])
      "graphviz file to get initial conditions from")
     ("same-ic", 
      "start with the same initial conditions for each run")
-    ("detail", po::value<double>()->default_value(0.),
-     "base detail state of individuals (information quality)")
     ("base,b", po::value<std::string>()->default_value
      (model->getVertexStates().begin()->getText()),
      "base state of individuals")
@@ -277,13 +242,9 @@ int main(int argc, char* argv[])
        ("number of randomly chosen " + it->getText()).c_str());
   }
   
-  po::options_description model_options = model->getOptions();
-
   // read options from command line
   po::options_description all_options;
-  all_options.add(command_line_options).add(sim_options).
-    add(ic_options).add(graph_options).add(statistics_options).
-    add(model_options);
+  all_options.add(temp_options).add(ic_options).add(graph_options);
 
   std::vector<std::string> unregistered;
   
@@ -324,23 +285,6 @@ int main(int argc, char* argv[])
   
   po::notify(vm);
 
-  /******************************************************************/
-  // initialise random generator
-  /******************************************************************/
-
-  unsigned int seed;
-  struct timeval tv;
-  gettimeofday(&tv, 0);
-  seed = tv.tv_sec + tv.tv_usec;
-  boost::mt19937 gen(seed);
-
-  /******************************************************************/
-  // create graph variable
-  /******************************************************************/
-  multitype_graph graph, saved_graph;
-  void (*graph_function)(const multitype_graph&, std::string,
-                         const Model&, double) = 0;
-  
   /******************************************************************/
   // read graph from file
   /******************************************************************/
@@ -413,18 +357,10 @@ int main(int argc, char* argv[])
   // checking graph
   if (num_vertices(graph) == 0) {
     std::cerr << "ERROR: no vertices" << std::endl;
-    std::cerr << command_line_options << graph_options << std::endl;
+    std::cerr << main_options << graph_options << std::endl;
     return 1;
   }
 
-  // consider pairs
-  if (vm.count("pairs")) {
-    pairs = true;
-  }
-  // consider triples
-  if (vm.count("triples")) {
-    triples = true;
-  }
   // consider effective singles
   if (vm.count("noeffective")) {
     effective = false;
@@ -439,53 +375,12 @@ int main(int argc, char* argv[])
   // mark parallel edges
   /******************************************************************/
 
-  if (pairs) {
-    // mark parallel edges
-    unsigned int parallel_edges = mark_parallel_edges(graph);
-    if (verbose) std::cout << "No. of parallel edges is: " << parallel_edges
-                           << std::endl;
-  }
+  // mark parallel edges
+  unsigned int parallel_edges = mark_parallel_edges(graph);
+  if (verbose) std::cout << "No. of parallel edges is: " << parallel_edges
+                         << std::endl;
 
-  // timesteps after which to write data output
-  if (vm.count("data")) {
-    outputData = vm["data"].as<double>();
-  }
-  // timesteps after which to write graphviz output
-  if (vm.count("graphviz")) {
-    outputGraphviz = vm["graphviz"].as<double>();
-  }
-
-  // timesteps after which to write info distribution
-  if (vm.count("info-dist")) {
-    outputDist = vm["info-dist"].as<double>();
-  }
-
-  // timesteps after which to write informedness-disease correlation
-  if (vm.count("info-dis-corr")) {
-    outputCorr = vm["info-dis-corr"].as<double>();
-  }
-
-  // timesteps after which to write informedness of population at risk
-  if (vm.count("risk-info")) {
-    outputRiskInfo = vm["risk-info"].as<double>();
-  }
-
-  // timesteps after which to write component distribution
-  if (vm.count("component-dist")) {
-    outputComponent = vm["component-dist"].as<double>();
-  }
-
-  doIO = (outputData > 0 || outputGraphviz >= 0 || outputDist >= 0 || 
-  	  outputCorr >= 0 || outputRiskInfo >= 0 || outputComponent >=0);
-
-  // paint images as lattice
-  if (vm.count("lattice")) {
-    graph_function = &boost::write_png;
-  } else {
-    graph_function = &boost::write_graph;
-  }
-
-  numSims = vm["nsims"].as<unsigned int>();
+  doIO = (sim->doIO());
 
   unsigned int extLength = 0;
 
@@ -513,14 +408,6 @@ int main(int argc, char* argv[])
     baseState = 0;
   }
 
-  double baseDetail = model->getInitDetail(baseState); 
-  if (vm.count("detail")) {
-    if ((vm["detail"].as<double>() >= 0.) &&
-       (vm["detail"].as<double>() <= 1.)) {
-      baseDetail = vm["detail"].as<double>();
-    }
-  }
-
   if (vm.count("init")) { // read initial state from file
 
     std::string icFileName = vm["init"].as<std::string>();
@@ -537,9 +424,6 @@ int main(int argc, char* argv[])
       std::cout << "Read " << verticesRead << " initial states from "
                 << icFileName << std::endl;
     }
-    if (verbose >= 1) {
-      print_sim_status(graph, *model, pairs, triples);
-    }
     generateIC = false;
   } else if (vm.count("same-ic")) {
     keepIC = true;
@@ -549,104 +433,58 @@ int main(int argc, char* argv[])
     outputDir += "/"+vm["output-dir"].as<std::string>();
   }
 
-  if (numSims > 0) {
+  /******************************************************************/
+  // read simulation paramters
+  /******************************************************************/
 
-    /******************************************************************/
-    // initialise model
-    /******************************************************************/
-    if (numSims > 0) {
-      model->Init(vm);
-      if (verbose >= 1) model->Print();
-    }
+  // XXXXXXXXXXXXXXXXXXX UPDATE XXXXXXXXXXXXXXXXXXX
+//   stopInfections = vm["imax"].as<unsigned int>();
+//   stopInformations = vm["pmax"].as<unsigned int>();
 
-    /******************************************************************/
-    // create simulator
-    /******************************************************************/
-
-    if (vm.count("sim")) {
-      std::string simType = vm["sim"].as<std::string>();
-      if (simType == "Gillespie") {
-        sim = new Simulators::GillespieSimulator<boost::mt19937, multitype_graph>
-          (gen, graph, *model, verbose);
-      } else if (simType == "Chris") {
-        sim = new Simulators::ChrisSimulator<boost::mt19937, multitype_graph>
-          (gen, graph, *model, verbose);
-      } else if (simType == "GroupForm") {
-        sim = new Simulators::GroupFormSimulator<boost::mt19937, multitype_graph>
-          (gen, graph, *model, vm["groups"].as<unsigned int>(),
-           vm["alpha"].as<double>(), verbose);
-      } else {
-        std::cerr << "ERROR: unknown simulator: " << simType << std::endl;
-        return 1;
-      }
-    } else {
-      std::cerr << "ERROR: no simulator specified" << std::endl;
-      return 1;
-    }
-
-    /******************************************************************/
-    // read simulation paramters
-    /******************************************************************/
-
-    stopTime = vm["tmax"].as<double>();
-    stopInfections = vm["imax"].as<unsigned int>();
-    stopInformations = vm["pmax"].as<unsigned int>();
-    stopComponent = vm["cmin"].as<unsigned int>();
-
-    infLimit = vm["limit"].as<unsigned int>();
-    if (infLimit > 0 && outputData == 0) {
-      std::cerr << "WARNING: infLimit ignored because outputData == 0" << std::endl;
-      infLimit = 0;
-    }
-    if (vm.count("nostop")) {
-      nostop = true;
-    }
-        
-    if (doIO) {
-      // remove existing data
-      if (fs::exists(outputDir)) {
-        fs::directory_iterator iter(outputDir), end_iter;
-        for (; iter != end_iter; ++iter) {
-          if (iter->leaf().substr(0,3) == "run") {
-            if (fs::is_directory(*iter)) {
-              fs::remove_all(outputDir+"/"+(iter->leaf()));
-            }
+  if (doIO) {
+    // remove existing data
+    if (fs::exists(outputDir)) {
+      fs::directory_iterator iter(outputDir), end_iter;
+      for (; iter != end_iter; ++iter) {
+        if (iter->leaf().substr(0,3) == "run") {
+          if (fs::is_directory(*iter)) {
+            fs::remove_all(outputDir+"/"+(iter->leaf()));
           }
         }
-      } else {
-        mkdir(outputDir.c_str(), 0755);
       }
-      std::ofstream cmdLineFile;
-      std::string cmdLineFileName = outputDir + "/cmd_line.txt";
-      cmdLineFile.open(cmdLineFileName.c_str(), std::ios::out);
-      cmdLineFile << argv[0] << " ";
-      for (int i = 1; i < argc; i++) {
-          cmdLineFile << argv[i] << " ";
-      }
-      cmdLineFile << std::endl;
-      cmdLineFile.close();
+    } else {
+      mkdir(outputDir.c_str(), 0755);
     }
+    std::ofstream cmdLineFile;
+    std::string cmdLineFileName = outputDir + "/cmd_line.txt";
+    cmdLineFile.open(cmdLineFileName.c_str(), std::ios::out);
+    cmdLineFile << argv[0] << " ";
+    for (int i = 1; i < argc; i++) {
+      cmdLineFile << argv[i] << " ";
+    }
+    cmdLineFile << std::endl;
+    cmdLineFile.close();
   }
-
+  
   for (unsigned int nSim = 1; nSim <= numSims; nSim++) {
-
-    if (printStats) {
+    
+    if (verbose >= 1) {
       std::cout << "----- " << "run #" << nSim << std::endl;
     } else if (numSims > 0 && !verbose) {
       std::cout << ".";
       std::cout.flush();
     }
-
+    
     /******************************************************************/
     // generate new initial state
     /******************************************************************/
-
+    
     if (generateIC) { // generate new initial state
-
+      
       /******************************************************************/
       // set initial vertex states
       /******************************************************************/
-
+      
       init.clear();
       // how many random vertices of each state are to be initialised
       // over the background of the base state
@@ -671,8 +509,8 @@ int main(int argc, char* argv[])
       // set the initial state of all vertices to the base state
       boost::graph_traits<multitype_graph>::vertex_iterator vi, vi_end;
       for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-        graph[*vi].state =
-          State(baseState, baseDetail);
+        graph[*vi].state = model->newState();
+        graph[*vi].state->setState(baseState);
       }
 
       // sum over vector init to make sure the sum is less than N
@@ -694,8 +532,8 @@ int main(int argc, char* argv[])
           bool inserted = false;
           while (!inserted) {
             v = boost::random_vertex(graph, gen);
-            if (graph[v].state.base == baseState) {
-              graph[v].state = State(i, model->getInitDetail(i));
+            if (graph[v].state->getState() == baseState) {
+              graph[v].state->setState(i);
               inserted = true;
             }
           }
@@ -727,12 +565,7 @@ int main(int argc, char* argv[])
 
     if (doIO) mkdir(runOutputDir.c_str(), 0755);
 
-    std::string runDataDir = runOutputDir;
-    std::string runGraphDir = runOutputDir + "/images";
-    std::string runDistDir = runOutputDir + "/dist";
-    std::string runCorrDir = runOutputDir + "/corr";
-    std::string runRiskDir = runOutputDir + "/risk";
-    std::string runCompDir = runOutputDir + "/comp";
+    sim->setDir(runOutputDir);
 
     /******************************************************************/
     // write model parameters
@@ -770,226 +603,22 @@ int main(int argc, char* argv[])
     }
 
     /******************************************************************/
-    // open output file
-    /******************************************************************/
-    if (outputData > 0) {
-      // create data directory
-      mkdir(runDataDir.c_str(), 0755);
-      outputFileName = runDataDir + "/" + runStr.str() + ".sim.dat";
-
-      try {
-        outputFile = new std::ofstream();
-        outputFile->open(outputFileName.c_str(), std::ios::out);
-      }
-      catch (std::exception &e) {
-        std::cerr << "Unable to open output file: " << e.what() << std::endl;
-      }
-    }
-
-
-    /******************************************************************/
     // initialise Simulator
     /******************************************************************/
     sim->initialise();
 
-    // print time
-    if (verbose)
-      std::cout << std::endl << "time elapsed: " << sim->getTime() << std::endl;
-
-    // GraphViz output
-    if (outputGraphviz >= 0) {
-      // create graph directory
-      mkdir(runGraphDir.c_str(), 0755);
-      graph_function(graph, (runGraphDir + "/frame000000"), *model, -1);
-    }
-    // Information distribution output
-    if (outputDist >= 0) {
-      // create distribution directory
-      mkdir(runDistDir.c_str(), 0755);
-      write_detail_dist(graph, (runDistDir + "/dist000000"));
-    }
-    // Information-disease correlation output
-    if (outputCorr >= 0) {
-      // create distribution directory
-      mkdir(runCorrDir.c_str(), 0755);
-      write_info_dis_corr(graph, *model, Edge(0), (runCorrDir + "/corr000000"));
-    }
-    // Information of population at risk output
-    if (outputRiskInfo >= 0) {
-      // create distribution directory
-      mkdir(runRiskDir.c_str(), 0755);
-      write_risk_info(graph, (runRiskDir + "/risk000000"));
-    }
-    // Information of component distribution output
-    if (outputComponent >= 0) {
-      // create distribution directory
-      mkdir(runCompDir.c_str(), 0755);
-      largest_component = 
-	write_component_dist(graph, (runCompDir + "/comp000000"));
-      std::cout << "largest component " << largest_component << std::endl;
-    }
-
-
-
-    // prints data to outputFile
-    std::string lastLine = "";
-    if (outputFile) {
-      belowInfLimit =
-        write_sim_data(graph, *model, sim->getTime(), *outputFile,
-                       lastLine, infLimit, pairs, triples, effective);
-    }
-    if (verbose) print_sim_status(graph, *model, pairs, triples);
-
+  /******************************************************************/
+  // run simulation
     /******************************************************************/
-    // run simulation
-    /******************************************************************/
-    double nextDataStep = outputData;
-    double nextGraphStep = outputGraphviz;
-    double nextDistStep = outputDist;
-    double nextCorrStep = outputCorr;
-    double nextRiskStep = outputRiskInfo;
-    double nextCompStep = outputComponent;
-
-    double outputStep = 1;
-    double nextOutputStep = outputStep;
-
-    double lastDataStep = 0;
-
-    unsigned int graphOutputNum = 1;
-    unsigned int distOutputNum = 1;
-    unsigned int corrOutputNum = 1;
-    unsigned int riskOutputNum = 1;
-    unsigned int compOutputNum = 1;
-
-    while ((stopTime == 0 || sim->getTime() < stopTime) &&
-           (stopInfections == 0 || (sim->getNumInfections() < stopInfections &&
-                                    sim->getNumInfections()+1 > sim->getNumRecoveries())) &&
-           (nostop || sim->getNumInfections()+1 > sim->getNumRecoveries()) &&
-           (stopInformations == 0 || (sim->getNumInformations() < stopInformations && 
-                                      sim->getNumInformations()+1 > sim->getNumForgettings())) &&
-           (largest_component > stopComponent) &&
-            belowInfLimit &&
-            sim->updateState()) {
-      
-      if (verbose >= 2) {
-        print_sim_status(graph, *model, pairs, triples);
-      }
-
-      if (verbose && sim->getTime() > nextOutputStep) {
-        std::cout << "time elapsed: " << nextOutputStep << std::endl;
-        print_sim_status(graph, *model, pairs, triples);
-        nextOutputStep += outputStep;
-      }
-
-      if (outputFile && sim->getTime() > nextDataStep) {
-        belowInfLimit =
-          write_sim_data(graph, *model, sim->getTime(), *outputFile,
-                         lastLine, infLimit, pairs, triples, effective);
-	lastDataStep = sim->getTime();
-        if (outputData > 0) {
-          do {
-            nextDataStep += outputData;
-          } while (sim->getTime() > nextDataStep);
-        }
-        outputFile->flush();
-      }
-      if ((outputGraphviz > 0) && (sim->getTime() > nextGraphStep)) {
-        graph_function(graph,
-                       generateFileName((runGraphDir+"/frame"),
-                                        graphOutputNum),
-                       *model,
-                       sim->getTime());
-        do {
-          nextGraphStep += outputGraphviz;
-        } while (sim->getTime() > nextGraphStep);
-        ++graphOutputNum;
-      }
-      if ((outputDist > 0) && (sim->getTime() > nextDistStep)) {
-        write_detail_dist(graph,
-                          generateFileName((runDistDir+"/dist"),
-                                           distOutputNum));
-
-        do {
-          nextDistStep += outputDist;
-        } while (sim->getTime() > nextDistStep);
-        ++distOutputNum;
-      }
-      if ((outputCorr > 0) && (sim->getTime() > nextCorrStep)) {
-        write_info_dis_corr(graph, *model, Edge(0),
-                            generateFileName((runCorrDir+"/corr"),
-                                             corrOutputNum));
-
-        do {
-          nextCorrStep += outputCorr;
-        } while (sim->getTime() > nextCorrStep);
-        ++corrOutputNum;
-      }
-      if ((outputRiskInfo > 0) && (sim->getTime() > nextRiskStep)) {
-        write_risk_info(graph, generateFileName((runRiskDir+"/risk"),
-                                                riskOutputNum));
-
-        do {
-          nextRiskStep += outputRiskInfo;
-        } while (sim->getTime() > nextRiskStep);
-        ++riskOutputNum;
-      }
-      if ((outputComponent > 0) && (sim->getTime() > nextCompStep)) {
-        largest_component = 
-	  write_component_dist(graph, generateFileName((runCompDir+"/comp"),
-                                                        compOutputNum));
-        std::cout << "largest component " << largest_component << std::endl;
-
-        do {
-          nextCompStep += outputComponent;
-        } while (sim->getTime() > nextCompStep);
-        ++compOutputNum;
-      }
-      //      std::cout << "1:" << (stopTime == 0) << " "
-      //		<< "2:" << (sim->getTime() < stopTime) << " "
-      //		<< "3:" << (stopInfections == 0) << " "
-      //		<< "4:" << (sim->getNumInfections() < stopInfections) << " "
-      //		<< "5:" << (sim->getNumInfections()+1 > sim->getNumRecoveries()) << " "
-      //		<< "6:" << (stopInformations == 0) << " "
-      //		<< "7:" << (sim->getNumInformations() < stopInformations) << " "
-      //		<< "8:" << (sim->getNumInformations()+1 > sim->getNumForgettings()) << std::endl;
+    while ((sim->stopCondition() == false) && sim->updateState()) {
+      sim->updateStats();
     }
 
-    if (verbose) std::cout << "Final status (" << sim->getTime() << "): "
-                           << std::endl;
-    if (outputGraphviz >= 0) {
-      graph_function(graph,
-                     generateFileName((runGraphDir+"/frame"),
-                                      graphOutputNum),
-                     *model,
-                     sim->getTime());
-    }
-    if (outputDist >= 0) {
-      write_detail_dist(graph,
-                        generateFileName((runDistDir+"/dist"),
-                                         distOutputNum));
-    }
-    if (outputCorr >= 0) {
-      write_info_dis_corr(graph, *model, Edge(0),
-                          generateFileName((runCorrDir+"/corr"),
-                                           corrOutputNum));
-    }
-
-    double endTime = (stopTime == 0) ? sim->getTime() : stopTime;
-    if (outputFile) {
-      if (lastDataStep < endTime) {
-        belowInfLimit =
-          write_sim_data(graph, *model, sim->getTime(), *outputFile,
-                         lastLine, infLimit, pairs, triples, effective);
-      }
-      outputFile->close();
-    }
-
-    if (outputData > 0) {
-
-      if (endTime > 0) {
+    if (doIO) {
+      if (sim->getTime() > 0) {
         std::ofstream gpFile;
-        std::string gpFileName = runDataDir+"/"+runStr.str()+".gp";
-
+        std::string gpFileName = runOutputDir+"/"+runStr.str()+".gp";
+        
         try {
           gpFile.open(gpFileName.c_str(), std::ios::out);
         }
@@ -999,12 +628,12 @@ int main(int argc, char* argv[])
           std::cerr << "... Standard exception: " << e.what() << std::endl;
           return 1;
         }
-
+        
         gpFile << "### model parameters generated by simulate" << std::endl;
         gpFile << "N=" << num_vertices(graph) << std::endl;
-        gpFile << "Tmax=" << endTime << std::endl;
+        gpFile << "Tmax=" << sim->getTime() << std::endl;
         gpFile << "### end of model parameters" << std::endl;
-
+        
         try {
           gpFile.close();
         }
@@ -1016,62 +645,14 @@ int main(int argc, char* argv[])
         }
       }
     }
-
-    delete outputFile;
-
-    if (doIO) {
-      std::ofstream statsFile;
-      std::string statsFileName = runDataDir+"/"+runStr.str()+".stats";
-      try {
-        paramFile.close();
-      }
-      catch (std::exception &e) {
-        std::cerr << "... unable to close parameter file "
-                  << paramFileName << std::endl;
-        std::cerr << "... Standard exception: " << e.what() << std::endl;
-        return 1;
-      }
-      try {
-        statsFile.open(statsFileName.c_str(), std::ios::out);
-      }
-      catch (std::exception &e) {
-        std::cerr << "... unable to open stats file "
-                  << statsFileName << " for writing" << std::endl;
-        std::cerr << "... Standard exception: " << e.what() << std::endl;
-        return 1;
-      }
-      statsFile << "Cumulative number of infections: "
-                << sim->getNumInfections() << std::endl;
-      statsFile << "Cumulative number of informations: " << sim->getNumInformations()
-                << std::endl;
-      try {
-        statsFile.close();
-      }
-      catch (std::exception &e) {
-        std::cerr << "... unable to close stats file "
-                  << statsFileName << std::endl;
-        std::cerr << "... Standard exception: " << e.what() << std::endl;
-        return 1;
-      }
-    }
-
-    if (verbose || printStats) {
-      std::cout << "Cumulative number of infections: " << sim->getNumInfections()
-                << std::endl;
-      std::cout << "Cumulative number of informations: " << sim->getNumInformations()
-                << std::endl;
-    }
-
-    if (verbose) print_sim_status(graph, *model, pairs, triples);
-
+    
   }
-
+  
   // free memory
   delete sim;
-  delete model;
-
+  
   std::cout << std::endl;
   
   return 0;
-
+  
 }
