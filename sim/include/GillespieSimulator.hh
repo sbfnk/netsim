@@ -90,9 +90,9 @@ namespace Simulators {
     Simulator<Graph>(g, v), randGen(r, boost::uniform_real<> (0,1))
   {
     this->knownModels.push_back
-      (std::make_pair("InfoSIRS", new Models::InfoSIRS<Graph>(this->getVerbose())));
-    this->knownModels.push_back
       (std::make_pair("DimInfoSIRS", new Models::DimInfoSIRS<Graph>(this->getVerbose())));
+    this->knownModels.push_back
+      (std::make_pair("InfoSIRS", new Models::InfoSIRS<Graph>(this->getVerbose())));
     this->knownModels.push_back
       (std::make_pair("VaccinationSIRS", new Models::VaccinationSIRS<Graph>(this->getVerbose())));
     this->knownModels.push_back
