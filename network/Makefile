@@ -4,7 +4,7 @@ CC         = g++
 CPPFLAGS     = -Wall -O3 -g -I${CODEDIR} -Iinclude
 
 LINKER      = g++
-LDFLAGS     = -lboost_program_options 
+LDFLAGS     = -lboost_program_options -lpng -lpngwriter -lfreetype
 
 #--------------------------------------------------------------------
 
@@ -17,16 +17,20 @@ SOURCES     = network.cc
 OBJECTS     = $(patsubst %.cc,out/%.o,${SOURCES})
 
 EXEC        = network
+MANIP       = pngmanip
 #--------------------------------------------------------------------
 
-all:  bin/$(EXEC)
+all:  bin/$(EXEC) bin/$(MANIP)
 
 bin/$(EXEC): $(OBJECTS) 
 	@echo ... linking:
 	$(LINKER) $(LDFLAGS) $(OPTFLAGS) $(CPPFLAGS) $(OBJECTS) -o $@
 	@echo
 
-out/%.o : src/%.cc include/%.hh
+bin/$(MANIP): out/pngmanip.o
+	$(LINKER) $(LDFLAGS) $(OPTFLAGS) $(CPPFLAGS) $< -o $@
+
+out/%.o: src/%.cc include/%.hh
 	@echo ... compiling $<:
 	$(CC) -c $(CPPFLAGS) $(OPTFLAGS) $< -o $@
 	@echo
