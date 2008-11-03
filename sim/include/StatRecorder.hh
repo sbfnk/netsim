@@ -44,7 +44,7 @@ public:
   {
     nextStep = outputFreq;
     outputDir = dir;
-    
+    seqNum = 0;  
   }
 
   void update(const Graph& g, double time, bool force = false) 
