@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
   std::string outputFile = "";
 
   po::options_description command_line_options
-    ("\nUsage: simulate [options]... \n\nMain options");
+    ("\nUsage: pngmanip [options]... \n\nMain options");
 
   command_line_options.add_options()
     ("help,h",
@@ -74,7 +74,8 @@ int main(int argc, char* argv[])
 
   if (vm.count("output")) {
     outputFile = vm["output"].as<std::string>();
-    writer = new pngwriter(reader->getwidth()*7, reader->getheight()*7, 0, outputFile.c_str());
+    writer = new pngwriter(reader->getwidth()*4, reader->getheight()*4, 0, outputFile.c_str());
+//     writer = new pngwriter(reader->getwidth()*7, reader->getheight()*7, 0, outputFile.c_str());
   } else {
     std::cerr << "ERROR: must specify output file using --file" << std::endl;
     std::cout << command_line_options << std::endl;
@@ -103,8 +104,8 @@ int main(int argc, char* argv[])
           fgColour.push_back(brightness);
           fgColour.push_back(brightness);
         }
-        //paint circle
-        writer->filledsquare(i*7,j*7,i*7+6,j*7+6,bgColour[0], bgColour[1], bgColour[2]);
+        writer->filledsquare(i*4,j*4,i*4+3,j*4+3,bgColour[0], bgColour[1], bgColour[2]);
+//         writer->filledsquare(i*7,j*7,i*7+6,j*7+6,bgColour[0], bgColour[1], bgColour[2]);
 //         writer->circle(i*7+3, j*7+3, 2, fgColour[0], fgColour[1], fgColour[2]);
       } else if (pixelColour[0] > 0) {
         //Infected
@@ -125,8 +126,9 @@ int main(int argc, char* argv[])
           fgColour.push_back(brightness);
           fgColour.push_back(brightness);
         }
-        //paint cross
-        writer->filledsquare(i*7,j*7,i*7+6,j*7+6,bgColour[0], bgColour[1], bgColour[2]);
+        //paint symbol
+        writer->filledsquare(i*4,j*4,i*4+3,j*4+3,bgColour[0], bgColour[1], bgColour[2]);
+//         writer->filledsquare(i*7,j*7,i*7+6,j*7+6,bgColour[0], bgColour[1], bgColour[2]);
 //         writer->cross(i*7+3, j*7+3, 7, 7, fgColour[0], fgColour[1], fgColour[2]);
 //         writer->plot(i*7, j*7, fgColour[0], fgColour[1], fgColour[2]);
 //         writer->plot(i*7+1, j*7+1, fgColour[0], fgColour[1], fgColour[2]);
@@ -147,7 +149,7 @@ int main(int argc, char* argv[])
 //         bgColour.push_back(1.25*(65535-pixelColour[1]));
 //         bgColour.push_back(1.25*(65535-pixelColour[1]));
 //         bgColour.push_back(1.25*(65535-pixelColour[1]));
-        bgColour.push_back(65535);
+        bgColour.push_back(40000);
         bgColour.push_back(0);
         bgColour.push_back(0);
         if (vm.count("some-colour")) {
@@ -162,7 +164,8 @@ int main(int argc, char* argv[])
           fgColour.push_back(brightness);
         }
         //paint cross
-        writer->filledsquare(i*7,j*7,i*7+6,j*7+6,bgColour[0], bgColour[1], bgColour[2]);
+        writer->filledsquare(i*4,j*4,i*4+3,j*4+3,bgColour[0], bgColour[1], bgColour[2]);
+//         writer->filledsquare(i*7,j*7,i*7+6,j*7+6,bgColour[0], bgColour[1], bgColour[2]);
 //         writer->plot(i*7, j*7, fgColour[0], fgColour[1], fgColour[2]);
 //         writer->plot(i*7+1, j*7+1, fgColour[0], fgColour[1], fgColour[2]);
 //         writer->plot(i*7+2, j*7+2, fgColour[0], fgColour[1], fgColour[2]);
