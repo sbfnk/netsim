@@ -2,7 +2,7 @@
 
 CC         = g++
 #CPPFLAGS     = -Wall -O3 -g -I${CODEDIR} -Iinclude
-CPPFLAGS     = -Wall -g -I${CODEDIR} -Iinclude
+CPPFLAGS     = -Wall -g -I${CODEDIR} -Iinclude 
 
 LINKER      = g++
 LDFLAGS     = -lpng -lpngwriter -lfreetype -lboost_program_options \
@@ -66,7 +66,7 @@ out/simulate.o: include/Vertex.hh include/Simulator.hh \
 	include/InfoSIRS.hh include/DimInfoSIRS.hh include/EpiModel.hh \
 	include/ProtectiveSIRS.hh include/VaccinationSIRS.hh \
 	include/SingleSIRS.hh include/GroupFormModel.hh\
-        include/sim_statistics.hh \
+        include/sim_statistics.hh include/RewireSimulator.hh \
 	${CODEDIR}/network/include/graph_structure.hh \
 	${CODEDIR}/network/include/graph_io.hh \
 	${CODEDIR}/network/include/nearest_infected.hh \
