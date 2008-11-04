@@ -55,6 +55,9 @@ namespace Simulators {
     unsigned int numInfections; //!< A counter for the number of infections.
     unsigned int numInformations; //!< A counter for the number of informations.
 
+    unsigned int numInfected;
+    unsigned int numInformed;
+
     unsigned int stopInfections;
     unsigned int stopInformations;
     unsigned int infLimit;
@@ -91,7 +94,17 @@ namespace Simulators {
   initialise()
   {
     GillespieSimulator<RandomGenerator, Graph>::initialise();
-    numInfections = numInformations = 0;
+
+    const EpiModel_base<Graph>* model =
+      dynamic_cast<const EpiModel_base<Graph>*>(this->getModel());
+
+    numInfections = numInformations = numInformed = numInfected = 0;
+
+    typename boost::graph_traits<Graph>::vertex_iterator vi, vi_end;
+    for (tie(vi, vi_end) = vertices(this->getGraph()); vi != vi_end; ++vi) {
+      if (model->isInformed(this->getGraph()[*vi].state)) ++numInformed;
+      if (model->isInfected(this->getGraph()[*vi].state)) ++numInfected;
+    }
   }
   
   template <typename RandomGenerator, typename Graph>
@@ -135,8 +148,16 @@ namespace Simulators {
       dynamic_cast<const EpiModel_base<Graph>*>(this->getModel());
   
     if (model) {
-      if (model->isInfection(before, after)) ++numInfections;
-      if (model->isInformation(before, after)) ++numInformations;
+      if (model->isInfection(before, after)) {
+        ++numInfections;
+        ++numInfected;
+      }
+      if (model->isInformation(before, after)) {
+        ++numInformations;
+        ++numInformed;
+      }
+      if (model->isRecovery(before, after)) --numInfected;
+      if (model->isForgetting(before, after)) --numInformed;
     }
   }
 
@@ -145,20 +166,9 @@ namespace Simulators {
   bool EpiSimulator<RandomGenerator, Graph>::
   stopCondition() const
   {
-    const EpiModel_base<Graph>* model =
-      dynamic_cast<const EpiModel_base<Graph>*>(this->getModel());
-    
+
     bool ret = Simulator<Graph>::stopCondition();
-    unsigned int numInfected = 0;
-    unsigned int numInformed = 0;
-    if (infLimit>0 || stopOutbreak || stopInfoOutbreak) {
-      typedef typename boost::graph_traits<Graph>::vertex_iterator vertex_iterator;
-      vertex_iterator vi, vi_end;
-      for (tie(vi, vi_end) = vertices(this->getGraph()); vi != vi_end; ++vi) {
-        if (model->isInformed(this->getGraph()[*vi].state)) ++numInformed;
-        if (model->isInfected(this->getGraph()[*vi].state)) ++numInfected;
-      }
-    }
+
     return (ret ||
             ((stopInfections > 0) && (numInfections+1 > stopInfections)) ||
             ((stopOutbreak) && (numInfected == 0)) ||
