@@ -29,6 +29,7 @@
 
 #include "sim_statistics.hh"
 
+#include "RewireSimulator.hh"
 #include "GroupFormSimulator.hh"
 #include "RewireSimulator.hh"
 #include "GillespieSimulator.hh"
@@ -348,6 +349,9 @@ int main(int argc, char* argv[])
                   << fileNames[i] << std::endl;
         return 1;
       }
+    } else {
+      std::cerr << "ERROR: no graph file specified" << std::endl;
+      return 1;
     }
 
     // copy edges to main graph
