@@ -44,13 +44,15 @@ namespace Models {
 
   public:
 
+    typedef GroupFormState StateType;
+
     GroupFormModel(unsigned int v = 0);
     ~GroupFormModel() {;}
     
     virtual Model<Graph>* clone() { return new GroupFormModel<Graph>(*this); }
 
-    virtual GroupFormState* newState() const
-    { return new GroupFormState(); }
+    virtual StateType* newState() const
+    { return new StateType(); }
     
     virtual void Init(const po::variables_map& vm,
                       std::vector<StatRecorder<Graph>*>& rec);
@@ -69,21 +71,21 @@ namespace Models {
 
     double accept(State* s1, State* s2) const
     {
-      GroupFormState* state1 = dynamic_cast<GroupFormState*>(s1);
-      GroupFormState* state2 = dynamic_cast<GroupFormState*>(s2);
+      StateType* state1 = dynamic_cast<StateType*>(s1);
+      StateType* state2 = dynamic_cast<StateType*>(s2);
       return acceptance*(1-distance(state1, state2));
     }
 
     double distance(State* s1, State* s2) const
     {
-      GroupFormState* state1 = dynamic_cast<GroupFormState*>(s1);
-      GroupFormState* state2 = dynamic_cast<GroupFormState*>(s2);
+      StateType* state1 = dynamic_cast<StateType*>(s1);
+      StateType* state2 = dynamic_cast<StateType*>(s2);
       return distance(state1, state2);
     }
 
   private:
 
-    double distance(GroupFormState* s1, GroupFormState* s2) const
+    double distance(StateType* s1, StateType* s2) const
     {
       double dist = 0.;
       for (unsigned int i = 0; i < s1->getTraits().size(); ++i) {
@@ -107,6 +109,8 @@ namespace Models {
        "dimensionality of the trait vector")
       ("alpha", po::value<double>()->default_value(1.),
        "alpha")
+      ("avg-trait", po::value<double>(),
+       "write average trait for each state at arg timesteps")
       ;
 
     this->edgeTypes.push_back(Label("x", "", 0, "style=\"solid\""));
@@ -121,6 +125,12 @@ namespace Models {
   (const po::variables_map& vm, std::vector<StatRecorder<Graph>*>& rec)
   {
     Model<Graph>::Init(vm, rec);
+    if (vm.count("avg-trait")) {
+      rec.push_back
+        (new StatRecorder<Graph>
+         (new write_avg_trait<Graph, GroupFormModel>(*this), 
+          vm["avg-trait"].as<double>()));
+    }
     
     /*************************************/
     // define vertex classes
@@ -156,10 +166,10 @@ namespace Models {
   std::vector<unsigned int> GroupFormModel<Graph>::
   getRGB(State* s) const
   {
-    GroupFormState* myState = dynamic_cast<GroupFormState*>(s);
+    StateType* myState = dynamic_cast<StateType*>(s);
     std::vector<unsigned int> rgb;
     
-    double darkening = 1 - (1 - distance(myState, new GroupFormState()))*4./5.;
+    double darkening = 1 - (1 - distance(myState, new StateType()))*4./5.;
     rgb.push_back
       (static_cast<unsigned int>
        (this->getVertexState(myState->getState()).getRGB(0) * darkening));
@@ -177,7 +187,7 @@ namespace Models {
   std::string GroupFormModel<Graph>::
   printState(State* s) const
   {
-    GroupFormState* myState = dynamic_cast<GroupFormState*>(s);
+    StateType* myState = dynamic_cast<StateType*>(s);
     std::stringstream ss;
     std::streamsize prec = ss.precision();
     ss << this->getVertexState(myState->getState()) << " <"
