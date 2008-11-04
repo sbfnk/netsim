@@ -21,7 +21,7 @@ public:
   /*! \brief Constructor.
       \param[in] b base state.
   */
-  State(unsigned int b = 0) : state(b) {;}
+  State(int b = 0) : state(b) {;}
   virtual ~State() {;}
 
   virtual State* clone() { return new State(*this); }
@@ -31,11 +31,11 @@ public:
   { os << state; }
 
   unsigned int getState() const { return state; }
-  void setState(unsigned int s) { state = s; }
+  void setState(int s) { state = s; }
 
 private:
 
-  unsigned int state;
+  int state;
   
 };
 
