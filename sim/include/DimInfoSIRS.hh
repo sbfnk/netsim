@@ -69,18 +69,24 @@ namespace Models {
     { return ((getDisease(before_state) == Infected) &&
               (getDisease(after_state) != Infected)); }
     bool isInformation(State* before_state, State* after_state) const
-    { return (dynamic_cast<DimInfoState*>(before_state)->getInfo() <
-              dynamic_cast<DimInfoState*>(after_state)->getInfo()); }
+    { return (dynamic_cast<DimInfoState*>(before_state)->getInfo() == 0 &&
+              dynamic_cast<DimInfoState*>(after_state)->getInfo() > 0); }
     bool isForgetting(State* before_state, State* after_state) const
-    { return (dynamic_cast<DimInfoState*>(before_state)->getInfo() >
-              dynamic_cast<DimInfoState*>(after_state)->getInfo()); }
+    { return (dynamic_cast<DimInfoState*>(before_state)->getInfo() > 0 &&
+              dynamic_cast<DimInfoState*>(after_state)->getInfo() == 0); }
+
+    bool isInfected(State* state) const
+    { return (getDisease(state) == Infected); }
+
+    bool isInformed(State* state) const
+    { return (dynamic_cast<DimInfoState*>(state)->getInfo() > 0); }
 
     //! Get the disease part of a full vertex state.
     unsigned int getDisease(State* state) const
     { return state->getState(); }
     //! Get the information part of a full vertex state.
     unsigned int getInfo(State* state) const
-    { return 0; }
+    { return dynamic_cast<DimInfoState*>(state)->getInfo(); }
 
     virtual std::string printState(State* s) const
     {
@@ -183,6 +189,8 @@ Models::DimInfoSIRS<Graph>::DimInfoSIRS(unsigned int v)
      "threshold below which not to consider information transmission")
     ("dim_alpha", po::value<double>()->default_value(0.),
      "whether alpha diminishes or not")
+    ("effective,e", po::value<double>(), 
+     "write effective data at arg timesteps")
     ("info-dist,i", po::value<double>(),
      "create information distribution in the dist directory at arg timesteps")
     ("info-dis-corr,c", po::value<double>(),
@@ -216,6 +224,12 @@ void Models::DimInfoSIRS<Graph>::Init(const po::variables_map& vm,
                                       std::vector<StatRecorder<Graph>*>& rec)
 {
   EpiModel<DimInfoState, Graph>::Init(vm, rec);
+  if (vm.count("effective")) {
+    rec.push_back
+      (new StatRecorder<Graph>
+       (new write_effective_data<Graph, DimInfoSIRS>(*this), 
+        vm["effective"].as<double>()));
+  }
   if (vm.count("info-dist")) {
     rec.push_back(new StatRecorder<Graph>
                   (new write_detail_dist<Graph, DimInfoSIRS>,
@@ -304,6 +318,7 @@ unsigned int Models::DimInfoSIRS<Graph>::getNodeEvents(eventList& events,
       Event infoLoss;
       infoLoss.rate = lambda;
       double detailUpdate = state->getInfo() * rho;
+      if (detailUpdate <= threshold) detailUpdate = 0;
       DimInfoState* targetState = newState();
       targetState->setState(state->getState());
       targetState->setInfo(detailUpdate);
