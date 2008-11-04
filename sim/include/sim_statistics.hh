@@ -77,6 +77,41 @@ count_effective_vertices(const Graph& g, unsigned int nVertexStates)
 }
 
 //----------------------------------------------------------
+/*! \brief Calculate average trait
+
+Calculates the average trait in each state
+
+\param[in] g The graph containing the vertices
+\param[in] nVertexStates The number of vertex states.
+\return A vector of state counts.
+\ingroup sim_statistics
+*/
+template <typename Graph, typename Model>
+std::vector<double>
+calc_avg_trait(const Graph& g, unsigned int nVertexStates)
+{
+  typedef typename boost::graph_traits<Graph>::vertex_iterator
+    vertex_iterator;
+  typedef typename Model::StateType state_type;
+
+  std::vector<double> avgs(nVertexStates,0.);
+  std::vector<unsigned int> counts(nVertexStates,0);
+
+  vertex_iterator vi, vi_end;
+  for (boost::tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+    state_type* s = dynamic_cast<state_type*>(g[*vi].state);
+    ++counts[s->getState()];
+    avgs[s->getState()] += s->getTrait(0);
+  }
+
+  for (unsigned int i = 0; i < nVertexStates; ++i) {
+    if (avgs[i] > 0) avgs[i] /= counts[i];
+  }
+   
+  return avgs;
+}
+
+//----------------------------------------------------------
 /*! \brief Count state pairs.
   
 Counts the number of pairs of states in a graph.
@@ -282,22 +317,24 @@ public:
           }
         }
       }
-      
-      // count parallel pairs
-      std::cout << "parallel:" << std::endl;
-      
-      boost::multi_array<unsigned int, 2> parallelCount =
-        count_parallel_edges(g, nVertexStates);
-      
-      for (unsigned int j=0; j < nVertexStates; j++) {
-        for (unsigned int k=j; k < nVertexStates; k++) {
-          if (parallelCount[j][k] > 0) {
-            std::cout << m.getVertexStates()[j] << m.getVertexStates()[k]
-                      << ": " << parallelCount[j][k] << std::endl;
+
+      if (m.getEdgeTypes().size() > 1) {
+        // count parallel pairs
+        std::cout << "parallel:" << std::endl;
+        
+        boost::multi_array<unsigned int, 2> parallelCount =
+          count_parallel_edges(g, nVertexStates);
+        
+        for (unsigned int j=0; j < nVertexStates; j++) {
+          for (unsigned int k=j; k < nVertexStates; k++) {
+            if (parallelCount[j][k] > 0) {
+              std::cout << m.getVertexStates()[j] << m.getVertexStates()[k]
+                        << ": " << parallelCount[j][k] << std::endl;
+            }
           }
         }
+        std::cout << std::endl;
       }
-      std::cout << std::endl;
     }
     
     if (triples) {
@@ -523,12 +560,57 @@ public:
       std::cerr << "Will not write simulation counts to file." << std::endl;
     }
     
+    outputFile << time << '\t';
+
     unsigned int nVertexStates = m.getVertexStates().size();
     std::vector<double> effVertexCount =
       count_effective_vertices<Graph, Model>(g, nVertexStates);
     for (unsigned int i = 0; i < nVertexStates; i++) {
       outputFile << effVertexCount[i] << '\t';
     }
+    outputFile << std::endl;
+    outputFile.close();
+  }    
+  
+private:
+
+  const Model& m;
+
+};
+
+template <typename Graph, typename Model>
+class write_avg_trait:
+  public Funct<Graph>
+{
+public:
+  write_avg_trait(const Model& m)
+    : m(m)
+  {;}
+  
+  virtual void doit(const Graph& g, std::string dir, double time,
+                    unsigned int count)
+  {
+    std::string outputFileName = dir + "/" + "avg_trait.sim.dat";
+    std::ofstream outputFile;
+    
+    try {
+      outputFile.open(outputFileName.c_str(),
+                      std::ios::out | std::ios::app | std::ios::ate);
+    }
+    catch (std::exception &e) {
+      std::cerr << "Unable to open output file: " << e.what() << std::endl;
+      std::cerr << "Will not write simulation counts to file." << std::endl;
+    }
+    
+    outputFile << time << '\t';
+
+    unsigned int nVertexStates = m.getVertexStates().size();
+    std::vector<double> avgTrait =
+      calc_avg_trait<Graph, Model>(g, nVertexStates);
+    for (unsigned int i = 0; i < nVertexStates; i++) {
+      outputFile << avgTrait[i] << '\t';
+    }
+    outputFile << std::endl;
     outputFile.close();
   }    
   
