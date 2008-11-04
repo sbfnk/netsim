@@ -30,6 +30,7 @@
 #include "sim_statistics.hh"
 
 #include "GroupFormSimulator.hh"
+#include "RewireSimulator.hh"
 #include "GillespieSimulator.hh"
 #include "ChrisSimulator.hh"
 
@@ -92,10 +93,8 @@ int main(int argc, char* argv[])
      "produce verbose output")
     ("very-verbose,V",
      "produce very verbose output")
-    ("params-file,p",po::value<std::string>(),
-     "file containing model parameters")
     ("sim", po::value<std::string>()->default_value("EpiGillespie"),
-     "simulator to use (EpiGillespie, Chris, GroupForm)")
+     "simulator to use (EpiGillespie, Chris, GroupForm, Rewire)")
     ("output-dir,o",po::value<std::string>(),
      "output directory for graph and data output (as subdir of $DATADIR)")
     ("nsims", po::value<unsigned int>()->default_value(1),
@@ -162,6 +161,9 @@ int main(int argc, char* argv[])
     } else if (simType == "GroupForm") {
       sim = new Simulators::GroupFormSimulator<boost::mt19937, multitype_graph>
         (gen, graph, verbose);
+    } else if (simType == "Rewire") {
+      sim = new Simulators::RewireSimulator<boost::mt19937, multitype_graph>
+        (gen, graph, verbose);
     } else {
       std::cerr << "ERROR: unknown simulator: " << simType << std::endl;
       return 1;
@@ -215,10 +217,12 @@ int main(int argc, char* argv[])
     ("file,f", po::value<std::string>(),
      "file to read from (one file for all edge types, .graph will be appended)");
 
-  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-    graph_options.add_options()
-      ((edgeTypes[i].getText()+"-file").c_str(), po::value<std::string>(),
-       ("file to read "+edgeTypes[i].getText()+"-network from (.graph will be appended)").c_str());
+  if (nEdgeTypes > 1) {
+    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+      graph_options.add_options()
+        ((edgeTypes[i].getText()+"-file").c_str(), po::value<std::string>(),
+         ("file to read "+edgeTypes[i].getText()+"-network from (.graph will be appended)").c_str());
+    }
   }
   
   po::options_description ic_options
@@ -272,16 +276,16 @@ int main(int argc, char* argv[])
     return 0;
   }
 
-  if (vm.count("model-file")) {
-    std::ifstream ifs(vm["model-file"].as<std::string>().c_str());
-    try {
-      po::store(po::parse_config_file(ifs, all_options), vm);
-    }
-    catch (std::exception& e) {
-      std::cerr << "ERROR parsing model file: " << e.what() << std::endl;
-      return 1;
-    }
-  }
+//   if (vm.count("model-file")) {
+//     std::ifstream ifs(vm["model-file"].as<std::string>().c_str());
+//     try {
+//       po::store(po::parse_config_file(ifs, all_options), vm);
+//     }
+//     catch (std::exception& e) {
+//       std::cerr << "ERROR parsing model file: " << e.what() << std::endl;
+//       return 1;
+//     }
+//   }
   
   po::notify(vm);
 
@@ -303,7 +307,7 @@ int main(int argc, char* argv[])
     for (unsigned int i = 0; i < edgeTypes.size(); i++) {
       fileNames[i] += vm["file"].as<std::string>() + ".graph";
     }
-  } else {
+  } else if (edgeTypes.size() > 1) {
     allFromOne = false;
     for (unsigned int i = 0; i < edgeTypes.size(); i++) {
       std::stringstream s;
@@ -436,10 +440,6 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // read simulation paramters
   /******************************************************************/
-
-  // XXXXXXXXXXXXXXXXXXX UPDATE XXXXXXXXXXXXXXXXXXX
-//   stopInfections = vm["imax"].as<unsigned int>();
-//   stopInformations = vm["pmax"].as<unsigned int>();
 
   if (doIO) {
     // remove existing data
@@ -607,8 +607,8 @@ int main(int argc, char* argv[])
     /******************************************************************/
     sim->initialise();
 
-  /******************************************************************/
-  // run simulation
+    /******************************************************************/
+    // run simulation
     /******************************************************************/
     while ((sim->stopCondition() == false) && sim->updateState()) {
       sim->updateStats();
