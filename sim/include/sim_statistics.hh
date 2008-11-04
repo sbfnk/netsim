@@ -59,7 +59,7 @@ given state in a graph
 */
 template <typename Graph, typename Model>
 std::vector<double>
-count_effective_vertices(Graph& g, unsigned int nVertexStates)
+count_effective_vertices(const Graph& g, unsigned int nVertexStates)
 {
   typedef typename boost::graph_traits<Graph>::vertex_iterator
     vertex_iterator;
@@ -522,10 +522,10 @@ public:
       std::cerr << "Unable to open output file: " << e.what() << std::endl;
       std::cerr << "Will not write simulation counts to file." << std::endl;
     }
-  
+    
     unsigned int nVertexStates = m.getVertexStates().size();
     std::vector<double> effVertexCount =
-      count_effective_vertices(g, nVertexStates);
+      count_effective_vertices<Graph, Model>(g, nVertexStates);
     for (unsigned int i = 0; i < nVertexStates; i++) {
       outputFile << effVertexCount[i] << '\t';
     }
