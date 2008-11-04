@@ -239,7 +239,6 @@ namespace Simulators {
             graph[target(*oi, graph)].state->getState()) {
           std::cout << "nbCount: " << nbCount << std::endl;
           if (nbCount == randSameStateNeighbour) {
-            oi = oi_end;
             if (edge(original_node, target(*oi, graph), graph).second) {
               std::cout << "edge between " << original_node << " and "
                         << target(*oi, graph) << " already there, walking on"
@@ -249,8 +248,9 @@ namespace Simulators {
             } else {
               target_node = new vertex_descriptor;
               *target_node = target(*oi, graph);
-              std::cout << "edge does not exist, returning target node " << target_node << std::endl;
+              std::cout << "edge does not exist, returning target node " << *target_node << std::endl;
             }
+            oi = oi_end;
           } else {
             ++nbCount;
           }
