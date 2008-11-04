@@ -29,7 +29,6 @@
 
 #include "sim_statistics.hh"
 
-#include "RewireSimulator.hh"
 #include "GroupFormSimulator.hh"
 #include "RewireSimulator.hh"
 #include "GillespieSimulator.hh"
@@ -62,10 +61,10 @@ int main(int argc, char* argv[])
     outputDir = dataDirEnv;
   } 
 
-  char* graphDirEnv = getenv("GRAPHDIR");
+  char* graphDirEnv(getenv("GRAPHDIR"));
   std::string inputGraphDir = "";
   if (graphDirEnv) {
-    inputGraphDir = graphDirEnv;
+    inputGraphDir = std::string(graphDirEnv) + "/";
   } 
 
   unsigned int verbose = 0;
@@ -294,32 +293,34 @@ int main(int argc, char* argv[])
   // read graph from file
   /******************************************************************/
 
-  std::vector<std::string> fileNames(nEdgeTypes, "");
-  if (inputGraphDir.size() > 0) {
-    for (unsigned int i = 0; i < edgeTypes.size(); i++) {
-      fileNames[i] = inputGraphDir + "/";
-    }
-  }
-  
+  std::vector<std::string> fileNames;
   
   if (vm.count("file")) {
     // read all from one file
     allFromOne = true;
     for (unsigned int i = 0; i < edgeTypes.size(); i++) {
-      fileNames[i] += vm["file"].as<std::string>() + ".graph";
+      fileNames.push_back
+        (inputGraphDir + vm["file"].as<std::string>() + ".graph");
     }
   } else if (edgeTypes.size() > 1) {
+    bool graphError = false;
     allFromOne = false;
     for (unsigned int i = 0; i < edgeTypes.size(); i++) {
       std::stringstream s;
       s.str("");
       s << edgeTypes[i].getText() << "-file";
       if (vm.count(s.str())) {
-        fileNames[i] += vm[s.str()].as<std::string>() + ".graph";
+        fileNames.push_back(inputGraphDir + vm[s.str()].as<std::string>() + ".graph");
       } else {
-        fileNames[i] = "";
+        std::cerr << "ERROR: no " << edgeTypes[i].getText()
+                  << "-graph file specified" << std::endl;
+        graphError = true;
       }
     }
+    if (graphError) return 1;
+  } else {
+    std::cerr << "ERROR: no graph file specified" << std::endl;
+    return 1;
   }
 
   for (unsigned int i = 0; i < edgeTypes.size(); i++) {
@@ -349,11 +350,8 @@ int main(int argc, char* argv[])
                   << fileNames[i] << std::endl;
         return 1;
       }
-    } else {
-      std::cerr << "ERROR: no graph file specified" << std::endl;
-      return 1;
     }
-
+    
     // copy edges to main graph
     boost::graph_traits<multitype_graph>::edge_iterator ei, ei_end;
     for (tie(ei, ei_end) = edges(temp_graph); ei != ei_end; ei++) {
