@@ -80,8 +80,8 @@ namespace boost {
                 << std::hex << std::setw(2) << std::setfill('0') 
                 << (rgb[2] > 0 ? rgb[2] : 0);
 
-      if (model.getEdgeTypes()[state[v]->getState()].getDrawOption().find("fillcolor") != std::string::npos) {
-        out << "[" << model.getEdgeTypes()[state[v]->getState()].getDrawOption();
+      if (model.getVertexStates()[state[v]->getState()].getDrawOption().find("fillcolor") != std::string::npos) {
+        out << "[" << model.getVertexStates()[state[v]->getState()].getDrawOption();
       } else {
         out << "[fillcolor=\"" << rgbString.str() << "\"";
       }
