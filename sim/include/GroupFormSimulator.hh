@@ -169,7 +169,7 @@ namespace Simulators {
     }
 
     // initially seed groups
-    for (unsigned int i = 1; i <= model->getGroups(); ++i) {
+    for (unsigned int i = 1; i <= model->getStates(); ++i) {
       vertex_descriptor v = random_vertex(graph, randGen);
       if (graph[v].state->getState() == 0) {
         graph[v].state->setState(i);
@@ -268,7 +268,7 @@ namespace Simulators {
       // go through members group by group
       std::vector<vertex_descriptor> group;
       
-      for (unsigned int i = 1; i <= model->getGroups(); ++i) {
+      for (unsigned int i = 1; i <= model->getStates(); ++i) {
         if (verbose >=2) {
           std::cout << "Group " << i << std::endl;
         }
@@ -341,7 +341,7 @@ namespace Simulators {
       for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
         graph[*vi].state->setState(0);
       }
-      for (unsigned int i = 1; i <= model->getGroups(); ++i) {
+      for (unsigned int i = 1; i <= model->getStates(); ++i) {
         vertex_descriptor v = random_vertex(graph, randGen);
         if (graph[v].state->getState() == 0) {
           graph[v].state->setState(i);

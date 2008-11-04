@@ -58,11 +58,14 @@ namespace Models {
     virtual std::string printState(State* s) const;
     std::vector<unsigned int> getRGB(State* s) const;
 
-    unsigned int getGroups() const
-    { return groups; }
+    unsigned int getStates() const
+    { return states; }
 
     unsigned int getTraitDim() const
     { return trait_dim; }
+
+    double getAcceptance() const
+    { return acceptance; }
 
     double accept(State* s1, State* s2) const
     {
@@ -89,7 +92,7 @@ namespace Models {
       return sqrt(dist);
     }
 
-    unsigned int groups; //!< number of groups.
+    unsigned int states; //!< number of states (groups).
     unsigned int trait_dim; //!< Dimension of the trait vector
     double acceptance; //!< Base property of acceptance.
   };
@@ -98,18 +101,18 @@ namespace Models {
   GroupFormModel<Graph>::GroupFormModel(unsigned int)
   {
     this->model_options.add_options()
-      ("groups", po::value<unsigned int>()->default_value(1),
-       "number of seed groups")
+      ("states", po::value<unsigned int>()->default_value(1),
+       "number of possible states (groups?)")
       ("traitdim", po::value<unsigned int>()->default_value(1),
        "dimensionality of the trait vector")
-      ("alpha", po::value<double>()->default_value(0.),
+      ("alpha", po::value<double>()->default_value(1.),
        "alpha")
       ;
 
     this->edgeTypes.push_back(Label("x", "", 0, "style=\"solid\""));
 
     this->params.insert(std::make_pair("alpha", &acceptance));
-    this->intParams.insert(std::make_pair("groups", &groups));
+    this->intParams.insert(std::make_pair("states", &states));
     this->intParams.insert(std::make_pair("traitdim", &trait_dim));
   }
 
@@ -125,7 +128,7 @@ namespace Models {
     // ungrouped state
     this->vertexStates.push_back
       (Label("0", "01;37", 0, "", Label::rgbColour(0,0,0)));
-    for (unsigned int i = 1; i < groups+1; ++i) {
+    for (unsigned int i = 1; i < states+1; ++i) {
       std::stringstream s;
       s << i;
       switch (i) {
