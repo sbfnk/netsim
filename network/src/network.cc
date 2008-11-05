@@ -170,13 +170,14 @@ int main(int argc, char* argv[])
     return 0;
   }
 
-  if (vm.count("ntypes")) {
-    nEdgeTypes = vm["ntypes"].as<unsigned int>();
-  }
   if (vm.count("labels")) {
     edgeLabels = vm["labels"].as<std::string>();
   }
 
+  if (vm.count("ntypes")) {
+    nEdgeTypes = vm["ntypes"].as<unsigned int>();
+  }
+  
   if (edgeLabels.size() < nEdgeTypes) {
     edgeLabels.clear();
     for (unsigned int i = 0; i < nEdgeTypes; ++i) {
@@ -226,10 +227,14 @@ int main(int argc, char* argv[])
      "read full graph from file (ignores topology options")
     ;
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+    std::string prefix("");
+    if (nEdgeTypes > 1) {
+      prefix = std::string(1,edgeLabels[i]) + "-"; 
+    }
     graph_options.add_options()
-      ((std::string(1,edgeLabels[i]) + "-topology").c_str(),
+      ((prefix + "topology").c_str(),
        po::value<std::string>(),
-       (std::string(1,edgeLabels[i]) + "-network topology\n((tri-)lattice, "+
+       (prefix + "network topology\n((tri-)lattice, "+
         "tree, random, random-regular, small-world, plod, albert-barabasi, "+
         "community, complete, read, null)").c_str());
   }
@@ -240,17 +245,26 @@ int main(int argc, char* argv[])
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     for (unsigned int j = 0; j < nEdgeTypes; ++j) {
       for (unsigned int k = j; k < nEdgeTypes; ++k) {
-        assortativity_options.add_options()
-          ((std::string(1,edgeLabels[i]) + "-" + std::string(1,edgeLabels[j]) +
-            std::string(1,edgeLabels[k]) + "-assortativity").c_str(),
-           po::value<double>(),
-           ("assortativity between "+ std::string(1,edgeLabels[j]) + "- and " +
+        std::string prefix("");
+        std::string desc("");
+        if (nEdgeTypes > 1) {
+          prefix =
+            std::string(1,edgeLabels[i]) + "-" +
+            std::string(1,edgeLabels[j]) +
+            std::string(1,edgeLabels[k]) + "-";
+          desc =
+            " between "+ std::string(1,edgeLabels[j]) + "- and " +
             std::string(1,edgeLabels[k]) + "- along " +
-            std::string(1,edgeLabels[i]) +"-edges").c_str());
+            std::string(1,edgeLabels[i]) +"-edges";
+        }
+        assortativity_options.add_options()
+          ((prefix + "assortativity").c_str(),
+           po::value<double>(),
+           ("degree assortativity" + desc).c_str());
       }
     }
   }
-  
+
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     for (unsigned int j = i+1; j < nEdgeTypes; ++j) {
       assortativity_options.add_options()
@@ -266,17 +280,20 @@ int main(int argc, char* argv[])
   // lattice
   std::vector<po::options_description*> lattice_options;
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-    std::stringstream s;
-    s << edgeLabels[i] << "-Lattice options";
+    std::stringstream s, prefix;
+    if (nEdgeTypes > 1) {
+      prefix << edgeLabels[i] << "-";
+    }
+    s << prefix.str() << "lattice options";
     po::options_description* lo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << edgeLabels[i] << "-dim";
+    s << prefix.str() << "dim";
     lo->add_options()
       (s.str().c_str(),  po::value<unsigned int>()->default_value(2),
        "number of dimensions");
     s.str("");
-    s << edgeLabels[i] << "-pb";
+    s << prefix.str() << edgeLabels[i] << "-pb";
     lo->add_options()
       (s.str().c_str(), "periodic boundary conditions");
     lattice_options.push_back(lo);
@@ -285,12 +302,15 @@ int main(int argc, char* argv[])
   // tree
   std::vector<po::options_description*> tree_options;
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-    std::stringstream s;
-    s << edgeLabels[i] << "-Tree options";
+    std::stringstream s, prefix;
+    if (nEdgeTypes > 1) {
+      prefix << edgeLabels[i] << "-";
+    }
+    s << prefix.str() << "tree options";
     po::options_description* to =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << edgeLabels[i] << "-branches";
+    s << prefix.str() << "branches";
     to->add_options()
       (s.str().c_str(),  po::value<unsigned int>(),
        "number of branches to create per vertex");
@@ -300,17 +320,20 @@ int main(int argc, char* argv[])
   // random graph
   std::vector<po::options_description*> rg_options;
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-    std::stringstream s;
-    s << edgeLabels[i] << "-RandomGraph options";
+    std::stringstream s, prefix;
+    if (nEdgeTypes > 1) {
+      prefix << edgeLabels[i] << "-";
+    }
+    s << prefix.str() << "-random graph options";
     po::options_description* ro
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << edgeLabels[i] << "-edges";
+    s << prefix.str() << "edges";
     ro->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "number of edges");
     s.str("");
-    s << edgeLabels[i] << "-degree";
+    s << prefix.str() << "degree";
     ro->add_options()
       (s.str().c_str(), po::value<double>(),
        "average degree");
@@ -320,17 +343,20 @@ int main(int argc, char* argv[])
   // random regular graph
   std::vector<po::options_description*> rrg_options;
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-    std::stringstream s;
-    s << edgeLabels[i] << "-RandomRegularGraph options";
+    std::stringstream s, prefix;
+    if (nEdgeTypes > 1) {
+      prefix << edgeLabels[i] << "-";
+    }
+    s << prefix.str() << "random regular graph options";
     po::options_description* rrgo
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << edgeLabels[i] << "-degree";
+    s << prefix.str() << "degree";
     rrgo->add_options()
       (s.str().c_str(), po::value<double>(),
        "degree of the graph G(n,d)");
     s.str("");
-    s << edgeLabels[i] << "-joint-degree";
+    s << prefix.str() << "joint-degree";
     rrgo->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "degree of the joint core of two random regular graphs. If not given, the overlapping is random.");
@@ -340,12 +366,15 @@ int main(int argc, char* argv[])
   // small-world graph
   std::vector<po::options_description*> sw_options;
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-    std::stringstream s;
-    s << edgeLabels[i] << "-SmallWorld options";
+    std::stringstream s, prefix;
+    if (nEdgeTypes > 1) {
+      prefix << edgeLabels[i] << "-";
+    }
+    s << prefix.str() << "small world options";
     po::options_description* swo
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << edgeLabels[i] << "-degree";
+    s << prefix.str() << "degree";
     swo->add_options()
       (s.str().c_str(), po::value<double>(),
        "degree of each node");
@@ -355,17 +384,20 @@ int main(int argc, char* argv[])
   // plod graph
   std::vector<po::options_description*> plod_options;
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-    std::stringstream s;
-    s << edgeLabels[i] << "-Power-Law-Out-Degree options";
+    std::stringstream s, prefix;
+    if (nEdgeTypes > 1) {
+      prefix << edgeLabels[i] << "-";
+    }
+    s << prefix.str() << "power law out degree options";
     po::options_description* plodo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << edgeLabels[i] << "-alpha";
+    s << prefix.str() << "alpha";
     plodo->add_options()
       (s.str().c_str(), po::value<double>(),
        "alpha (index of power law)");
     s.str("");
-    s << edgeLabels[i] << "-beta";
+    s << prefix.str() << "beta";
     plodo->add_options()
       (s.str().c_str(), po::value<double>(),
        "beta (multiplicative factor of power law)");
@@ -375,12 +407,15 @@ int main(int argc, char* argv[])
   // Albert-Barabasi graph
   std::vector<po::options_description*> ab_options;
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-    std::stringstream s;
-    s << edgeLabels[i] << "-Albert-Barabasi options";
+    std::stringstream s, prefix;
+    if (nEdgeTypes > 1) {
+      prefix << edgeLabels[i] << "-";
+    }
+    s << prefix.str() << "albert barabasi options";
     po::options_description* abo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << edgeLabels[i] << "-newedges";
+    s << prefix.str() << "newedges";
     abo->add_options()
       (s.str().c_str(), po::value<unsigned int>()->default_value(1),
        "number of edges to add per vertex");
@@ -390,32 +425,35 @@ int main(int argc, char* argv[])
   // Community graph
   std::vector<po::options_description*> com_options;
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-    std::stringstream s;
-    s << edgeLabels[i] << "-Community options";
+    std::stringstream s, prefix;
+    if (nEdgeTypes > 1) {
+      prefix << edgeLabels[i] << "-";
+    }
+    s << prefix.str() << "community options";
     po::options_description* co =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << edgeLabels[i] << "-delta";
+    s << prefix.str() << "delta";
     co->add_options()
       (s.str().c_str(), po::value<double>()->default_value(0.5),
        "amount to increase link weight by if strenghtened");
     s.str("");
-    s << edgeLabels[i] << "-pl";
+    s << prefix.str() << "pl";
     co->add_options()
       (s.str().c_str(), po::value<double>()->default_value(5e-4),
        "probability for local attachment");
     s.str("");
-    s << edgeLabels[i] << "-pr";
+    s << prefix.str() << "pr";
     co->add_options()
       (s.str().c_str(), po::value<double>()->default_value(5e-4),
        "probability for creation of random link");
     s.str("");
-    s << edgeLabels[i] << "-pd";
+    s << prefix.str() << "pd";
     co->add_options()
       (s.str().c_str(), po::value<double>()->default_value(1e-3),
        "probabiliy for node deletion");
     s.str("");
-    s << edgeLabels[i] << "-iter";
+    s << prefix.str() << "iter";
     co->add_options()
       (s.str().c_str(), po::value<unsigned int>()->default_value(25),
        "number of iterations");
@@ -425,12 +463,15 @@ int main(int argc, char* argv[])
   // read graph
   std::vector<po::options_description*> readFile_options;
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-    std::stringstream s;
-    s << edgeLabels[i] << "-Read options";
+    std::stringstream s, prefix;
+    if (nEdgeTypes > 1) {
+      prefix << edgeLabels[i] << "-";
+    }
+    s << prefix.str() << "read options";
     po::options_description* rfo =
       new po::options_description(s.str().c_str());
     s.str("");
-    s << edgeLabels[i] << "-file";
+    s << prefix.str() << "file";
     rfo->add_options()
       (s.str().c_str(), po::value<std::string>(),
        "name of graph file to read");
@@ -442,23 +483,26 @@ int main(int argc, char* argv[])
   po::options_description rewiring_options("Rewiring options");
   
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-    std::stringstream s;
-    s << edgeLabels[i] << "-rewire";
+    std::stringstream s, prefix;
+    if (nEdgeTypes > 1) {
+      prefix << edgeLabels[i] << "-";
+    }
+    s << prefix.str() << "rewire";
     rewiring_options.add_options()
       (s.str().c_str(), po::value<double>()->default_value(0.),
        "fraction of edges to rewire");
     s.str("");
-    s << edgeLabels[i] << "-rewire-clustered";
+    s << prefix.str() << "rewire-clustered";
     rewiring_options.add_options()
       (s.str().c_str(), po::value<double>()->default_value(0.),
        "fraction of edges to rewire and cluster");
     s.str("");
-    s << edgeLabels[i] << "-remove";
+    s << prefix.str() << "remove";
     rewiring_options.add_options()
       (s.str().c_str(), po::value<double>()->default_value(0.),
        "fraction of edges to remove");
     s.str("");
-    s << edgeLabels[i] << "-add";
+    s << prefix.str() << "add";
     rewiring_options.add_options()
       (s.str().c_str(), po::value<double>()->default_value(0.),
        "fraction of edges to add");
@@ -468,12 +512,15 @@ int main(int argc, char* argv[])
   po::options_description additional_options("Additional options");
   
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-    std::stringstream s;
-    s << edgeLabels[i] << "-randomise";
+    std::stringstream s, prefix;
+    if (nEdgeTypes > 1) {
+      prefix << edgeLabels[i] << "-";
+    }
+    s << prefix.str() << "randomise";
     additional_options.add_options()
       (s.str().c_str(), po::value<double>()->default_value(0.), 
-       ("randomise fraction of vertices before adding "+std::string(1,edgeLabels[i])+
-        "-edges").c_str());
+       ("randomise fraction of vertices before adding "+prefix.str()+
+        "edges").c_str());
   }
 
   // read options from command line
@@ -563,9 +610,12 @@ int main(int argc, char* argv[])
     onetype_graph temp_graph;
     boost::add_vertices(temp_graph, N);
 
-    std::string currentEdgeLabel = std::string(1, edgeLabels[edgeTypes[i]]);
+    std::string currentEdgeLabel("");
     
-    std::string optStr = std::string(1, edgeLabels[i]) + std::string("-topology");
+    if (nEdgeTypes > 1) {
+      currentEdgeLabel = std::string(1, edgeLabels[edgeTypes[i]]) + "-";
+    }
+    std::string optStr = currentEdgeLabel + "-topology";
     if (readAll) {
       topology = "read";
     } else if (vm.count(optStr)) {
@@ -583,7 +633,7 @@ int main(int argc, char* argv[])
       /******************************************************************/
       
       latticeOptions opt;
-      optStr = std::string(1, edgeLabels[i]) + "-dim";
+      optStr = currentEdgeLabel + "dim";
       opt.dimensions = vm[optStr].as<unsigned int>();
       opt.sideLength = static_cast<int>(pow(N, 1.0/opt.dimensions));
       if (pow(opt.sideLength, opt.dimensions) != N) { 
@@ -591,7 +641,7 @@ int main(int argc, char* argv[])
                   << " vertices." << std::endl;
         return 1;
       }
-      optStr = std::string(1, edgeLabels[i]) + "-pb";
+      optStr = currentEdgeLabel + "pb";
       if (vm.count(optStr)) {
         opt.periodicBoundary = true;
       } else {
@@ -648,7 +698,7 @@ int main(int argc, char* argv[])
       
       treeOptions opt;
 
-      optStr = std::string(1, edgeLabels[i]) + "-branches";
+      optStr = currentEdgeLabel + "branches";
       if (vm.count(optStr)) {
         opt.branches = vm[optStr].as<unsigned int>();
       } else {
@@ -675,7 +725,7 @@ int main(int argc, char* argv[])
       
       rgOptions opt;
 
-      optStr = std::string(1, edgeLabels[i]) + "-edges";
+      optStr = currentEdgeLabel + "edges";
       std::string optStr2 = std::string(1, edgeLabels[i]) + std::string("-degree");
       if (vm.count(optStr)) {
         opt.edges = vm[optStr].as<unsigned int>();
@@ -722,11 +772,11 @@ int main(int argc, char* argv[])
       
       rrgOptions opt;
 
-      optStr = std::string(1, edgeLabels[i]) + "-degree";
+      optStr = currentEdgeLabel + "degree";
       if (vm.count(optStr)) {
         opt.degree = static_cast<unsigned int>(vm[optStr].as<double>());
       } 
-      optStr = std::string(1, edgeLabels[i]) + "-joint-degree";
+      optStr = currentEdgeLabel + "joint-degree";
       if (vm.count(optStr)) {
         opt.jointDegree = vm[optStr].as<unsigned int>();
       }
@@ -809,7 +859,7 @@ int main(int argc, char* argv[])
       
       swOptions opt;
       
-      optStr = std::string(1, edgeLabels[i]) + "-degree";
+      optStr = currentEdgeLabel + "degree";
       if (vm.count(optStr)) {
         opt.degree = static_cast<unsigned int>(vm[optStr].as<double>());
       } else {
@@ -837,7 +887,7 @@ int main(int argc, char* argv[])
       
       plodOptions opt;
       
-      optStr = std::string(1, edgeLabels[i]) + "-alpha";
+      optStr = currentEdgeLabel + "alpha";
       if (vm.count(optStr)) {
         opt.alpha = vm[optStr].as<double>();
       } else {
@@ -845,7 +895,7 @@ int main(int argc, char* argv[])
         std::cerr << *plod_options[i] << std::endl;
         return 1;
       }
-      optStr = std::string(1, edgeLabels[i]) + "-beta";
+      optStr = currentEdgeLabel + "beta";
       if (vm.count(optStr)) {
         opt.beta = vm[optStr].as<double>();
       } else {
@@ -873,7 +923,7 @@ int main(int argc, char* argv[])
       
       abOptions opt;
       
-      optStr = std::string(1, edgeLabels[i]) + "-newedges";
+      optStr = currentEdgeLabel + "newedges";
       if (vm.count(optStr)) {
         opt.new_edges = vm[optStr].as<unsigned int>();
       } else {
@@ -902,7 +952,7 @@ int main(int argc, char* argv[])
 
       communityOptions opt;
 
-      optStr = std::string(1,edgeLabels[i]) + "-delta";
+      optStr = currentEdgeLabel + "delta";
       if (vm.count(optStr)) {
         opt.delta = vm[optStr].as<double>();
       } else {
@@ -911,7 +961,7 @@ int main(int argc, char* argv[])
         std::cerr << *com_options[i] << std::endl;
         return 1;
       }
-      optStr = std::string(1,edgeLabels[i]) + "-pl";
+      optStr = currentEdgeLabel + "pl";
       if (vm.count(optStr)) {
         opt.pl = vm[optStr].as<double>();
       } else {
@@ -920,7 +970,7 @@ int main(int argc, char* argv[])
         std::cerr << *com_options[i] << std::endl;
         return 1;
       }
-      optStr = std::string(1,edgeLabels[i]) + "-pr";
+      optStr = currentEdgeLabel + "pr";
       if (vm.count(optStr)) {
         opt.pr = vm[optStr].as<double>();
       } else {
@@ -929,7 +979,7 @@ int main(int argc, char* argv[])
         std::cerr << *com_options[i] << std::endl;
         return 1;
       }
-      optStr = std::string(1,edgeLabels[i]) + "-pd";
+      optStr = currentEdgeLabel + "pd";
       if (vm.count(optStr)) {
         opt.pd = vm[optStr].as<double>();
       } else {
@@ -938,7 +988,7 @@ int main(int argc, char* argv[])
         std::cerr << *com_options[i] << std::endl;
         return 1;
       }
-      optStr = std::string(1,edgeLabels[i]) + "-iter";
+      optStr = currentEdgeLabel + "iter";
       if (vm.count(optStr)) {
         opt.iterations = vm[optStr].as<unsigned int>();
       } else {
@@ -996,7 +1046,7 @@ int main(int argc, char* argv[])
       /******************************************************************/
       readFileOptions opt;
 
-      optStr = std::string(1,edgeLabels[i]) + "-file";
+      optStr = currentEdgeLabel + "file";
       if (vm.count(optStr)) {
         if (readGraph.size() == 0) {
           readGraph = vm[optStr].as<std::string>();
@@ -1040,17 +1090,17 @@ int main(int argc, char* argv[])
 
     // do graph modifications if desired
     if (num_edges(temp_graph) > 0 &&
-        vm.count(currentEdgeLabel+"-remove")) {
+        vm.count(currentEdgeLabel+"remove")) {
       double removeFraction =
-        vm[currentEdgeLabel+"-remove"].as<double>();
+        vm[currentEdgeLabel+"remove"].as<double>();
       if (removeFraction > 0) {
         boost::removeEdges(temp_graph, gen, removeFraction);
       }
     }
     if (num_edges(temp_graph) > 0 &&
-        vm.count(currentEdgeLabel+"-rewire")) {
+        vm.count(currentEdgeLabel+"rewire")) {
       double rewireFraction =
-        vm[currentEdgeLabel+"-rewire"].as<double>();
+        vm[currentEdgeLabel+"rewire"].as<double>();
       if (rewireFraction > 0) {
         int rewire_result = -1;
         unsigned int count = 0;
@@ -1068,9 +1118,9 @@ int main(int argc, char* argv[])
       }
     }
     if (num_edges(temp_graph) > 0 &&
-        vm.count(currentEdgeLabel+"-rewire-clustered")) {
+        vm.count(currentEdgeLabel+"rewire-clustered")) {
       double clusteredRewireFraction =
-        vm[currentEdgeLabel+"-rewire-clustered"].as<double>();
+        vm[currentEdgeLabel+"rewire-clustered"].as<double>();
       if (clusteredRewireFraction > 0) {
         boost::rewireClustered(graph, temp_graph, gen,
                                clusteredRewireFraction, verbose);
@@ -1079,13 +1129,13 @@ int main(int argc, char* argv[])
         }
       }
     }
-    if (num_edges(temp_graph) > 0 && vm.count(currentEdgeLabel+"-add")) {
-      double addFraction = vm[currentEdgeLabel+"-add"].as<double>();
+    if (num_edges(temp_graph) > 0 && vm.count(currentEdgeLabel+"add")) {
+      double addFraction = vm[currentEdgeLabel+"add"].as<double>();
       boost::addEdges(temp_graph, gen, addFraction);
     }
     
-    if (vm.count(currentEdgeLabel+"-randomise")) {
-      double randFraction = vm[currentEdgeLabel+"-randomise"].as<double>();
+    if (vm.count(currentEdgeLabel+"randomise")) {
+      double randFraction = vm[currentEdgeLabel+"randomise"].as<double>();
       randomise_vertices(temp_graph, gen, randFraction);
     }
 
@@ -1106,9 +1156,13 @@ int main(int argc, char* argv[])
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     for (unsigned int j = 0; j < nEdgeTypes; ++j) {
       for (unsigned int k = j; k < nEdgeTypes; ++k) {
-        std::string s = std::string(1,edgeLabels[i]) + "-" +
-          std::string(1,edgeLabels[j]) + std::string(1,edgeLabels[k]) +
-          "-assortativity";
+        std::string s("");
+        if (nEdgeTypes > 1) {
+          s = std::string(1,edgeLabels[i]) + "-" +
+            std::string(1,edgeLabels[j]) + std::string(1,edgeLabels[k]) +
+            "-";
+        }
+        s = s + "assortativity";
         if (vm.count(s.c_str())) {
           double ass = (vm[s.c_str()].as<double>());
           rewire_assortatively(graph, gen, ass, i, j, k, verbose);
@@ -1141,10 +1195,13 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // Mark parallel edges
   /******************************************************************/
-  unsigned int parallel_edges = mark_parallel_edges(graph);
-  if (verbose >= 2) {
-    std::cout << "No. of parallel edges is: " << parallel_edges
-              << std::endl;
+  unsigned int parallel_edges = 0;
+  if (nEdgeTypes > 1) {
+    parallel_edges = mark_parallel_edges(graph);
+    if (verbose >= 2) {
+      std::cout << "No. of parallel edges is: " << parallel_edges
+                << std::endl;
+    }
   }
 
   /******************************************************************/
@@ -1217,7 +1274,9 @@ int main(int argc, char* argv[])
                << " (avg degree: " << pairs[i]*2./num_vertices(graph)
 	       << ")" << std::endl;
       }
-      output << " " << "parallel: " << parallel_edges << std::endl;
+      if (nEdgeTypes > 1) {
+        output << " " << "parallel: " << parallel_edges << std::endl;
+      }
     }
     
     /******************************************************************/
