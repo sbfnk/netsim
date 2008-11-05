@@ -1270,7 +1270,11 @@ int main(int argc, char* argv[])
       }
       std::vector<unsigned int> pairs = count_pairs(graph, nEdgeTypes);
       for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-        output << "  " << edgeLabels[i] << "-pairs: " << pairs[i]
+        std::string prefix;
+        if (nEdgeTypes > 1) {
+          prefix = edgeLabels[i] + "-";
+        }
+        output << "  " << prefix << "pairs: " << pairs[i]
                << " (avg degree: " << pairs[i]*2./num_vertices(graph)
 	       << ")" << std::endl;
       }
@@ -1283,7 +1287,6 @@ int main(int argc, char* argv[])
     // count triples
     /******************************************************************/
     if (vm.count("triples") || allStats) {
-      
       if (baseFileName.length() == 0 || verbose) {
         output << "\nTriple count:" << std::endl;
       }
@@ -1291,7 +1294,11 @@ int main(int argc, char* argv[])
         count_triples(graph, nEdgeTypes);
       for (unsigned int i = 0; i < nEdgeTypes; ++i) {
         for (unsigned int j = i; j < nEdgeTypes; ++j) {
-          output << "  " << edgeLabels[i] << edgeLabels[j] << "-triples: "
+          std::string prefix;
+          if (nEdgeTypes > 1) {
+            prefix = edgeLabels[i] + edgeLabels[j] + "-";
+          }
+          output << "  " << prefix << "triples: "
                  << triples[i][j] << std::endl;
         }
       }
@@ -1371,8 +1378,11 @@ int main(int argc, char* argv[])
     for (unsigned int i = 0; i< nEdgeTypes; ++i) {
       for (unsigned int j = i; j< nEdgeTypes; ++j) {
         for (unsigned int k = 0; k< nEdgeTypes; ++k) {
-          output << "  C" << edgeLabels[i] << edgeLabels[j]
-                 << edgeLabels[k] << " = " << lcc[i][j][k] << std::endl;
+          std::string prefix;
+          if (nEdgeTypes > 1) {
+            prefix = edgeLabels[i] + edgeLabels[j] + edgeLabels[k];
+          }
+          output << "  C" << prefix << " = " << lcc[i][j][k] << std::endl;
         }
       }
     }
@@ -1426,7 +1436,11 @@ int main(int argc, char* argv[])
     std::stringstream output;
     
     for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-      output << "  on " << std::string(1,edgeLabels[i]) << "-edges: "
+      std::string prefix;
+      if (nEdgeTypes > 1) {
+        prefix = edgeLabels[i] + "-";
+      }
+      output << "  on " << prefix << "edges: "
              << boost::avg_shortest_path_length(graph, Edge(i)) << std::endl;
       for (unsigned int j = 0; j < nEdgeTypes; ++j) {
         if (i != j) {
@@ -1459,10 +1473,12 @@ int main(int argc, char* argv[])
     for (unsigned int i = 0; i < nEdgeTypes; ++i) {
       for (unsigned int j = 0; j < nEdgeTypes; ++j) {
         for (unsigned int k = j; k < nEdgeTypes; ++k) {
-          output << "  " << std::string(1,edgeLabels[i]) << "-"
-                 << std::string(1,edgeLabels[j])
-                 << std::string(1,edgeLabels[k])
-                 << "-assortativity: "
+          std::string prefix;
+          if (nEdgeTypes > 1) {
+            prefix = edgeLabels[i] + "-" + std::string(1,edgeLabels[j]) +
+              std::string(1,edgeLabels[k]) + "-";
+          }
+          output << "  " << prefix << "assortativity: "
                  << boost::assortativity(graph, i, j, k)
                  << std::endl;
         }
@@ -1496,7 +1512,7 @@ int main(int argc, char* argv[])
       }
     }
 
-    if (baseFileName.length() == 0 || verbose) {
+    if ((baseFileName.length() == 0 || verbose) && nEdgeTypes > 1) {
       std::cout << "\nDegree overlap: " << std::endl;
       std::cout << output.str();
     }
