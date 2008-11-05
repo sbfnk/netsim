@@ -1322,19 +1322,27 @@ int main(int argc, char* argv[])
     int len = std::max(6, static_cast<int>(s.str().length()));
 
     output << "# " << "degree" << "\t";
-    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-      output << edgeLabels[i] << " only" << "\t";
+    if (nEdgeTypes > 1) {
+      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+        output << edgeLabels[i] << " only" << "\t";
+      }
+      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+        output << edgeLabels[i] << " all " << "\t";
+      }
+      output << "parall" << "\t" << " all  " << std::endl;
+    } else {
+      output << " nodes" << std::endl;
     }
-    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-      output << edgeLabels[i] << " all " << "\t";
-    }
-    output << "parall" << "\t" << " all  " << std::endl;
     
     for (unsigned int i = 0; i < max_degree+1; ++i) {
 
       output << "  " << std::setw(len) << i << "\t";
-      for (unsigned int j = 0; j < nEdgeTypes*2+2; ++j) {
-        output << std::setw(len) << dd[j][i] << "\t";
+      if (nEdgeTypes > 1) {
+        for (unsigned int j = 0; j < nEdgeTypes*2+2; ++j) {
+          output << std::setw(len) << dd[j][i] << "\t";
+        }
+      } else {
+        output << std::setw(len) << dd[0][i];
       }
       output << std::endl;
     }
