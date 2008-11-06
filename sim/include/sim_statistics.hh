@@ -454,7 +454,7 @@ public:
   virtual void doit(const Graph& g, std::string dir, double time,
                     unsigned int count)
   {
-    std::string outputFileName = dir + "/" + "counts.sim.dat";
+    std::string outputFileName = dir + "/" + "singles.sim.dat";
     std::ofstream outputFile;
     
     try {
@@ -479,8 +479,24 @@ public:
     for (unsigned int i = 0; i < nVertexStates; i++) {
       line << vertexCount[i] << '\t';
     }
+    line << std::endl;
+    outputFile << line.str();
+    outputFile.close();
 
     if (pairs) {
+      outputFileName = dir + "/" + "pairs.sim.dat";
+      
+      try {
+        outputFile.open(outputFileName.c_str(),
+                        std::ios::out | std::ios::app | std::ios::ate);
+      }
+      catch (std::exception &e) {
+        std::cerr << "Unable to open output file: " << e.what() << std::endl;
+        std::cerr << "Will not write simulation counts to file." << std::endl;
+      }
+      
+      outputFile << time << '\t';
+
       boost::multi_array<unsigned int, 3> pairCount =
         count_state_pairs(g, nVertexStates, nEdgeTypes);
       // count pairs
@@ -501,9 +517,26 @@ public:
           line << parallelCount[j][k] << '\t';
         }
       }
+      line << std::endl;
+      outputFile << line.str();
+      outputFile.close();
     }
 
     if (triples) {
+      outputFileName = dir + "/" + "triples.sim.dat";
+      
+      try {
+        outputFile.open(outputFileName.c_str(),
+                        std::ios::out | std::ios::app | std::ios::ate);
+      }
+      catch (std::exception &e) {
+        std::cerr << "Unable to open output file: " << e.what() << std::endl;
+        std::cerr << "Will not write simulation counts to file." << std::endl;
+      }
+      
+      outputFile << time << '\t';
+
+
       boost::multi_array<unsigned int, 5> tripleCount =
         count_state_triples(g, nVertexStates, nEdgeTypes);
       
@@ -518,12 +551,11 @@ public:
           }
         }
       }
+
+      line << std::endl;
+      outputFile << line.str();
+      outputFile.close();
     }
-    
-    line << std::endl;
-    
-    outputFile << line.str();
-    outputFile.close();
     
   }
 
