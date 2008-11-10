@@ -6,6 +6,9 @@
 
 #include "Model.hh"
 
+#include <math.h>
+#include <algorithm>
+
 class GroupFormState :
   public State
 {
@@ -89,7 +92,14 @@ namespace Models {
     {
       double dist = 0.;
       for (unsigned int i = 0; i < s1->getTraits().size(); ++i) {
-        dist += pow(s1->getTrait(i)-s2->getTrait(i), 2);
+        double diff = 0.;
+        if (close) {
+          diff = std::min(fabs(s1->getTrait(i)-s2->getTrait(i)),
+                          1 - fabs(s1->getTrait(i)-s2->getTrait(i)));
+        } else {
+          diff = s1->getTrait(i) - s2->getTrait(i);
+        }                              
+        dist += pow(diff, 2);
       }
       return sqrt(dist);
     }
@@ -97,6 +107,7 @@ namespace Models {
     unsigned int states; //!< number of states (groups).
     unsigned int trait_dim; //!< Dimension of the trait vector
     double acceptance; //!< Base property of acceptance.
+    bool close;
   };
 
   template <class Graph>
@@ -111,6 +122,8 @@ namespace Models {
        "alpha")
       ("avg-trait", po::value<double>(),
        "write average trait for each state at arg timesteps")
+      ("close", po::value<double>(),
+       "close ring at [0,1] when calculating distances")
       ;
 
     this->edgeTypes.push_back(Label("x", "", 0, "style=\"solid\""));
@@ -125,6 +138,9 @@ namespace Models {
   (const po::variables_map& vm, std::vector<StatRecorder<Graph>*>& rec)
   {
     Model<Graph>::Init(vm, rec);
+
+    close = vm.count("close");
+
     if (vm.count("avg-trait")) {
       rec.push_back
         (new StatRecorder<Graph>
