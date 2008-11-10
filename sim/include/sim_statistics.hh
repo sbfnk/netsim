@@ -482,6 +482,7 @@ public:
     line << std::endl;
     outputFile << line.str();
     outputFile.close();
+    line.str("");
 
     if (pairs) {
       outputFileName = dir + "/" + "pairs.sim.dat";
@@ -509,17 +510,20 @@ public:
       }
 
       // count parallel pairs
-      boost::multi_array<unsigned int, 2> parallelCount =
-        count_parallel_edges(g, nVertexStates);
+      if (nEdgeTypes > 1) {
+        boost::multi_array<unsigned int, 2> parallelCount =
+          count_parallel_edges(g, nVertexStates);
       
-      for (unsigned int j = 0; j < nVertexStates; j++) {
-        for (unsigned int k = j; k < nVertexStates; k++) {
-          line << parallelCount[j][k] << '\t';
+        for (unsigned int j = 0; j < nVertexStates; j++) {
+          for (unsigned int k = j; k < nVertexStates; k++) {
+            line << parallelCount[j][k] << '\t';
+          }
         }
       }
       line << std::endl;
       outputFile << line.str();
       outputFile.close();
+      line.str("");
     }
 
     if (triples) {
@@ -555,6 +559,7 @@ public:
       line << std::endl;
       outputFile << line.str();
       outputFile.close();
+      line.str("");
     }
     
   }
