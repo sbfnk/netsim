@@ -62,6 +62,7 @@ cleaner:
 out/simulate.o: include/Vertex.hh include/Simulator.hh \
 	include/EpiSimulator.hh include/GillespieSimulator.hh \
 	include/GroupFormSimulator.hh include/Model.hh \
+	include/GroupFormModel.hh \
 	include/ChrisSimulator.hh include/Tree.hh include/Bin.hh \
 	include/InfoSIRS.hh include/DimInfoSIRS.hh include/EpiModel.hh \
 	include/ProtectiveSIRS.hh include/VaccinationSIRS.hh \
