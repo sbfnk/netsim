@@ -122,7 +122,7 @@ namespace Models {
        "alpha")
       ("avg-trait", po::value<double>(),
        "write average trait for each state at arg timesteps")
-      ("close", po::value<double>(),
+      ("close",
        "close ring at [0,1] when calculating distances")
       ;
 
