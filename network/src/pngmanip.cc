@@ -90,9 +90,9 @@ int main(int argc, char* argv[])
       pixelColour.push_back(reader->read(i,j,3));
       if (pixelColour[2] > 0) {
         //Susceptible
-        bgColour.push_back(1.25*(65535-pixelColour[2]));
-        bgColour.push_back(1.25*(65535-pixelColour[2]));
-        bgColour.push_back(1.25*(65535-pixelColour[2]));
+        bgColour.push_back(static_cast<int>(1.25*(65535-pixelColour[2])));
+        bgColour.push_back(static_cast<int>(1.25*(65535-pixelColour[2])));
+        bgColour.push_back(static_cast<int>(1.25*(65535-pixelColour[2])));
         if (vm.count("some-colour")) {
           fgColour.push_back(0);
           fgColour.push_back(0);

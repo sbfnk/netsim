@@ -333,7 +333,7 @@ int main(int argc, char* argv[])
       (s.str().c_str(), po::value<unsigned int>(),
        "number of edges");
     s.str("");
-    s << prefix.str() << "degree";
+    s << prefix.str() << "avg-degree";
     ro->add_options()
       (s.str().c_str(), po::value<double>(),
        "average degree");
@@ -351,7 +351,7 @@ int main(int argc, char* argv[])
     po::options_description* rrgo
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << prefix.str() << "degree";
+    s << prefix.str() << "node-degree";
     rrgo->add_options()
       (s.str().c_str(), po::value<double>(),
        "degree of the graph G(n,d)");
@@ -374,7 +374,7 @@ int main(int argc, char* argv[])
     po::options_description* swo
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << prefix.str() << "degree";
+    s << prefix.str() << "node-degree";
     swo->add_options()
       (s.str().c_str(), po::value<double>(),
        "degree of each node");
@@ -615,7 +615,7 @@ int main(int argc, char* argv[])
     if (nEdgeTypes > 1) {
       currentEdgeLabel = std::string(1, edgeLabels[edgeTypes[i]]) + "-";
     }
-    std::string optStr = currentEdgeLabel + "-topology";
+    std::string optStr = currentEdgeLabel + "topology";
     if (readAll) {
       topology = "read";
     } else if (vm.count(optStr)) {
@@ -726,7 +726,7 @@ int main(int argc, char* argv[])
       rgOptions opt;
 
       optStr = currentEdgeLabel + "edges";
-      std::string optStr2 = std::string(1, edgeLabels[i]) + std::string("-degree");
+      std::string optStr2 = currentEdgeLabel + "avg-degree";
       if (vm.count(optStr)) {
         opt.edges = vm[optStr].as<unsigned int>();
         if (vm.count(optStr2)) {
@@ -772,7 +772,7 @@ int main(int argc, char* argv[])
       
       rrgOptions opt;
 
-      optStr = currentEdgeLabel + "degree";
+      optStr = currentEdgeLabel + "node-degree";
       if (vm.count(optStr)) {
         opt.degree = static_cast<unsigned int>(vm[optStr].as<double>());
       } 
@@ -859,7 +859,7 @@ int main(int argc, char* argv[])
       
       swOptions opt;
       
-      optStr = currentEdgeLabel + "degree";
+      optStr = currentEdgeLabel + "node-degree";
       if (vm.count(optStr)) {
         opt.degree = static_cast<unsigned int>(vm[optStr].as<double>());
       } else {
@@ -1247,13 +1247,13 @@ int main(int argc, char* argv[])
 
   if (vm.count("all-stats")) {
     allStats = true;
-    if (verbose == 0) verbose = 1;
+//    if (verbose == 0) verbose = 1;
   }
 
   /******************************************************************/
   // count vertices
   /******************************************************************/
-  if (vm.count("pairs") || vm.count("triples") || verbose) {
+  if (vm.count("pairs") || vm.count("triples") || verbose || allStats) {
     std::stringstream output;
     if (baseFileName.length() == 0 || verbose) {
       output << "\nVertex count:" << std::endl;
@@ -1263,7 +1263,7 @@ int main(int argc, char* argv[])
     /******************************************************************/
     // count pairs
     /******************************************************************/
-    if (vm.count("pairs") || verbose) {
+    if (vm.count("pairs") || verbose || allStats) {
       
       if (baseFileName.length() == 0 || verbose) {
         output << "\nPair count:" << std::endl;
@@ -1308,7 +1308,7 @@ int main(int argc, char* argv[])
       std::cout << output.str();
     }
     if (baseFileName.length() > 0) {
-      std::string countFileName = baseFileName+".counts";
+      std::string countFileName = baseFileName+".stat.counts";
       std::ofstream countFile(countFileName.c_str(), std::ios::out);
       countFile << output.str();
       countFile.close();
@@ -1359,7 +1359,7 @@ int main(int argc, char* argv[])
       std::cout << output.str();
     }
     if (baseFileName.length() > 0) {
-      std::string degreeFileName = baseFileName+".degree";
+      std::string degreeFileName = baseFileName+".stat.degree";
       std::ofstream degreeFile(degreeFileName.c_str(), std::ios::out);
       degreeFile << output.str();
       degreeFile.close();
@@ -1369,7 +1369,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // calculate local clustering coefficients
   /******************************************************************/
-  if (vm.count("local-cluster-coeff") || allStats) {
+  if (vm.count("local-cluster-coeff")) {
     std::stringstream output;
     
     boost::multi_array<double, 3> lcc =
@@ -1392,7 +1392,7 @@ int main(int argc, char* argv[])
       std::cout << output.str();
     }
     if (baseFileName.length() > 0) {
-      std::string lccFileName = baseFileName + ".lcc";
+      std::string lccFileName = baseFileName + ".stat.lcc";
       std::ofstream lccFile(lccFileName.c_str(), std::ios::out);
       lccFile << output.str();
       lccFile.close();
@@ -1411,8 +1411,11 @@ int main(int argc, char* argv[])
     for (unsigned int i = 0; i< nEdgeTypes; ++i) {
       for (unsigned int j = i; j< nEdgeTypes; ++j) {
         for (unsigned int k = 0; k< nEdgeTypes; ++k) {
-          output << "  C" << edgeLabels[i] << edgeLabels[j]
-                 << edgeLabels[k] << " = " << gcc[i][j][k] << std::endl;
+          std::string prefix;
+          if (nEdgeTypes > 1) {
+            prefix = edgeLabels[i] + edgeLabels[j] + edgeLabels[k];
+          }
+          output << "  C" << prefix << " = " << gcc[i][j][k] << std::endl;
         }
       }
     }
@@ -1422,7 +1425,7 @@ int main(int argc, char* argv[])
       std::cout << output.str();
     }
     if (baseFileName.length() > 0) {
-      std::string gccFileName = baseFileName + ".gcc";
+      std::string gccFileName = baseFileName + ".stat.gcc";
       std::ofstream gccFile(gccFileName.c_str(), std::ios::out);
       gccFile << output.str();
       gccFile.close();
@@ -1457,7 +1460,7 @@ int main(int argc, char* argv[])
       std::cout << output.str();
     }
     if (baseFileName.length() > 0) {
-      std::string splFileName = baseFileName + ".spl";
+      std::string splFileName = baseFileName + ".stat.spl";
       std::ofstream splFile(splFileName.c_str(), std::ios::out);
       splFile << output.str();
       splFile.close();
@@ -1489,7 +1492,7 @@ int main(int argc, char* argv[])
       std::cout << output.str();
     }
     if (baseFileName.length() > 0) {
-      std::string assFileName = baseFileName + ".ass";
+      std::string assFileName = baseFileName + ".stat.ass";
       std::ofstream assFile(assFileName.c_str(), std::ios::out);
       assFile << output.str();
       assFile.close();
@@ -1499,7 +1502,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // calculate degree overlaps 
   /******************************************************************/
-  if (vm.count("degree-overlap") || allStats) {
+  if (vm.count("degree-overlap") || (allStats && nEdgeTypes > 1)) {
     std::stringstream output;
     
     for (unsigned int i = 0; i < nEdgeTypes; ++i) {
@@ -1517,7 +1520,7 @@ int main(int argc, char* argv[])
       std::cout << output.str();
     }
     if (baseFileName.length() > 0) {
-      std::string dolFileName = baseFileName + ".dol";
+      std::string dolFileName = baseFileName + ".stat.dol";
       std::ofstream dolFile(dolFileName.c_str(), std::ios::out);
       dolFile << output.str();
       dolFile.close();
