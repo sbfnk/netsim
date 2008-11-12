@@ -33,6 +33,7 @@
 #include "assortativity.hh"
 #include "degree_overlap.hh"
 #include "path_length.hh"
+#include "community_structure.hh"
 
 namespace po = boost::program_options;
 
@@ -99,9 +100,7 @@ int main(int argc, char* argv[])
   std::string topology;
 
   unsigned int nEdgeTypes = 2;
-  
   unsigned int N = 0;
-
   unsigned int verbose = 0;
 
   std::string readGraph = ""; // default is to generate graph.
@@ -215,6 +214,8 @@ int main(int argc, char* argv[])
      "write clustering coefficients to baseName.cluster file (from adjacency matrices)")
     ("write-Js",
      "write adjacency matrices to files  baseName.Jd/i")        
+    ("community",
+     "determine community structure")        
     ;
   
   po::options_description graph_options
@@ -1208,7 +1209,7 @@ int main(int argc, char* argv[])
   // Write graph files
   /******************************************************************/
   std::string baseFileName;
-  if (vm.count("output-file")) {
+  if (vm.count("output-file") && !readAll) {
     baseFileName = vm["output-file"].as<std::string>();
     std::string ext = ".graph";
     
@@ -1235,13 +1236,14 @@ int main(int argc, char* argv[])
       if (vm.count("write-Js")) writeJs = true;
       
       bool status = boost::cluster_coeff(graph, baseFileName, writeJs);
-      if (verbose)
+      if (verbose) {
         if (!status) {
           std::cout << "cluster coeff file was written ok\n";
         } else {
           std::cout << "ERROR: something wrong in writing cluster coeff file "
                     << std::endl;
         }
+      }
     }
   }
 
@@ -1527,6 +1529,13 @@ int main(int argc, char* argv[])
     }
   }
 
+  /******************************************************************/
+  // calculate community structure
+  /******************************************************************/
+  if (vm.count("community")) {
+    boost::community_structure(graph);
+  }
+    
   /******************************************************************/
   // print vertex degrees
   /******************************************************************/
