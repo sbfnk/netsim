@@ -214,8 +214,8 @@ int main(int argc, char* argv[])
      "write clustering coefficients to baseName.cluster file (from adjacency matrices)")
     ("write-Js",
      "write adjacency matrices to files  baseName.Jd/i")        
-    ("community",
-     "determine community structure")        
+    ("community", po::value<double>(), 
+     "determine community structure (parameter: threshold)")        
     ;
   
   po::options_description graph_options
@@ -1193,6 +1193,8 @@ int main(int argc, char* argv[])
     std::cout << "\nGraph created." << std::endl;
   }
 
+  setup_edge_index_map(graph);
+
   /******************************************************************/
   // Mark parallel edges
   /******************************************************************/
@@ -1209,25 +1211,30 @@ int main(int argc, char* argv[])
   // Write graph files
   /******************************************************************/
   std::string baseFileName;
-  if (vm.count("output-file") && !readAll) {
-    baseFileName = vm["output-file"].as<std::string>();
+  if (vm.count("output-file") || readAll) {
+
     std::string ext = ".graph";
-    
-    if (vm.count("split")) {
-      // split graph into several files
-      onetype_graph split_graph;
-      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-        split_graph.clear();
-        copy_edges_type(graph, split_graph, Edge(i));
-        std::string outputGraphName = baseFileName + "_" +
-          std::string(1, edgeLabels[i]) + ext;
-        write_graph(split_graph, outputGraphName, false);
-      }
+    if (readAll) {
+      baseFileName = readGraph.substr(0,readGraph.rfind("."));
     } else {
-      // write whole graph in one file
-      std::string outputGraphName =
-        baseFileName+".graph";
-      write_graph(graph, outputGraphName, true);
+      baseFileName = vm["output-file"].as<std::string>();
+      
+      if (vm.count("split")) {
+        // split graph into several files
+        onetype_graph split_graph;
+        for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+          split_graph.clear();
+          copy_edges_type(graph, split_graph, Edge(i));
+          std::string outputGraphName = baseFileName + "_" +
+            std::string(1, edgeLabels[i]) + ext;
+          write_graph(split_graph, outputGraphName, false);
+        }
+      } else {
+        // write whole graph in one file
+        std::string outputGraphName =
+          baseFileName+".graph";
+        write_graph(graph, outputGraphName, true);
+      }
     }
     
     // create sparse adjacency matrices and clustering coefficients
@@ -1244,6 +1251,12 @@ int main(int argc, char* argv[])
                     << std::endl;
         }
       }
+    }
+
+    // calculate community structure
+    if (vm.count("community")) {
+      boost::community_structure(graph, vm["community"].as<double>());
+      write_graph(graph, baseFileName+".comm"+ext, true);
     }
   }
 
@@ -1529,13 +1542,6 @@ int main(int argc, char* argv[])
     }
   }
 
-  /******************************************************************/
-  // calculate community structure
-  /******************************************************************/
-  if (vm.count("community")) {
-    boost::community_structure(graph);
-  }
-    
   /******************************************************************/
   // print vertex degrees
   /******************************************************************/

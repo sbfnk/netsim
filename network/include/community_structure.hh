@@ -6,6 +6,7 @@
 #define COMMUNITY_STRUCTURE_HH
 
 #include <boost/graph/bc_clustering.hpp>
+#include <boost/foreach.hpp>
 
 //! \addtogroup graph_statistics Graph statistics
 //! \addtogroup helper_functions Helper functions
@@ -39,11 +40,14 @@ namespace boost {
   };
   
   template <class Graph>
-  void community_structure(Graph& g)
+  void community_structure(Graph& g, double threshold)
   {
+    typedef typename clustering_threshold::centrality_type centrality_type;
+    std::vector<centrality_type> edge_centrality(num_edges(g));
+    
     betweenness_centrality_clustering
-      (g, clustering_threshold(10., g, false));
-//        get(edge_centrality, g));
+      (g, clustering_threshold(threshold, g, false),
+       make_iterator_property_map(edge_centrality.begin(), get(&Edge::index, g)));
   }
   
 } // namespace boost

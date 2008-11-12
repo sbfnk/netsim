@@ -8,6 +8,7 @@
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/random.hpp>
+#include <boost/foreach.hpp>
 #include <boost/random.hpp>
 #include <boost/random/uniform_real.hpp>
 #include <boost/random/variate_generator.hpp>
@@ -860,7 +861,19 @@ namespace boost {
     return parallel_edges;
     
   }
-  
+
+  // Utility function to fill in edge index property correctly on a graph
+  // without
+  // it.
+  template < typename Graph >
+  void setup_edge_index_map( Graph& g ) {
+    typedef typename graph_traits<Graph>::edge_descriptor edge_descriptor;
+    int i = 0;
+    BOOST_FOREACH( edge_descriptor e, edges(g) ) {
+      put(&Edge::index, g, e, i++ );
+    }
+  }
+
 } // namespace boost
 
 //----------------------------------------------------------

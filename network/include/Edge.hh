@@ -32,6 +32,8 @@ public:
 
   double weight;
 
+  std::size_t index;
+
   bool operator==(const Edge& rhs)
   { return type == rhs.type; }
       
