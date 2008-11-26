@@ -2,6 +2,7 @@
 # script for animation of gif images
 # usage: mkanim [delay in 1/100 seconds]
 # default delay is specified below
+#
 
 ANIM_CMD=gifsicle
 DELAY=10 # 0.1 seconds
