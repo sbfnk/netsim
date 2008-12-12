@@ -29,6 +29,9 @@ namespace Simulators {
 
   public:
 
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor
+    vertex_descriptor;
+
     /*! \brief Constructor
     
     \param[in] r randGen initialiser
@@ -48,7 +51,8 @@ namespace Simulators {
 
     virtual bool parse_options(const po::variables_map& vm);
     virtual bool stopCondition() const;
-    virtual void updateEventStats(State* before, State* after);
+    virtual void updateEventStats(State* before, State* after,
+                                  vertex_descriptor v, vertex_descriptor nb);
     
   private:
   
@@ -64,6 +68,10 @@ namespace Simulators {
 
     bool stopOutbreak;
     bool stopInfoOutbreak;
+
+    std::vector<std::set<unsigned int> > generations;
+    std::vector<unsigned int> genInf;
+
   };
 
   template <typename RandomGenerator, typename Graph>
@@ -84,8 +92,10 @@ namespace Simulators {
        "limit to the number of infectives (stop if reached) in addition to initial infectives")
       ;
     this->recorder_options.add_options()
-      ("stats", po::value<double>(),
-       "write cumulative stats at arg timesteps")
+      ("stats", 
+       "write cumulative stats at the end of a run")
+      ("r0", po::value<unsigned int>()->default_value(1),
+       "calculate r0 for arg generations")
       ;
   }
 
@@ -105,6 +115,7 @@ namespace Simulators {
       if (model->isInformed(this->getGraph()[*vi].state)) ++numInformed;
       if (model->isInfected(this->getGraph()[*vi].state)) ++numInfected;
     }
+
   }
   
   template <typename RandomGenerator, typename Graph>
@@ -116,8 +127,15 @@ namespace Simulators {
       this->statRecorders.push_back
         (new StatRecorder<Graph>
          (new write_epi_stats<Graph, EpiSimulator<RandomGenerator, Graph> >
-          (*this, this->getVerbose()), 
-          vm["stats"].as<double>()));
+          (*this, this->getVerbose()), 0.));
+    }
+    if (vm.count("r0")) {
+      generations.resize(vm["r0"].as<unsigned int>());
+      genInf.resize(vm["r0"].as<unsigned int>(), 0);
+      this->statRecorders.push_back
+        (new StatRecorder<Graph>
+         (new write_r0<Graph, EpiSimulator<RandomGenerator, Graph> >
+          (generations, genInf, this->getVerbose()), 0.));
     }
     if (vm.count("imax")) {
       stopInfections = vm["imax"].as<unsigned int>();
@@ -142,7 +160,8 @@ namespace Simulators {
 
   template <typename RandomGenerator, typename Graph>
   void EpiSimulator<RandomGenerator, Graph>::
-  updateEventStats(State* before, State* after)
+  updateEventStats(State* before, State* after,
+                   vertex_descriptor v, vertex_descriptor nb)
   {
     const EpiModel_base<Graph>* model =
       dynamic_cast<const EpiModel_base<Graph>*>(this->getModel());
@@ -151,6 +170,29 @@ namespace Simulators {
       if (model->isInfection(before, after)) {
         ++numInfections;
         ++numInfected;
+        std::cout << nb << " infected by " << v << std::endl;
+        if (generations.size() > 0) {
+          // see if originator is already in a generation
+          unsigned int i = 0;
+          if (generations[i].size() > 0) {
+            int lastGen = -1;
+            std::set<unsigned int>::iterator res = generations[i].find(v);
+            while (lastGen < 0 && i < generations.size() && res == generations[i].end()); 
+            {
+              ++i;
+              if (generations[i].size() == 0) {
+                lastGen = i - 1;
+                generations[i].insert(v);
+                std::cout << nb << " inserted in set of generation " << i << std::endl;
+              } else {
+                res = generations[i].find(v);
+              }
+            }
+        } else {
+          generations[i].insert(v);
+          std::cout << nb << " inserted in set of generation " << i << std::endl;
+        }
+        ++genInf[i];
       }
       if (model->isInformation(before, after)) {
         ++numInformations;

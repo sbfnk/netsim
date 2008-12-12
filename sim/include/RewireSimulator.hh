@@ -63,7 +63,7 @@ namespace Simulators {
     vertex_descriptor* random_state_walk
     (vertex_descriptor original_node,  vertex_descriptor source_node,
      std::vector<vertex_descriptor>* previous_nodes = 0,
-     unsigned int sameStateNbs = 0);
+     double distanceSum = 0.);
    
    void print();
 
@@ -205,9 +205,11 @@ namespace Simulators {
   RewireSimulator<RandomGenerator, Graph>::random_state_walk
   (vertex_descriptor original_node, vertex_descriptor source_node,
    std::vector<vertex_descriptor>* previous_nodes,
-    unsigned int sameStateNbs)
+   double distanceSum)
   {
     Graph& graph = this->getGraph();
+    const Models::GroupFormModel<Graph>* model =
+      dynamic_cast<const Models::GroupFormModel<Graph>*>(this->getModel());
     bool delPrevious = false;
     if (!previous_nodes) {
       previous_nodes = new std::vector<vertex_descriptor>;
@@ -223,7 +225,7 @@ namespace Simulators {
           std::cout << " " << (*previous_nodes)[i];
         }
       } else {
-        std::cout << "none";
+        std::cout << " none";
       }
       std::cout << ", source_node "
                 << source_node << std::endl;
@@ -233,30 +235,7 @@ namespace Simulators {
 
     out_edge_iterator oi, oi_end;;
 
-    if (sameStateNbs == 0) {
-      for (tie(oi, oi_end) =
-             boost::out_edges(source_node, graph);
-           oi != oi_end; ++oi) {
-        if (graph[source_node].state->getState() ==
-            graph[target(*oi, graph)].state->getState()) {
-          bool previous = false;
-          for (unsigned int i = 0;
-               i < previous_nodes->size() && !previous; ++i) {
-            if (target(*oi, graph) == (*previous_nodes)[i]) {
-              previous = true;
-            }
-          }
-          if (!previous) {
-            ++sameStateNbs;
-          }
-        }
-      }
-    }
-
-    if (sameStateNbs > 0) {
-      unsigned int randSameStateNeighbour =
-        static_cast<unsigned int>((randGen)() * sameStateNbs);
-      unsigned int nbCount = 0;
+    if (distanceSum == 0.) {
       for (tie(oi, oi_end) =
              boost::out_edges(source_node, graph);
            oi != oi_end; ++oi) {
@@ -274,22 +253,48 @@ namespace Simulators {
               std::cout << "checking neighbour " << target(*oi, graph)
                         << std::endl;
             }
-            if (nbCount == randSameStateNeighbour) {
-              if (edge(original_node, target(*oi, graph), graph).second) {
-                previous_nodes->push_back(source_node);
-                target_node = random_state_walk(original_node, target(*oi, graph),
-                                                previous_nodes);
-              } else {
-                target_node = new vertex_descriptor;
-                *target_node = target(*oi, graph);
-              }
-              // terminate loop
-              oi = (oi_end - 1);
-            } else {
-              ++nbCount;
-            }
+            distanceSum +=
+              1 - (model->distance(graph[original_node].state,
+                                   graph[target(*oi, graph)].state));
           }
         }
+      }
+    }
+
+    if (distanceSum > 0.) {
+      double randSameStateNeighbour = (randGen)() * distanceSum;
+      tie(oi, oi_end) = boost::out_edges(source_node, graph);      
+      double compareDistance = 0.;
+      while (compareDistance == 0. || compareDistance < randSameStateNeighbour) {
+        if (graph[source_node].state->getState() ==
+            graph[target(*oi, graph)].state->getState()) {
+          bool previous = false;
+          for (unsigned int i = 0;
+               i < previous_nodes->size() && !previous; ++i) {
+            if (target(*oi, graph) == (*previous_nodes)[i]) {
+              previous = true;
+            }
+          }
+          if (!previous) {
+            if (verbose >=2) {
+              std::cout << "checking neighbour " << target(*oi, graph)
+                        << std::endl;
+            }
+            compareDistance +=
+              1 - model->distance(graph[original_node].state,
+                                  graph[target(*oi, graph)].state);
+          }
+        }
+        ++oi;
+      }
+      --oi;
+      if (edge(original_node, target(*oi, graph), graph).second) {
+        previous_nodes->push_back(source_node);
+        target_node = random_state_walk(original_node, target(*oi, graph),
+                                        previous_nodes);
+      } else {
+        target_node = new vertex_descriptor;
+        *target_node = target(*oi, graph);
       }
     }
 
@@ -348,8 +353,8 @@ namespace Simulators {
         }
         
         // pick a neighbour of a different state and large distance
-        double distanceSum = 0;
-        unsigned int sameStateNeighbours = 0;
+        double differentDistanceSum = 0;
+        double sameDistanceSum = 0;
 
         // loop over all member of group and update ties
         out_edge_iterator oi, oi_end;;
@@ -361,18 +366,20 @@ namespace Simulators {
              oi != oi_end; ++oi) {
           if (graph[target(*oi, graph)].state->getState() !=
               graph[state_nodes[randStateNode]].state->getState()) {
-            distanceSum +=
+            differentDistanceSum +=
               (model->distance(graph[state_nodes[randStateNode]].state,
                                graph[target(*oi, graph)].state));
           } else {
-            ++sameStateNeighbours;
+            sameDistanceSum += 1 -
+              (model->distance(graph[state_nodes[randStateNode]].state,
+                               graph[target(*oi, graph)].state));
           }
         }
 
         // pick a little similar neighbour at random
-        if (distanceSum > 0. && sameStateNeighbours > 0) {
+        if (differentDistanceSum > 0. && sameDistanceSum > 0.) {
           // pick a little similar neighbour at random
-          double randNeighbour = ((randGen)() * distanceSum);
+          double randNeighbour = ((randGen)() * differentDistanceSum);
           tie(oi, oi_end) = boost::out_edges(state_nodes[randStateNode], graph);
           double compareDistance =
             model->distance(graph[state_nodes[randStateNode]].state,
@@ -388,11 +395,12 @@ namespace Simulators {
           vertex_descriptor* target_node =
             random_state_walk
             (state_nodes[randStateNode], state_nodes[randStateNode], 0,
-             sameStateNeighbours);
+             sameDistanceSum);
 
           if (target_node) {
             if (verbose >=2) {
-              std::cout << "removing link to " << cut_node
+              std::cout << "removing link to " << cut_node << " ("
+                        << model->printState(graph[cut_node].state) << ")"
                         << std::endl;
             }
             // remove weakest link
@@ -400,7 +408,8 @@ namespace Simulators {
               (edge(state_nodes[randStateNode], cut_node, graph).first, graph);
             // link to group node
             if (verbose >=2) {
-              std::cout << "adding link to " << *target_node
+              std::cout << "adding link to " << *target_node << " ("
+                        << model->printState(graph[*target_node].state) << ")"
                         << std::endl;
             }
             boost::add_edge(state_nodes[randStateNode], *target_node, graph);
@@ -414,10 +423,10 @@ namespace Simulators {
           }
         } else {
           if (verbose >= 2) {
-            if (distanceSum == 0.) { 
+            if (differentDistanceSum == 0.) { 
               std::cout << "No neighbours of different state" << std::endl;
             }
-            if (sameStateNeighbours > 0) {            
+            if (sameDistanceSum == 0.) {            
               std::cout << "No neighbours of same state" << std::endl;
             }
           }

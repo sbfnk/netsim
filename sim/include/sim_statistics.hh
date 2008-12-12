@@ -383,40 +383,98 @@ public:
 
   void doit(const Graph& g, std::string dir, double time, unsigned int count)
   {
-    std::ofstream statsFile;
-    std::string statsFileName = dir+"/stats.dat";
-    try {
-      statsFile.open(statsFileName.c_str(), std::ios::out);
-    }
-    catch (std::exception &e) {
-      std::cerr << "... unable to open stats file "
-                << statsFileName << " for writing" << std::endl;
-      std::cerr << "... Standard exception: " << e.what() << std::endl;
-    }
-    statsFile << "Cumulative number of infections: "
-              << sim.getNumInfections() << std::endl;
-    statsFile << "Cumulative number of informations: " << sim.getNumInformations()
-              << std::endl;
-    try {
-      statsFile.close();
-    }
-    catch (std::exception &e) {
-      std::cerr << "... unable to close stats file "
-                << statsFileName << std::endl;
-      std::cerr << "... Standard exception: " << e.what() << std::endl;
-    }
-    
-    if (verbose) {
-      std::cout << "Cumulative number of infections: " << sim.getNumInfections()
+    if (time > 0.) {
+      std::ofstream statsFile;
+      std::string statsFileName = dir+"/stats.dat";
+      try {
+        statsFile.open(statsFileName.c_str(), std::ios::out);
+      }
+      catch (std::exception &e) {
+        std::cerr << "... unable to open stats file "
+                  << statsFileName << " for writing" << std::endl;
+        std::cerr << "... Standard exception: " << e.what() << std::endl;
+      }
+      statsFile << "Cumulative number of infections: "
+                << sim.getNumInfections() << std::endl;
+      statsFile << "Cumulative number of informations: " << sim.getNumInformations()
                 << std::endl;
-      std::cout << "Cumulative number of informations: " << sim.getNumInformations()
-                << std::endl;
+      try {
+        statsFile.close();
+      }
+      catch (std::exception &e) {
+        std::cerr << "... unable to close stats file "
+                  << statsFileName << std::endl;
+        std::cerr << "... Standard exception: " << e.what() << std::endl;
+      }
+      
+      if (verbose) {
+        std::cout << "Cumulative number of infections: " << sim.getNumInfections()
+                  << std::endl;
+        std::cout << "Cumulative number of informations: " << sim.getNumInformations()
+                  << std::endl;
+      }
     }
   }
 
 private: 
 
   const Simulator& sim;
+  bool verbose;
+  
+};
+
+template <typename Graph, typename Simulator>
+class write_r0
+  : public Funct<Graph>
+{
+
+public:
+
+  write_r0(const std::vector<std::set<unsigned int> >& gen,
+           const std::vector<unsigned int> genInf, bool v)
+    : generations(gen), genInf(genInf), verbose(v)
+  {;}
+
+  void doit(const Graph& g, std::string dir, double time, unsigned int count)
+  {
+    if (time > 0.) {
+      std::ofstream r0File;
+      std::string r0FileName = dir+"/r0.dat";
+      try {
+        r0File.open(r0FileName.c_str(), std::ios::out);
+      }
+      catch (std::exception &e) {
+        std::cerr << "... unable to open r0 file "
+                  << r0FileName << " for writing" << std::endl;
+        std::cerr << "... Standard exception: " << e.what() << std::endl;
+      }
+      for (unsigned int i = 0; i < genInf.size(); ++i) {
+        r0File << i << " "
+               << genInf[i]/static_cast<double>(generations[i].size())
+               << std::endl;
+        if (verbose) {
+          std::cout << i << " "
+                    << genInf[i]/static_cast<double>(generations[i].size())
+                    << std::endl;
+        }
+      }
+      try {
+        r0File.close();
+      }
+      catch (std::exception &e) {
+        std::cerr << "... unable to close r0 file "
+                  << r0FileName << std::endl;
+        std::cerr << "... Standard exception: " << e.what() << std::endl;
+      }
+      
+      
+    }
+  }
+
+private: 
+
+  const std::vector<std::set<unsigned int> >& generations;
+  const std::vector<unsigned int>& genInf;
   bool verbose;
   
 };

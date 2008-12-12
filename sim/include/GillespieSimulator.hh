@@ -70,7 +70,8 @@ namespace Simulators {
     bool updateState();
     void changeVertexState(vertex_descriptor v, vertex_descriptor nb,
                            State* before, State* after);
-    virtual void updateEventStats(State* before, State* after) {;}
+    virtual void updateEventStats(State* before, State* after,
+                                  vertex_descriptor v, vertex_descriptor nb) {;}
   
     virtual bool stopCondition() 
     { return Simulator<Graph>::stopCondition(); }
@@ -153,7 +154,7 @@ namespace Simulators {
     }
 
     // update stats
-    updateEventStats(before, after);
+    updateEventStats(before, after, nb, v);
     // process the change of state
     delete before;
     graph[v].state = after->clone();
