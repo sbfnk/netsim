@@ -33,14 +33,21 @@ namespace boost {
 
     /*! \brief Constructor
      */
-    vertex_writer() {}
+    vertex_writer(const std::vector<std::string>* vertexOptions) :
+      options(vertexOptions) {}
 
     //! Operator for writing vertex entries to a graphviz files
     template<typename VertexID>
     void operator()(std::ostream& out, VertexID v) const
     {
-      out << "[label=\"\"]";
+      if (options) {
+        out << (*options)[v];
+      } else {
+        out << "[label=\"\"]";
+      }
     }
+
+    const std::vector<std::string>* options;
   
   };
 
@@ -101,8 +108,8 @@ namespace boost {
     \ingroup graph_io
   */
   inline vertex_writer
-  make_vertex_writer() {
-    return vertex_writer();
+  make_vertex_writer(const std::vector<std::string>* vertexOptions = 0) {
+    return vertex_writer(vertexOptions);
   }
 
   //----------------------------------------------------------
@@ -254,6 +261,33 @@ namespace boost {
   \param[in] g The graph to write to the file
   \param[in] fileName The name of the file to be written
   \param[in] saveType Whether the edge type should be saved in the file.
+  \param[in] vertexOptions Additional vector of vertex options
+  \ingroup graph_io
+  */
+  template <typename Graph>
+  void write_graph(const Graph& g, std::string fileName, bool saveType = true,
+                   const std::vector<std::string>* vertexOptions = 0)
+  {
+    typedef typename boost::edge_property_type<Graph>::type::value_type
+      edge_property_type;
+
+    std::ofstream out(fileName.c_str());
+    std::stringstream s;
+
+    write_graphviz(out, g,
+                   make_vertex_writer(vertexOptions),
+                   make_edge_writer(get(&edge_property_type::type, g), saveType),
+                   graph_writer());
+  }
+
+  //----------------------------------------------------------
+  /*! \brief Write graph to a graphviz file
+  
+  Uses the boost function write_graphviz to save a graph to a file
+
+  \param[in] g The graph to write to the file
+  \param[in] fileName The name of the file to be written
+  \param[in] saveType Whether the edge type should be saved in the file.
   \ingroup graph_io
   */
   template <typename Graph>
@@ -369,13 +403,39 @@ namespace boost {
   */
   template <typename Graph>
   int read_graph(Graph& g, const std::string graphFileName,
-                          unsigned int edgeType)
+                 unsigned int edgeType)
+  {
+    std::vector<std::string> tempOptions;
+    return read_graph(g, graphFileName, edgeType, tempOptions);
+  }
+
+  //----------------------------------------------------------
+  /*! \brief Read graph from a graphviz file
+  
+  Reads a graph from a graphviz file by going through the file line-by-line.
+  If there are already vertices in the graph, it only connects them according to
+  the edges given in the file. If not, it creates the vertices and, if desired,
+  reads in their states. 
+
+  \param[out] g The graph to read into
+  \param[in] graphFileName The name of the file to be read
+  \param[in] edgeType The edge type to be assigned to the read file
+  \param[out] vertexOptions A vector containing all vertex options
+  \return The number of edges which have been read.
+  \ingroup graph_io
+  */
+  template <typename Graph>
+  int read_graph(Graph& g, const std::string graphFileName,
+                 unsigned int edgeType,
+                 std::vector<std::string>& vertexOptions)
   {
 
     std::vector<std::string> edgeStyles;
     edgeStyles.push_back("style=\"solid\"");
     edgeStyles.push_back("style=\"dashed\"");
     edgeStyles.push_back("style=\"dotted\"");
+
+    vertexOptions.clear();
   
     // open file
     std::ifstream file;
@@ -455,9 +515,12 @@ namespace boost {
           
           } else { // if vertex
 
+            std::string s = line.substr(0, bpos);
+            unsigned int src = cast_stream<unsigned int>(s);
+            
+            vertexOptions.push_back(line.substr(bpos, line.size()-bpos-1));
+            
             if (addVertices) {
-              std::string s = line.substr(0, bpos);
-              unsigned int src = cast_stream<unsigned int>(s);
             
 	      // add vertices until we have enough to accomodate what is in graph file
               while (src >= num_vertices(g)) add_vertex(g);
@@ -634,10 +697,9 @@ namespace boost {
   unsigned int write_component_dist(const Graph& g, std::string fileName = "")
   {
     std::vector<int> component(num_vertices(g));
-
     int num = boost::connected_components(g, &component[0]);
+
     std::vector<unsigned int> comp_dist(num, 0);
-    boost::connected_components(g, &component[0]);
 
     unsigned int largest_comp = 0;
     
