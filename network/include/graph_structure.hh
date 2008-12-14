@@ -16,6 +16,7 @@
 #include <iostream>
 
 #include "graph_statistics.hh"
+#include "Edge.hh"
 
 //! \addtogroup graph_structure Graph structure
 //! \addtogroup helper_functions Helper functions
@@ -865,7 +866,7 @@ namespace boost {
   // Utility function to fill in edge index property correctly on a graph
   // without
   // it.
-  template < typename Graph >
+  template <typename Graph>
   void setup_edge_index_map( Graph& g ) {
     typedef typename graph_traits<Graph>::edge_descriptor edge_descriptor;
     int i = 0;
