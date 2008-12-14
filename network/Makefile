@@ -63,8 +63,5 @@ out/network.o: include/lattice_generator.hh include/graph_structure.hh \
 	include/assortativity.hh include/graph_statistics.hh \
 	include/path_length.hh include/breadth_first_search.hpp \
 	include/degree_overlap.hh include/tree_generator.hh \
-<<<<<<< Makefile
-        include/community_generator.hh include/nearest_infected.hh
-=======
-        include/community_generator.hh include/community_structure.hh
->>>>>>> 1.35
+        include/community_generator.hh include/nearest_infected.hh \
+        include/community_structure.hh
