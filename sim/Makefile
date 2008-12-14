@@ -5,8 +5,8 @@ CC         = g++
 CPPFLAGS     = -Wall -g -I${CODEDIR} -Iinclude -pg
 
 LINKER      = g++
-LDFLAGS     = -lpng -lpngwriter -lfreetype -lboost_program_options-gcc41 \
-              -lboost_filesystem-gcc41 -gp
+LDFLAGS     = -lpng -lpngwriter -lfreetype -lboost_program_options \
+              -lboost_filesystem -gp
 
 #--------------------------------------------------------------------
 
