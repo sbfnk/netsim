@@ -110,6 +110,14 @@ namespace Simulators {
 
     numInfections = numInformations = numInformed = numInfected = 0;
 
+    for (std::vector<std::vector<unsigned int> >::iterator it = generations.begin();
+         it != generations.end(); it++) {
+      it->clear();
+    }
+    for (std::vector<unsigned int>::iterator it = genInf.begin();
+         it != genInf.end(); it++) {
+      (*it) = 0;
+    }
     typename boost::graph_traits<Graph>::vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(this->getGraph()); vi != vi_end; ++vi) {
       if (model->isInformed(this->getGraph()[*vi].state)) ++numInformed;
