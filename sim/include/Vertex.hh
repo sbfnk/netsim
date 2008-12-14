@@ -98,7 +98,7 @@ public:
 
   //! Constructor.
   Vertex()
-    : state(0) {;}
+    : state(new State(0)) {;}
   
   /*! \brief Constructor.
     \param[in] s state initialiser.
@@ -106,8 +106,11 @@ public:
   Vertex(State* s)
     : state(s) {;}
 
+  Vertex(const Vertex& v)
+  { state = v.state->clone(); }
+
   //! Destructor
-  virtual ~Vertex() { delete state;}
+  virtual ~Vertex() { if (state) delete state;}
 
   State* state;
   
