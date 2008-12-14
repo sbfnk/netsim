@@ -4,7 +4,7 @@ CC         = g++
 CPPFLAGS     = -Wall -O3 -g -I${CODEDIR} -Iinclude
 
 LINKER      = g++
-LDFLAGS     = -lboost_program_options -lpng -lpngwriter -lfreetype
+LDFLAGS     = -lboost_program_options-gcc41 -lpng -lpngwriter -lfreetype
 
 #--------------------------------------------------------------------
 
@@ -63,4 +63,4 @@ out/network.o: include/lattice_generator.hh include/graph_structure.hh \
 	include/assortativity.hh include/graph_statistics.hh \
 	include/path_length.hh include/breadth_first_search.hpp \
 	include/degree_overlap.hh include/tree_generator.hh \
-        include/community_generator.hh
+        include/community_generator.hh include/community_structure.hh

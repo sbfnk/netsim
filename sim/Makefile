@@ -2,11 +2,11 @@
 
 CC         = g++
 #CPPFLAGS     = -Wall -O3 -g -I${CODEDIR} -Iinclude
-CPPFLAGS     = -Wall -g -I${CODEDIR} -Iinclude 
+CPPFLAGS     = -Wall -g -I${CODEDIR} -Iinclude -pg
 
 LINKER      = g++
-LDFLAGS     = -lpng -lpngwriter -lfreetype -lboost_program_options \
-              -lboost_filesystem
+LDFLAGS     = -lpng -lpngwriter -lfreetype -lboost_program_options-gcc41 \
+              -lboost_filesystem-gcc41 -gp
 
 #--------------------------------------------------------------------
 
@@ -71,4 +71,6 @@ out/simulate.o: include/Vertex.hh include/Simulator.hh \
 	${CODEDIR}/network/include/graph_structure.hh \
 	${CODEDIR}/network/include/graph_io.hh \
 	${CODEDIR}/network/include/nearest_infected.hh \
-	${CODEDIR}/network/include/Edge.hh
+	${CODEDIR}/network/include/Edge.hh \
+	${CODEDIR}/network/include/community_structure.hh
+

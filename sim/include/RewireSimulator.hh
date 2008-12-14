@@ -6,10 +6,13 @@
 #define REWIRESIMULATOR_HH
 
 #include <math.h>
+#include <algorithm>
 
 #include "Simulator.hh"
 #include "Vertex.hh"
 #include "GroupFormModel.hh"
+
+#include "network/include/community_structure.hh"
 
 #include <boost/graph/random.hpp>
 #include <boost/random/uniform_real.hpp>
@@ -122,10 +125,13 @@ namespace Simulators {
       ("state-randomise-prob,r",po::value<double>()->default_value(0.),
        "probability of random state assignment")
       ;
-      
     this->recorder_options.add_options()
       ("component-dist,t",po::value<double>(),
        "write component distribution in comp directory at arg timesteps")
+      ("modularity",po::value<double>(),
+       "write modularity at arg timesteps")
+      ("community",po::value<double>(),
+       "write community distribution in comm directory at arg timesteps")
       ;
     this->stop_options.add_options()
       ("cmin", po::value<unsigned int>()->default_value(0),
@@ -144,11 +150,6 @@ namespace Simulators {
   { 
     bool ret = Simulator<Graph>::parse_options(vm);
     stopComponent = vm["cmin"].as<unsigned int>();
-    if (vm.count("component-dist")) {
-      this->statRecorders.push_back(new StatRecorder<Graph>
-                                    (new write_comp_dist<Graph>(this->getGraph()),
-                                     vm["component-dist"].as<double>()));
-    }
     rewireProb = vm["rewire-prob"].as<double>();
     if (rewireProb == 0.) {
       std::cerr << "WARNING: rewiring probability 0" << std::endl;
@@ -160,6 +161,34 @@ namespace Simulators {
     randomiseProb = vm["state-randomise-prob"].as<double>();
     if (rewireProb == 0.) {
       std::cerr << "WARNING: state randomise probability 0" << std::endl;
+    }
+    if (vm.count("component-dist")) {
+      this->statRecorders.push_back
+        (new StatRecorder<Graph>
+         (new write_comp_dist<Graph>(this->getGraph()),
+          vm["component-dist"].as<double>()));
+    }
+    if (vm.count("modularity") || vm.count("community")) {
+      double rate = -1;
+      if (vm.count("modularity")) {
+        if (vm.count("community") &&
+            vm["modularity"].as<double>() != vm["community"].as<double>()) {
+          rate = std::min(vm["modularity"].as<double>(),
+                          vm["community"].as<double>());
+          std::cerr << "WARNING: different rates given for community and "
+                    << "modularity, using smaller rate " << rate << std::endl;
+        } else {
+          rate = vm["modularity"].as<double>();
+        }
+      } else {
+        rate = vm["community"].as<double>();
+      }
+      this->statRecorders.push_back
+        (new StatRecorder<Graph>
+         (new write_community_structure<Graph, Model<Graph> >
+          (this->getGraph(), *(this->getModel()),
+           vm.count("community"), vm.count("modularity")),
+          rate));
     }
 
     return ret;

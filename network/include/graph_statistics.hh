@@ -6,6 +6,7 @@
 #define GRAPH_STATISTICS_HH
 
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/connected_components.hpp>
 #include <boost/multi_array.hpp>
 
 //! \addtogroup graph_statistics Graph statistics
@@ -566,6 +567,59 @@ namespace boost {
     return max_degree;
   }
     
+  //----------------------------------------------------------
+  /*! \brief Calculate the graph modularity
+  
+  Loops over all vertices and calculates the graph modularity
+  given a graph and a graph indicating communities
+
+  \param[in] g The graph to calculate the degree distribution for.
+  \param[in] cg The graph indicating the communities
+  \return the graph modularity
+  \ingroup graph_statistics
+  */
+
+  template <typename Graph>
+  double graph_modularity(const Graph& g, const Graph& cg)
+  {
+    typedef typename graph_traits<Graph>::edge_descriptor
+      edge_descriptor;
+
+    std::vector<int> component(num_vertices(cg));
+    int num = boost::connected_components(cg, &component[0]);
+    std::size_t nEdges = num_edges(g);
+
+    boost::multi_array<std::size_t, 2> community_matrix
+      (boost::extents[num][num]);
+
+    for (int i = 0; i < num; ++i) {
+      for (int j = 0; j < num; ++j) {
+        community_matrix[i][j] = 0;
+      }
+    }
+
+    BOOST_FOREACH(edge_descriptor e, edges(g)) {
+      ++community_matrix
+        [component[source(e, g)]]
+        [component[target(e, g)]];
+    }
+
+    unsigned int trace = 0;
+    unsigned int rowSqSum = 0;
+      
+    for (int i = 0; i < num; ++i) {
+      trace += community_matrix[i][i];
+      std::size_t tempSum = 0;
+      for (int j = 0; j < num; ++j) {
+        tempSum += community_matrix[i][j];
+      }
+      rowSqSum += tempSum * tempSum;
+    }
+    
+    return
+      (trace / static_cast<double>(nEdges)) -
+      (rowSqSum / static_cast<double>(nEdges * nEdges));
+  }
 } // namespace boost
 
 //----------------------------------------------------------
