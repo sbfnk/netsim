@@ -69,7 +69,7 @@ namespace Simulators {
     bool stopOutbreak;
     bool stopInfoOutbreak;
 
-    std::vector<std::set<unsigned int> > generations;
+    std::vector<std::vector<unsigned int> > generations;
     std::vector<unsigned int> genInf;
 
   };
@@ -113,9 +113,11 @@ namespace Simulators {
     typename boost::graph_traits<Graph>::vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(this->getGraph()); vi != vi_end; ++vi) {
       if (model->isInformed(this->getGraph()[*vi].state)) ++numInformed;
-      if (model->isInfected(this->getGraph()[*vi].state)) ++numInfected;
+      if (model->isInfected(this->getGraph()[*vi].state)) {
+        ++numInfected;
+        if (generations.size() > 0) generations[0].push_back(*vi);
+      }
     }
-
   }
   
   template <typename RandomGenerator, typename Graph>
@@ -169,36 +171,48 @@ namespace Simulators {
     if (model) {
       if (model->isInfection(before, after)) {
         ++numInfections;
-        ++numInfected;
-        std::cout << nb << " infected by " << v << std::endl;
         if (generations.size() > 0) {
           // see if originator is already in a generation
           unsigned int i = 0;
-          if (generations[i].size() > 0) {
-            int lastGen = -1;
-            std::set<unsigned int>::iterator res = generations[i].find(v);
-            while (lastGen < 0 && i < generations.size() && res == generations[i].end()); 
-            {
-              ++i;
-              if (generations[i].size() == 0) {
-                lastGen = i - 1;
-                generations[i].insert(v);
-                std::cout << nb << " inserted in set of generation " << i << std::endl;
-              } else {
-                res = generations[i].find(v);
-              }
+          std::vector<unsigned int>::iterator res =
+            std::find(generations[i].begin(), generations[i].end(), v);
+          while (i < generations.size() && res == generations[i].end()) {
+            ++i;
+            if (i < generations.size()) {
+              res = std::find(generations[i].begin(), generations[i].end(), v);
             }
+          }
+          if (i < generations.size()) {
+            if (i < (generations.size() - 1)) {
+              generations[i+1].push_back(nb);
+              ++numInfected;
+            }
+            ++genInf[i];
+          } 
         } else {
-          generations[i].insert(v);
-          std::cout << nb << " inserted in set of generation " << i << std::endl;
+          ++numInfected;
         }
-        ++genInf[i];
       }
       if (model->isInformation(before, after)) {
         ++numInformations;
         ++numInformed;
       }
-      if (model->isRecovery(before, after)) --numInfected;
+      if (model->isRecovery(before, after)) {
+        if (generations.size() > 0) {
+          unsigned int i = 0;
+          std::vector<unsigned int>::iterator res =
+            std::find(generations[i].begin(), generations[i].end(), v);
+          while (i < generations.size() && res == generations[i].end()) {
+            ++i;
+            if (i < generations.size()) {
+              res = std::find(generations[i].begin(), generations[i].end(), v);
+            }
+          }
+          if (i < generations.size()) --numInfected;
+        } else {
+          --numInfected;
+        }
+      }
       if (model->isForgetting(before, after)) --numInformed;
     }
   }

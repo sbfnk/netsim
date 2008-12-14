@@ -13,6 +13,7 @@
 #include <boost/filesystem.hpp>
 
 #include "network/include/nearest_infected.hh"
+#include "network/include/community_structure.hh"
 #include "StatRecorder.hh"
 
 namespace fs = boost::filesystem;
@@ -430,8 +431,8 @@ class write_r0
 
 public:
 
-  write_r0(const std::vector<std::set<unsigned int> >& gen,
-           const std::vector<unsigned int> genInf, bool v)
+  write_r0(const std::vector<std::vector<unsigned int> >& gen,
+           const std::vector<unsigned int>& genInf, bool v)
     : generations(gen), genInf(genInf), verbose(v)
   {;}
 
@@ -449,13 +450,15 @@ public:
         std::cerr << "... Standard exception: " << e.what() << std::endl;
       }
       for (unsigned int i = 0; i < genInf.size(); ++i) {
-        r0File << i << " "
-               << genInf[i]/static_cast<double>(generations[i].size())
-               << std::endl;
-        if (verbose) {
-          std::cout << i << " "
-                    << genInf[i]/static_cast<double>(generations[i].size())
-                    << std::endl;
+        if (generations[i].size() > 0) {
+          r0File << i << " "
+                 << genInf[i]/static_cast<double>(generations[i].size())
+                 << std::endl;
+          if (verbose) {
+            std::cout << "R0 generation " << i << " "
+                      << genInf[i]/static_cast<double>(generations[i].size())
+                      << std::endl;
+          }
         }
       }
       try {
@@ -473,7 +476,7 @@ public:
 
 private: 
 
-  const std::vector<std::set<unsigned int> >& generations;
+  const std::vector<std::vector<unsigned int> >& generations;
   const std::vector<unsigned int>& genInf;
   bool verbose;
   
@@ -954,7 +957,7 @@ public:
       }
     }
     std::string fileName = generateFileName(dir + "/images/frame", count);
-    write_graph(g, fileName, m, time);
+    write_graph(g, fileName, m,time);
   }
     
 private:
@@ -1022,6 +1025,65 @@ private:
 
   unsigned int largestComponent;
 
+};
+
+template <typename Graph, typename Model>
+class write_community_structure
+  : public Funct<Graph>
+{
+public:
+
+  write_community_structure(Graph& g, const Model& m,
+                            bool graphs = false,
+                            bool modularity = false) :
+    m(m), graphs(graphs), modularity(modularity)
+  {}
+  
+  virtual void doit(const Graph& g, std::string dir, double time,
+                    unsigned int count)
+  {
+    Graph temp_graph = g;
+    double mod = boost::community_structure(g, temp_graph, 1., 2,
+                                            graphs, modularity);
+
+    if (graphs) {
+      if (!fs::exists(dir+"/comm")) {
+        try {
+          mkdir((dir+"/comm").c_str(), 0755);
+        } 
+        catch (std::exception &e) {
+          std::cerr << "... unable to create directory "
+                    << dir << "/comm" << std::endl;
+          return;
+        }
+      }
+      std::string fileName = generateFileName(dir + "/comm/comm", count);
+      write_graph(temp_graph, fileName, m, time);
+    }
+    if (modularity) {
+      std::string outputFileName = dir + "/" + "modularity.sim.dat";
+      std::ofstream outputFile;
+      
+      try {
+        outputFile.open(outputFileName.c_str(),
+                        std::ios::out | std::ios::app | std::ios::ate);
+      }
+      catch (std::exception &e) {
+        std::cerr << "Unable to open output file: " << e.what() << std::endl;
+        std::cerr << "Will not write modularity to file." << std::endl;
+      }
+      
+      outputFile << time << '\t';
+      outputFile << mod;
+      outputFile << std::endl;
+      outputFile.close();
+    }
+  }
+
+private:
+  const Model& m;
+  bool graphs;
+  bool modularity;
 };
 
 //----------------------------------------------------------

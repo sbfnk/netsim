@@ -35,13 +35,16 @@ namespace Models {
                                unsigned int edge, State* currentNbState, 
                                unsigned int nb) const;
 
-    bool isInfection(State before_state, State after_state) const
-    { return ((before_state.getState() == Susceptible) &&
-              (after_state.getState() == Infected)); }
-    bool isRecovery(State before_state, State after_state) const
-    { return ((before_state.getState() == Infected) &&
-              (after_state.getState() != Infected)); }
+    bool isInfection(State* before_state, State* after_state) const
+    { return ((before_state->getState() == Susceptible) &&
+              (after_state->getState() == Infected)); }
+    bool isRecovery(State* before_state, State* after_state) const
+    { return ((before_state->getState() == Infected) &&
+              (after_state->getState() != Infected)); }
 
+    virtual bool isInfected(State* state) const
+    { return (state->getState() == Infected); }
+    
     std::vector<StatRecorder<Graph>*> 
     getStatRecorders(const po::variables_map& vm) const
     { }
@@ -68,18 +71,17 @@ Models::SingleSIRS<Graph>::SingleSIRS(unsigned int v)
   /*************************************/
   // define vertex classes
   /************************************/
-//   // susceptible
-//   vertexStates.push_back(Label("S","01;32", 0, "", Label::rgbColour(0,0,255)));
-//   // infected 
-//   vertexStates.push_back(Label("I","01;31", 1, "", Label::rgbColour(255,0,0)));
-//   // recovered
-//   vertexStates.push_back(Label("R","01;34", 2, "", Label::rgbColour(0,255,0)));
+  // susceptible
+  this->vertexStates.push_back(Label("S","01;32", 0, "", Label::rgbColour(0,0,255)));
+  // infected 
+  this->vertexStates.push_back(Label("I","01;31", 1, "", Label::rgbColour(255,0,0)));
+  // recovered
+  this->vertexStates.push_back(Label("R","01;34", 2, "", Label::rgbColour(0,255,0)));
 
   /*************************************/
   // define edge types
   /************************************/
   this->edgeTypes.push_back(Label("0", "", 0, "style=\"solid\""));
-  this->edgeTypes.push_back(Label("1", "", 1, "style=\"dashed\""));
 
   /*************************************/
   // define model parameters
