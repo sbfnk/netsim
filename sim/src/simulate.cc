@@ -75,8 +75,6 @@ int main(int argc, char* argv[])
   bool generateIC = true; // default is to generate initial conditions
   bool keepIC = false; // default is not to keep initial conditions fro each run
   
-  bool allFromOne;
-
   bool effective = true;
 
   bool doIO = false;
@@ -294,17 +292,15 @@ int main(int argc, char* argv[])
   /******************************************************************/
 
   std::vector<std::string> fileNames;
-  
+
   if (vm.count("file")) {
     // read all from one file
-    allFromOne = true;
     for (unsigned int i = 0; i < edgeTypes.size(); i++) {
       fileNames.push_back
         (inputGraphDir + vm["file"].as<std::string>() + ".graph");
     }
   } else if (edgeTypes.size() > 1) {
     bool graphError = false;
-    allFromOne = false;
     for (unsigned int i = 0; i < edgeTypes.size(); i++) {
       std::stringstream s;
       s.str("");
@@ -367,7 +363,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  // consider effective singles
+  // don't consider effective singles
   if (vm.count("noeffective")) {
     effective = false;
   }
@@ -383,8 +379,11 @@ int main(int argc, char* argv[])
 
   // mark parallel edges
   unsigned int parallel_edges = mark_parallel_edges(graph);
-  if (verbose) std::cout << "No. of parallel edges is: " << parallel_edges
-                         << std::endl;
+  if (verbose && nEdgeTypes > 1) {
+    std::cout << "No. of parallel edges is: " << parallel_edges
+              << std::endl;
+  }
+  setup_edge_index_map(graph);
 
   doIO = (sim->doIO());
 
