@@ -214,8 +214,10 @@ int main(int argc, char* argv[])
      "write clustering coefficients to baseName.cluster file (from adjacency matrices)")
     ("write-Js",
      "write adjacency matrices to files  baseName.Jd/i")        
-    ("community", po::value<double>(), 
-     "determine community structure (parameter: threshold)")        
+    ("community",
+     "determine community structure")        
+    ("modularity", 
+     "determine modularity")        
     ;
   
   po::options_description graph_options
@@ -585,7 +587,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // create graph variable
   /******************************************************************/
-  multitype_graph graph, saved_graph;
+  multitype_graph graph;
             
   /******************************************************************/
   // read graph from file or generate it
@@ -593,7 +595,8 @@ int main(int argc, char* argv[])
   
   // adding N vertices to graph
   boost::add_vertices(graph, N);
-  
+  std::vector<std::string> vertexOptions(N);
+
   /******************************************************************/
   // generate edges
   /******************************************************************/
@@ -1063,8 +1066,9 @@ int main(int argc, char* argv[])
         }
       }
 
-      // reading graph structure and initial state from file
-      int read_result = read_graph(temp_graph, opt.fileName, i);
+      // reading graph structure
+      int read_result = read_graph(temp_graph, opt.fileName, i,
+                                   vertexOptions);
       if (read_result > 0) {
         // update number of vertices
         N = num_vertices(graph);
@@ -1214,29 +1218,32 @@ int main(int argc, char* argv[])
   if (vm.count("output-file") || readAll) {
 
     std::string ext = ".graph";
-    if (readAll) {
-      baseFileName = readGraph.substr(0,readGraph.rfind("."));
-    } else {
+    if (vm.count("output-file")) {
       baseFileName = vm["output-file"].as<std::string>();
-      
-      if (vm.count("split")) {
-        // split graph into several files
-        onetype_graph split_graph;
-        for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-          split_graph.clear();
-          copy_edges_type(graph, split_graph, Edge(i));
-          std::string outputGraphName = baseFileName + "_" +
-            std::string(1, edgeLabels[i]) + ext;
-          write_graph(split_graph, outputGraphName, false);
+      if (!readAll) {
+        if (vm.count("split")) {
+          // split graph into several files
+          onetype_graph split_graph;
+          for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+            split_graph.clear();
+            copy_edges_type(graph, split_graph, Edge(i));
+            std::string outputGraphName = baseFileName + "_" +
+              std::string(1, edgeLabels[i]) + ext;
+            write_graph(split_graph, outputGraphName, false,
+                        &vertexOptions);
+          }
+        } else {
+          // write whole graph in one file
+          std::string outputGraphName =
+            baseFileName+".graph";
+          write_graph(graph, outputGraphName, true,
+                      &vertexOptions);
         }
-      } else {
-        // write whole graph in one file
-        std::string outputGraphName =
-          baseFileName+".graph";
-        write_graph(graph, outputGraphName, true);
       }
+    } else if (!verbose) {
+      baseFileName = readGraph.substr(0,readGraph.rfind("."));
     }
-    
+
     // create sparse adjacency matrices and clustering coefficients
     if (vm.count("cluster-coeff")) {
       bool writeJs = false;
@@ -1254,9 +1261,30 @@ int main(int argc, char* argv[])
     }
 
     // calculate community structure
-    if (vm.count("community")) {
-      boost::community_structure(graph, vm["community"].as<double>());
-      write_graph(graph, baseFileName+".comm"+ext, true);
+    if (vm.count("community") || vm.count("modularity")) {
+      multitype_graph saved_graph = graph;
+      double mod =
+        boost::community_structure(saved_graph, graph, 1., verbose,
+                                   vm.count("community"),
+                                   vm.count("modularity") || verbose); 
+      if (vm.count("community") && baseFileName.length() > 0) {
+        write_graph(graph, baseFileName+".comm"+ext,
+                    true, &vertexOptions);
+      }
+      if (vm.count("modularity")) {
+        std::stringstream output;
+        output << "  M = " << mod << std::endl;
+        if (baseFileName.length() == 0 || verbose) {
+          std::cout << "\nModularity:" << std::endl;
+          std::cout << output.str();
+        }
+        if (baseFileName.length() > 0) {
+          std::string modFileName = baseFileName + ".stat.mod";
+          std::ofstream modFile(modFileName.c_str(), std::ios::out);
+          modFile << output.str();
+          modFile.close();
+        }
+      }
     }
   }
 
