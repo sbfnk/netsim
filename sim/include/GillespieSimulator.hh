@@ -183,6 +183,7 @@ namespace Simulators {
 
     // exit if nothing can happen
     if (tree.getTopBin()->getRateSum() < 1) {
+      this->stopRun();
       return false;
     }
   
