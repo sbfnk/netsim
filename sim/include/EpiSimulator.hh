@@ -193,6 +193,10 @@ namespace Simulators {
           if (i < generations.size()) {
             if (i < (generations.size() - 1)) {
               generations[i+1].push_back(nb);
+              if (this->getVerbose() >= 2) {
+                std::cout << "R0: vertex " << nb << " recorded as an infected"
+                          << " of generation " << i+1 << std::endl;
+              }
               ++numInfected;
             }
             ++genInf[i];
