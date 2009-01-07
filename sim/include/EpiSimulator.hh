@@ -140,6 +140,7 @@ namespace Simulators {
           (*this, this->getVerbose()), 0.));
     }
     if (vm.count("r0")) {
+      std::cout << "R0" << std::endl;
       generations.resize(vm["r0"].as<unsigned int>());
       genInf.resize(vm["r0"].as<unsigned int>(), 0);
       this->statRecorders.push_back

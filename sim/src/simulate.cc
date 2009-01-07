@@ -31,7 +31,8 @@
 
 #include "GroupFormSimulator.hh"
 #include "RewireSimulator.hh"
-#include "GillespieSimulator.hh"
+#include "EpiSimulator.hh"
+#include "EpiRewireSimulator.hh"
 #include "ChrisSimulator.hh"
 
 namespace po = boost::program_options;
@@ -152,6 +153,9 @@ int main(int argc, char* argv[])
     std::string simType = vm["sim"].as<std::string>();
     if (simType == "EpiGillespie") {
       sim = new Simulators::EpiSimulator<boost::mt19937, multitype_graph>
+        (gen, graph, verbose);
+    } else if (simType == "EpiRewire") {
+      sim = new Simulators::EpiRewireSimulator<boost::mt19937, multitype_graph>
         (gen, graph, verbose);
     } else if (simType == "Chris") {
       sim = new Simulators::ChrisSimulator<boost::mt19937, multitype_graph>
