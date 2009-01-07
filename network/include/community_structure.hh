@@ -6,6 +6,7 @@
 #define COMMUNITY_STRUCTURE_HH
 
 #include <boost/graph/bc_clustering.hpp>
+#include "Edge.hh"
 
 //! \addtogroup graph_statistics Graph statistics
 //! \addtogroup helper_functions Helper functions
