@@ -175,6 +175,8 @@ namespace Simulators {
         }
       }
     }
+    EpiSimulator<RandomGenerator, Graph>::updateEventStats
+      (before, after, v, nb);
   }
 }
 #endif
