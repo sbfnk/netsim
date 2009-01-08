@@ -168,9 +168,9 @@ public:
     }
   }
 
-  void updateStats()
+  void updateStats(bool forceUpdate = false)
   {
-    bool force = stopCondition();
+    bool force = forceUpdate || stopCondition();
     for (unsigned int i = 0; i < statRecorders.size(); ++i) {
       statRecorders[i]->update(graph, time, force);
     }
@@ -200,9 +200,6 @@ public:
 
 protected:
 
-  void stopRun()
-  { stopTime = time; updateStats(); }
-  
   po::options_description simulator_options;
   po::options_description recorder_options;
   po::options_description stop_options;

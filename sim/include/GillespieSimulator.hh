@@ -73,7 +73,7 @@ namespace Simulators {
     virtual void updateEventStats(State* before, State* after,
                                   vertex_descriptor v, vertex_descriptor nb) {;}
   
-    virtual bool stopCondition() 
+    virtual bool stopCondition() const
     { return Simulator<Graph>::stopCondition(); }
 
     void print();
@@ -153,11 +153,14 @@ namespace Simulators {
       }
     }
 
+    // process the change of state
+    graph[v].state = after->clone();
+
     // update stats
     updateEventStats(before, after, v, nb);
     // process the change of state
     delete before;
-    graph[v].state = after->clone();
+
   }
 
   //----------------------------------------------------------
@@ -183,7 +186,10 @@ namespace Simulators {
 
     // exit if nothing can happen
     if (tree.getTopBin()->getRateSum() < 1) {
-      this->stopRun();
+      if (verbose >=2) {
+        std::cout << "Nothing can happen. Stopping run. " << std::endl;
+      }
+      this->updateStats(true);
       return false;
     }
   
