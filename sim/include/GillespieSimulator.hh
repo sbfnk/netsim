@@ -154,7 +154,7 @@ namespace Simulators {
     }
 
     // update stats
-    updateEventStats(before, after, nb, v);
+    updateEventStats(before, after, v, nb);
     // process the change of state
     delete before;
     graph[v].state = after->clone();

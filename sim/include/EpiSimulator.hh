@@ -94,7 +94,7 @@ namespace Simulators {
     this->recorder_options.add_options()
       ("stats", 
        "write cumulative stats at the end of a run")
-      ("r0", po::value<unsigned int>()->default_value(1),
+      ("r0", po::value<unsigned int>(),
        "calculate r0 for arg generations")
       ;
   }
@@ -140,7 +140,6 @@ namespace Simulators {
           (*this, this->getVerbose()), 0.));
     }
     if (vm.count("r0")) {
-      std::cout << "R0" << std::endl;
       generations.resize(vm["r0"].as<unsigned int>());
       genInf.resize(vm["r0"].as<unsigned int>(), 0);
       this->statRecorders.push_back
@@ -184,18 +183,18 @@ namespace Simulators {
           // see if originator is already in a generation
           unsigned int i = 0;
           std::vector<unsigned int>::iterator res =
-            std::find(generations[i].begin(), generations[i].end(), v);
+            std::find(generations[i].begin(), generations[i].end(), nb);
           while (i < generations.size() && res == generations[i].end()) {
             ++i;
             if (i < generations.size()) {
-              res = std::find(generations[i].begin(), generations[i].end(), v);
+              res = std::find(generations[i].begin(), generations[i].end(), nb);
             }
           }
           if (i < generations.size()) {
             if (i < (generations.size() - 1)) {
-              generations[i+1].push_back(nb);
+              generations[i+1].push_back(v);
               if (this->getVerbose() >= 2) {
-                std::cout << "R0: vertex " << nb << " recorded as an infected"
+                std::cout << "R0: vertex " << v << " recorded as an infected"
                           << " of generation " << i+1 << std::endl;
               }
               ++numInfected;
@@ -214,11 +213,11 @@ namespace Simulators {
         if (generations.size() > 0) {
           unsigned int i = 0;
           std::vector<unsigned int>::iterator res =
-            std::find(generations[i].begin(), generations[i].end(), v);
+            std::find(generations[i].begin(), generations[i].end(), nb);
           while (i < generations.size() && res == generations[i].end()) {
             ++i;
             if (i < generations.size()) {
-              res = std::find(generations[i].begin(), generations[i].end(), v);
+              res = std::find(generations[i].begin(), generations[i].end(), nb);
             }
           }
           if (i < generations.size()) --numInfected;
