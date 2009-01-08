@@ -131,13 +131,10 @@ namespace Simulators {
 
   
     if (model && state) {
-      std::cout << "model and state" << std::endl;
       if (model->isInformation(before, after) && v != nb) {
-        std::cout << "is info " << randRewire << std::endl;
         if (randRewire > 0 &&
             rewireGen() < randRewire * state->getInfo()) {
           // random rewiring
-          std::cout << "random rewiring" << std::endl;
           edge_descriptor del_edge;
           out_edge_iterator oi, oi_end;
           bool found = false;
@@ -149,7 +146,6 @@ namespace Simulators {
               found = true;
             }
           }
-          std::cout << "found! " << found << std::endl;
           if (found) {
             // find somewhere to rewire to
             bool foundNew = false;
@@ -167,10 +163,11 @@ namespace Simulators {
                 }
               }
             } while (!foundNew);
-            std::cout << "Removing edge " << del_edge << std::endl;
+            if (this->getVerbose() >=2) {
+              std::cout << "Rewiring " << del_edge << "to ("
+                        << v << "," << randVertex << ")" << std::endl;
+            }
             boost::remove_edge(del_edge, g);
-            std::cout << "Adding edge " << v << "," << randVertex
-                      << std::endl;
             boost::add_edge(v, randVertex, g_edge_property_type(0), g);
           }
         } else if (localRewire > 0 &&
