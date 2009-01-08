@@ -470,6 +470,8 @@ int main(int argc, char* argv[])
     cmdLineFile << std::endl;
     cmdLineFile.close();
   }
+
+  saved_graph = graph;
   
   for (unsigned int nSim = 1; nSim <= numSims; nSim++) {
     
@@ -479,7 +481,12 @@ int main(int argc, char* argv[])
       std::cout << ".";
       std::cout.flush();
     }
-    
+
+    if (nSim > 1) {
+      // recover graph
+      graph = saved_graph;
+    }
+
     /******************************************************************/
     // generate new initial state
     /******************************************************************/
@@ -557,9 +564,6 @@ int main(int argc, char* argv[])
         // save graph states
         saved_graph = graph;
         generateIC = false;
-      } else {
-        // recover graph states
-        graph = saved_graph;
       }
     }
 
