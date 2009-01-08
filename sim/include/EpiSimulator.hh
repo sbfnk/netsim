@@ -235,7 +235,7 @@ namespace Simulators {
   stopCondition() const
   {
 
-    bool ret = Simulator<Graph>::stopCondition();
+    bool ret = GillespieSimulator<RandomGenerator, Graph>::stopCondition();
 
     return (ret ||
             ((stopInfections > 0) && (numInfections+1 > stopInfections)) ||
