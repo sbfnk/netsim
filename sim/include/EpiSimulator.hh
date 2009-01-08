@@ -198,9 +198,11 @@ namespace Simulators {
                           << " of generation " << i+1 << std::endl;
               }
               ++numInfected;
-            }
+            } // else this->getGraph()[nb].state->setState(2);
             ++genInf[i];
-          } 
+          } // else {
+//	    this->getGraph()[nb].state->setState(2);
+//	  }
         } else {
           ++numInfected;
         }
