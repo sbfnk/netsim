@@ -122,7 +122,6 @@ namespace Simulators {
   updateEventStats(State* before, State* after,
                    vertex_descriptor v, vertex_descriptor nb)
   {
-    std::cout << "updateEventStats" << std::endl;
     const EpiModel_base<Graph>* model =
       dynamic_cast<const EpiModel_base<Graph>*>(this->getModel());
     const DimInfoState* state =
@@ -164,7 +163,7 @@ namespace Simulators {
               }
             } while (!foundNew);
             if (this->getVerbose() >=2) {
-              std::cout << "Rewiring " << del_edge << "to ("
+              std::cout << "Rewiring " << del_edge << " to ("
                         << v << "," << randVertex << ")" << std::endl;
             }
             boost::remove_edge(del_edge, g);
