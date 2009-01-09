@@ -296,7 +296,7 @@ int main(int argc, char* argv[])
       (s.str().c_str(),  po::value<unsigned int>()->default_value(2),
        "number of dimensions");
     s.str("");
-    s << prefix.str() << "-pb";
+    s << prefix.str() << "pb";
     lo->add_options()
       (s.str().c_str(), "periodic boundary conditions");
     lattice_options.push_back(lo);
