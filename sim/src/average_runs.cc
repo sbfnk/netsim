@@ -177,7 +177,6 @@ int main(int argc, char* argv[])
             if (do_errors) {
               previous_line_squares = std::vector<float>(line_squares);
             }
-            firstLine = false;
           }
 
           if (nColumns == 0) {
@@ -195,11 +194,12 @@ int main(int argc, char* argv[])
           // get time of next line
           currentTime = *(line_contents.begin());
           // need to write data?
-          while ((currentTime) > (currentStep*timeStep)) {
+          while (firstLine || (currentTime) > (currentStep*timeStep)) {
 
             if (verbose >= 2) {
               std::cout << "processing data: current " << currentTime
-                        << " time step " << currentStep << std::endl;
+                        << " time step " << currentStep  
+			<< " stop time " << stopTime << std::endl;
             }
 
             if ((firstFile) || (stopTime < currentStep*timeStep)) {
@@ -227,10 +227,11 @@ int main(int argc, char* argv[])
               }
               std::cout << " files: " << no_files[currentStep] << std::endl;
             }
-            if (ofs_steps.is_open()) {
-              ofs_steps << previous_line_contents[0] << " " << currentStep << std::endl;
-            }
             ++currentStep;
+	    firstLine = false;
+          }
+          if (ofs_steps.is_open()) {
+            ofs_steps << previous_line_contents[0] << " " << currentStep - 1 << std::endl;
           }
           previous_line_contents = std::vector<float>(line_contents);
           if (do_errors) {
@@ -239,7 +240,41 @@ int main(int argc, char* argv[])
           std::getline(ifs, line);
         }
       }
-      firstFile = false;
+      while (currentTime >= currentStep * timeStep) {
+        if (firstFile || (stopTime < currentStep*timeStep)) {
+          values.push_back(std::vector<float>(previous_line_contents.begin()+1,
+                                              previous_line_contents.end()));
+									                  if (do_errors) {
+           squares.push_back(std::vector<float>(previous_line_squares.begin()+1,
+                                                previous_line_squares.end()));
+          }
+          no_files.push_back(1);
+          stopTime = currentStep*timeStep;
+        } else {
+          for (unsigned int i=1; i < nColumns; i++) {
+            values[currentStep][i-1] += previous_line_contents[i];
+            if (do_errors) {
+              squares[currentStep][i-1] += previous_line_squares[i];
+            }
+          }
+          no_files[currentStep]++;
+        }
+        if (verbose >= 2) {
+          std::cout << currentStep*timeStep;
+          for (unsigned int j = 1; j < nColumns ; j++) {
+            std::cout << " " << values[currentStep][j-1];
+          }
+          std::cout << " files: " << no_files[currentStep] << std::endl;
+        }
+        ++currentStep;
+        if (ofs_steps.is_open()) {
+          ofs_steps << previous_line_contents[0] << " " << currentStep - 1 
+	            << std::endl;
+        }
+      }
+      if (values.size() > 0) {
+        firstFile = false;
+      }
       if (ofs_steps.is_open()) {
         ofs_steps.close();
       }
@@ -254,10 +289,9 @@ int main(int argc, char* argv[])
   }
   float time = 0.;
   if (verbose) {
-    std::cout << "Opening output file " << outputBase << ".sim.dat" 
-              << std::endl;
+    std::cout << "Opening output file " << outputBase << std::endl;
   }
-  std::ofstream ofs((outputBase+".sim.dat").c_str(), std::ios::out);
+  std::ofstream ofs(outputBase.c_str(), std::ios::out);
   
   if (verbose) {
     std::cout << "Number of lines: " << values.size() << std::endl;;
@@ -284,7 +318,7 @@ int main(int argc, char* argv[])
     }
     ofs.close();
   } else {
-    std::cerr << "Error writing to " << outputBase  << ".sim.dat" << std::endl;
+    std::cerr << "Error writing to " << outputBase << std::endl;
     return 1;
   }
 
