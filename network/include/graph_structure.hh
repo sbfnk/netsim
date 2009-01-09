@@ -587,6 +587,7 @@ namespace boost {
             }
           } else if (out_degree(rand_temp, cg) == 1) {
             // cannot rewire this link, so remove it from the list
+            std::cout << " cannot rewire this link, so remove it from the list" << std::endl;
             temp_edges.erase(temp_edges.begin() + rand_edge);
             --num_rewire;
             if (verbose >=2) {
