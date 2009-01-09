@@ -619,6 +619,9 @@ int main(int argc, char* argv[])
     if (nEdgeTypes > 1) {
       currentEdgeLabel = std::string(1, edgeLabels[edgeTypes[i]]) + "-";
     }
+    if (verbose >= 2) {
+      std::cout << "Creating " << currentEdgeLabel << "graph" << std::endl;
+    }
     std::string optStr = currentEdgeLabel + "topology";
     if (readAll) {
       topology = "read";
@@ -1073,8 +1076,8 @@ int main(int argc, char* argv[])
         // update number of vertices
         N = num_vertices(graph);
         if (verbose) {
-          std::cout << "graph file " << opt.fileName << " was read ok"
-	            << std::endl;
+          std::cout << currentEdgeLabel << "graph file " << opt.fileName 
+	            << " was read ok" << std::endl;
         }
       } else if (read_result == 0) {
         std::cerr << "WARNING: no " << edgeLabels[i] << "-edges in "
@@ -1127,8 +1130,10 @@ int main(int argc, char* argv[])
       double clusteredRewireFraction =
         vm[currentEdgeLabel+"rewire-clustered"].as<double>();
       if (clusteredRewireFraction > 0) {
-        boost::rewireClustered(graph, temp_graph, gen,
+//        onetype_graph rewire_graph = temp_graph;
+        boost::rewireClustered(temp_graph, temp_graph, gen,
                                clusteredRewireFraction, verbose);
+//        temp_graph = rewire_graph;
         if (verbose) {
           std::cout << "graph rewired\n";
         }
@@ -1315,7 +1320,7 @@ int main(int argc, char* argv[])
       for (unsigned int i = 0; i < nEdgeTypes; ++i) {
         std::string prefix;
         if (nEdgeTypes > 1) {
-          prefix = edgeLabels[i] + "-";
+          prefix = std::string(1,edgeLabels[i]) + "-";
         }
         output << "  " << prefix << "pairs: " << pairs[i]
                << " (avg degree: " << pairs[i]*2./num_vertices(graph)
@@ -1339,7 +1344,8 @@ int main(int argc, char* argv[])
         for (unsigned int j = i; j < nEdgeTypes; ++j) {
           std::string prefix;
           if (nEdgeTypes > 1) {
-            prefix = edgeLabels[i] + edgeLabels[j] + "-";
+            prefix = std::string(1,edgeLabels[i]) + 
+	             std::string(1,edgeLabels[j]) + "-";
           }
           output << "  " << prefix << "triples: "
                  << triples[i][j] << std::endl;
@@ -1423,7 +1429,9 @@ int main(int argc, char* argv[])
         for (unsigned int k = 0; k< nEdgeTypes; ++k) {
           std::string prefix;
           if (nEdgeTypes > 1) {
-            prefix = edgeLabels[i] + edgeLabels[j] + edgeLabels[k];
+            prefix = std::string(1,edgeLabels[i]) + 
+	             std::string(1,edgeLabels[j]) + 
+		     std::string(1,edgeLabels[k]);
           }
           output << "  C" << prefix << " = " << lcc[i][j][k] << std::endl;
         }
@@ -1456,7 +1464,9 @@ int main(int argc, char* argv[])
         for (unsigned int k = 0; k< nEdgeTypes; ++k) {
           std::string prefix;
           if (nEdgeTypes > 1) {
-            prefix = edgeLabels[i] + edgeLabels[j] + edgeLabels[k];
+            prefix = std::string(1,edgeLabels[i]) + 
+	             std::string(1,edgeLabels[j]) + 
+		     std::string(1,edgeLabels[k]);
           }
           output << "  C" << prefix << " = " << gcc[i][j][k] << std::endl;
         }
@@ -1484,7 +1494,7 @@ int main(int argc, char* argv[])
     for (unsigned int i = 0; i < nEdgeTypes; ++i) {
       std::string prefix;
       if (nEdgeTypes > 1) {
-        prefix = edgeLabels[i] + "-";
+        prefix = std::string(1,edgeLabels[i]) + "-";
       }
       output << "  on " << prefix << "edges: "
              << boost::avg_shortest_path_length(graph, Edge(i)) << std::endl;
@@ -1521,8 +1531,9 @@ int main(int argc, char* argv[])
         for (unsigned int k = j; k < nEdgeTypes; ++k) {
           std::string prefix;
           if (nEdgeTypes > 1) {
-            prefix = edgeLabels[i] + "-" + std::string(1,edgeLabels[j]) +
-              std::string(1,edgeLabels[k]) + "-";
+            prefix = std::string(1,edgeLabels[i]) + "-" + 
+	             std::string(1,edgeLabels[j]) +
+                     std::string(1,edgeLabels[k]) + "-";
           }
           output << "  " << prefix << "assortativity: "
                  << boost::assortativity(graph, i, j, k)
