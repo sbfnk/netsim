@@ -261,13 +261,14 @@ namespace Simulators {
     if (possible_nodes.size() > 0) {
       target_node = new vertex_descriptor;
       *target_node =
-        static_cast<unsigned int>(rewireGen() * possible_nodes.size());
+        possible_nodes[static_cast<unsigned int>
+                       (rewireGen() * possible_nodes.size())];
     } else if (all_neighbours.size() > 0) {
       vertex_descriptor step =
         static_cast<unsigned int>(rewireGen() * all_neighbours.size());
       previous_nodes->push_back(source_node);
-      target_node = random_walk(original_node, step, 0, rewireType,
-                                baseType);
+      target_node = random_walk(original_node, step, previous_nodes,
+                                rewireType, baseType);
     } else {
       if (this->getVerbose() >=2) {
         std::cout << "no nodes available" << std::endl;
