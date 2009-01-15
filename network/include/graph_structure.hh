@@ -447,8 +447,15 @@ namespace boost {
 
     g_edge_iterator ei, ei_end;
     tie(ei, ei_end) = edges(g);
+
+    // initialize edge type from the first edge in graph g (which is to be
+    // rewired)
     unsigned int et = g[*ei].type;
     std::vector<std::pair<unsigned int, unsigned int> > temp_edges;
+
+    // loop over all edges in graph g and put them into temp_edges if they do
+    // not exist
+    
     for(; ei != ei_end; ei++) {
       cg_out_edge_iterator oi, oi_end;
       bool found = false;
@@ -466,7 +473,6 @@ namespace boost {
       std::cout << temp_edges.size() << " edges can be rewired" << std::endl;
     }
 
-    // initialize edge type from the first edge in the graph
     if (rewireFraction > 0. && rewireFraction <= 1.) {
       uniform_real<> uni_dist(0, 1);
       variate_generator<RandomGenerator&, uniform_real<> > uni_gen(r, uni_dist);
