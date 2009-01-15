@@ -595,7 +595,7 @@ int main(int argc, char* argv[])
   
   // adding N vertices to graph
   boost::add_vertices(graph, N);
-  std::vector<std::string> vertexOptions(N);
+  std::vector<std::string>* vertexOptions = 0;
 
   /******************************************************************/
   // generate edges
@@ -1070,6 +1070,7 @@ int main(int argc, char* argv[])
       }
 
       // reading graph structure
+      if (vertexOptions == 0) vertexOptions = new std::vector<std::string>(N);
       int read_result = read_graph(temp_graph, opt.fileName, i,
                                    vertexOptions);
       if (read_result > 0) {
@@ -1219,36 +1220,34 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // Write graph files
   /******************************************************************/
-  std::string baseFileName;
-  if (vm.count("output-file") || readAll) {
+  std::string baseFileName("");
+  if (vm.count("output-file")) {
+    baseFileName = vm["output-file"].as<std::string>();
+  } else if (readAll && (vm.count("split") || !verbose)) {
+    baseFileName = readGraph.substr(0,readGraph.rfind("."));
+  }
 
+  if (baseFileName.size() > 0) {
     std::string ext = ".graph";
-    if (vm.count("output-file")) {
-      baseFileName = vm["output-file"].as<std::string>();
-      if (!readAll) {
-        if (vm.count("split")) {
-          // split graph into several files
-          onetype_graph split_graph;
-          for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-            split_graph.clear();
-            copy_edges_type(graph, split_graph, Edge(i));
-            std::string outputGraphName = baseFileName + "_" +
-              std::string(1, edgeLabels[i]) + ext;
-            write_graph(split_graph, outputGraphName, false,
-                        &vertexOptions);
-          }
-        } else {
-          // write whole graph in one file
-          std::string outputGraphName =
-            baseFileName+".graph";
-          write_graph(graph, outputGraphName, true,
-                      &vertexOptions);
-        }
+    if (vm.count("split")) {
+      // split graph into several files
+      onetype_graph split_graph;
+      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+        split_graph.clear();
+        copy_edges_type(graph, split_graph, Edge(i));
+        std::string outputGraphName = baseFileName + "_" +
+          std::string(1, edgeLabels[i]) + ext;
+        write_graph(split_graph, outputGraphName, false,
+                    vertexOptions);
       }
-    } else if (!verbose) {
-      baseFileName = readGraph.substr(0,readGraph.rfind("."));
+    } else if (!readAll) {
+      // write whole graph in one file
+      std::string outputGraphName =
+        baseFileName+".graph";
+      write_graph(graph, outputGraphName, true,
+                  vertexOptions);
     }
-
+  
     // create sparse adjacency matrices and clustering coefficients
     if (vm.count("cluster-coeff")) {
       bool writeJs = false;
@@ -1264,31 +1263,31 @@ int main(int argc, char* argv[])
         }
       }
     }
+  }
 
-    // calculate community structure
-    if (vm.count("community") || vm.count("modularity")) {
-      multitype_graph saved_graph = graph;
-      double mod =
-        boost::community_structure(saved_graph, graph, 1., verbose,
-                                   vm.count("community"),
-                                   vm.count("modularity") || verbose); 
-      if (vm.count("community") && baseFileName.length() > 0) {
-        write_graph(graph, baseFileName+".comm"+ext,
-                    true, &vertexOptions);
+  // calculate community structure
+  if (vm.count("community") || vm.count("modularity")) {
+    multitype_graph saved_graph = graph;
+    double mod =
+      boost::community_structure(saved_graph, graph, 1., verbose,
+                                 vm.count("community"),
+                                 vm.count("modularity") || verbose); 
+    if (vm.count("community") && baseFileName.length() > 0) {
+      write_graph(graph, baseFileName+".comm"+ext,
+                  true, vertexOptions);
+    }
+    if (vm.count("modularity")) {
+      std::stringstream output;
+      output << "  M = " << mod << std::endl;
+      if (baseFileName.length() == 0 || verbose) {
+        std::cout << "\nModularity:" << std::endl;
+        std::cout << output.str();
       }
-      if (vm.count("modularity")) {
-        std::stringstream output;
-        output << "  M = " << mod << std::endl;
-        if (baseFileName.length() == 0 || verbose) {
-          std::cout << "\nModularity:" << std::endl;
-          std::cout << output.str();
-        }
-        if (baseFileName.length() > 0) {
-          std::string modFileName = baseFileName + ".stat.mod";
-          std::ofstream modFile(modFileName.c_str(), std::ios::out);
-          modFile << output.str();
-          modFile.close();
-        }
+      if (baseFileName.length() > 0) {
+        std::string modFileName = baseFileName + ".stat.mod";
+        std::ofstream modFile(modFileName.c_str(), std::ios::out);
+        modFile << output.str();
+        modFile.close();
       }
     }
   }
