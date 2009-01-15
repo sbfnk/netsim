@@ -956,7 +956,8 @@ public:
         return;
       }
     }
-    std::string fileName = generateFileName(dir + "/images/frame", count);
+    std::string fileName = generateFileName(dir + "/images/frame", count, 
+                                            "graph");
     write_graph(g, fileName, m,time);
   }
     

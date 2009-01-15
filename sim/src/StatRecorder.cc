@@ -2,10 +2,11 @@
 
 #include "StatRecorder.hh"
 
-std::string generateFileName(std::string nameBase, unsigned int id)
+std::string generateFileName(std::string nameBase, unsigned int id,
+                             std::string ext)
 {
   std::stringstream s;
-  s << nameBase << std::setw(6) << std::setfill('0') << id;
+  s << nameBase << std::setw(6) << std::setfill('0') << id << "." << ext;
   return s.str();
 }
 

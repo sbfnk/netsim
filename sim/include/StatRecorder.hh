@@ -16,7 +16,8 @@
 
 namespace po = boost::program_options;
 
-std::string generateFileName(std::string nameBase, unsigned int id);
+std::string generateFileName(std::string nameBase, unsigned int id,
+                             std::string ext = "");
 
 // functoid base class
 template <class Graph>
