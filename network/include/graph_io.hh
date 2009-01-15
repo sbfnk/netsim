@@ -398,28 +398,6 @@ namespace boost {
   \param[out] g The graph to read into
   \param[in] graphFileName The name of the file to be read
   \param[in] edgeType The edge type to be assigned to the read file
-  \return The number of edges which have been read.
-  \ingroup graph_io
-  */
-  template <typename Graph>
-  int read_graph(Graph& g, const std::string graphFileName,
-                 unsigned int edgeType)
-  {
-    std::vector<std::string> tempOptions;
-    return read_graph(g, graphFileName, edgeType, tempOptions);
-  }
-
-  //----------------------------------------------------------
-  /*! \brief Read graph from a graphviz file
-  
-  Reads a graph from a graphviz file by going through the file line-by-line.
-  If there are already vertices in the graph, it only connects them according to
-  the edges given in the file. If not, it creates the vertices and, if desired,
-  reads in their states. 
-
-  \param[out] g The graph to read into
-  \param[in] graphFileName The name of the file to be read
-  \param[in] edgeType The edge type to be assigned to the read file
   \param[out] vertexOptions A vector containing all vertex options
   \return The number of edges which have been read.
   \ingroup graph_io
@@ -427,7 +405,7 @@ namespace boost {
   template <typename Graph>
   int read_graph(Graph& g, const std::string graphFileName,
                  unsigned int edgeType,
-                 std::vector<std::string>& vertexOptions)
+                 std::vector<std::string>* vertexOptions = 0)
   {
 
     std::vector<std::string> edgeStyles;
@@ -435,7 +413,7 @@ namespace boost {
     edgeStyles.push_back("style=\"dashed\"");
     edgeStyles.push_back("style=\"dotted\"");
 
-    vertexOptions.clear();
+    if (vertexOptions) vertexOptions->clear();
   
     // open file
     std::ifstream file;
@@ -518,7 +496,9 @@ namespace boost {
             std::string s = line.substr(0, bpos);
             unsigned int src = cast_stream<unsigned int>(s);
             
-            vertexOptions.push_back(line.substr(bpos, line.size()-bpos-1));
+            if (vertexOptions) {
+              vertexOptions->push_back(line.substr(bpos, line.size()-bpos-1));
+            }
             
             if (addVertices) {
             
