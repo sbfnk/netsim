@@ -1227,8 +1227,9 @@ int main(int argc, char* argv[])
     baseFileName = readGraph.substr(0,readGraph.rfind("."));
   }
 
+  std::string ext;
   if (baseFileName.size() > 0) {
-    std::string ext = ".graph";
+    ext = ".graph";
     if (vm.count("split")) {
       // split graph into several files
       onetype_graph split_graph;
