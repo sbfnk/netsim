@@ -57,7 +57,7 @@ namespace Simulators {
                                   vertex_descriptor v, vertex_descriptor nb);
 
     vertex_descriptor* random_walk
-    (vertex_descriptor original_node,  vertex_descriptor source_node,
+    (vertex_descriptor original_node, vertex_descriptor source_node,
      std::vector<vertex_descriptor>* previous_nodes = 0,
      unsigned int rewireType = 0, unsigned int baseType = 0);
     
@@ -265,7 +265,8 @@ namespace Simulators {
                        (rewireGen() * possible_nodes.size())];
     } else if (all_neighbours.size() > 0) {
       vertex_descriptor step =
-        static_cast<unsigned int>(rewireGen() * all_neighbours.size());
+        all_neighbours[static_cast<unsigned int>
+                       (rewireGen() * all_neighbours.size());
       previous_nodes->push_back(source_node);
       target_node = random_walk(original_node, step, previous_nodes,
                                 rewireType, baseType);
