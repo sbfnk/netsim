@@ -55,14 +55,19 @@ namespace Simulators {
     virtual bool parse_options(const po::variables_map& vm);
     virtual void updateEventStats(State* before, State* after,
                                   vertex_descriptor v, vertex_descriptor nb);
+
+    vertex_descriptor* random_walk
+    (vertex_descriptor original_node,  vertex_descriptor source_node,
+     std::vector<vertex_descriptor>* previous_nodes = 0,
+     unsigned int rewireType = 0, unsigned int baseType = 0);
     
   private:
 
     uniform_gen rewireGen; //!< The random generator for rewiring
 
-    double randRewire;
-    double localRewire;
+    double rewireProb;
     bool infoRewire;
+    bool localRewire;
 
   };
 
@@ -72,12 +77,12 @@ namespace Simulators {
     GillespieSimulator<RandomGenerator, Graph>(r, g, v),
     EpiSimulator<RandomGenerator, Graph>(r, g, v),
     rewireGen(r, boost::uniform_real<> (0,1)),
-    infoRewire(false)
+    infoRewire(false), localRewire(false)
   {
     this->simulator_options.add_options()
-      ("rewire-random", po::value<double>(),
+      ("dynamic-rewiring", po::value<double>(),
        "base probability of random rewiring after infection")
-      ("rewire-local", po::value<double>(),
+      ("rewire-local",
        "base probability of local rewiring after infection")
       ("rewire-info",
        "try to rewire to info network")
@@ -91,25 +96,22 @@ namespace Simulators {
   {
     bool ret = EpiSimulator<RandomGenerator, Graph>::parse_options(vm);
     
-    if (vm.count("rewire-random")) {
-      randRewire = vm["rewire-random"].as<double>();
-      if (randRewire > 1.) randRewire = 1.;
-      else if (randRewire < 0.) randRewire = 0.;
+    if (vm.count("dynamic-rewiring")) {
+      rewireProb = vm["dynamic-rewiring"].as<double>();
+      if (rewireProb > 1.) rewireProb = 1.;
+      else if (rewireProb < 0.) rewireProb = 0.;
     }
     if (vm.count("rewire-local")) {
-      if (randRewire > 0.) {
-        std::cerr << "WARNING: cannot rewire randomly and locally, "
-                  << " will rewire only randomly" << std::endl;
-      } else {
-        localRewire = vm["rewire-local"].as<double>();
-        if (localRewire > 1.) localRewire = 1.;
-        else if (localRewire < 0.) localRewire = 0.;
+      if (rewireProb == 0.) {
+        std::cerr << "WARNING: local rewiring makes sense only if rewiring "
+                  << "with probability >0, ignoring option" << std::endl;
       }
+      localRewire = true;
     }
-    if (vm.count("info-based")) {
-      if (randRewire + localRewire == 0.) {
-        std::cerr << "WARNING: info-based makes sense only if rewiring, "
-                  << "ignoring option" << std::endl;
+    if (vm.count("rewire-info")) {
+      if (rewireProb == 0.) {
+        std::cerr << "WARNING: info-based rewiring makes sense only if rewiring"
+                  << " with probability >0, ignoring option" << std::endl;
       }
       infoRewire = true;
     }
@@ -127,12 +129,12 @@ namespace Simulators {
     const DimInfoState* state =
       dynamic_cast<DimInfoState*>(after);
     Graph& g = this->getGraph();
-
-  
+    
+    
     if (model && state) {
       if (model->isInformation(before, after) && v != nb) {
-        if (randRewire > 0 &&
-            rewireGen() < randRewire * state->getInfo()) {
+        if (rewireProb > 0 &&
+            rewireGen() < rewireProb * state->getInfo()) {
           // random rewiring
           edge_descriptor del_edge;
           out_edge_iterator oi, oi_end;
@@ -148,35 +150,142 @@ namespace Simulators {
           if (found) {
             // find somewhere to rewire to
             bool foundNew = false;
-            vertex_descriptor randVertex;
-            do {
-              randVertex =
-                static_cast<unsigned int>(rewireGen() * num_vertices(g));
-              if (randVertex != v) {
-                std::pair<edge_descriptor, bool> e = 
-                  edge(v, randVertex, g);
-                if (e.second) {
-                  foundNew = (g[e.first].type != 0);
-                } else {
-                  foundNew = true;
+            vertex_descriptor targetVertex;
+            if (localRewire) {
+              // local rewiring (through random walk)
+              unsigned int baseType = infoRewire ? 1 : 0;
+              vertex_descriptor* findVertex =
+                random_walk(v, v, 0, 0, baseType);
+              if (findVertex) {
+                foundNew = true;
+                targetVertex = *findVertex;
+              } 
+            } else {
+              // random rewiring
+              do {
+                targetVertex =
+                  static_cast<unsigned int>(rewireGen() * num_vertices(g));
+                if (targetVertex != v) {
+                  std::pair<edge_descriptor, bool> e = 
+                    edge(v, targetVertex, g);
+                  if (e.second) {
+                    foundNew = (g[e.first].type != 0 &&
+                                !g[e.first].parallel);
+                  } else {
+                    foundNew = true;
+                  }
                 }
-              }
-            } while (!foundNew);
-            if (this->getVerbose() >=2) {
-              std::cout << "Rewiring " << del_edge << " to ("
-                        << v << "," << randVertex << ")" << std::endl;
+              } while (!foundNew);
             }
-            boost::remove_edge(del_edge, g);
-            boost::add_edge(v, randVertex, g_edge_property_type(0), g);
+            if (foundNew) {
+              if (this->getVerbose() >=2) {
+                std::cout << "Rewiring " << del_edge << " to ("
+                          << v << "," << targetVertex << ")" << std::endl;
+              }
+              boost::remove_edge(del_edge, g);
+              boost::add_edge(v, targetVertex, g_edge_property_type(0), g);
+            }
           }
-        } else if (localRewire > 0 &&
-                   rewireGen() < localRewire * state->getInfo()) {
-          // local rewiring
-        }
+        } 
       }
     }
     EpiSimulator<RandomGenerator, Graph>::updateEventStats
       (before, after, v, nb);
   }
+  
+  template <typename RandomGenerator, typename Graph>
+  typename EpiRewireSimulator<RandomGenerator, Graph>::vertex_descriptor*
+  EpiRewireSimulator<RandomGenerator, Graph>::random_walk
+  (vertex_descriptor original_node, vertex_descriptor source_node,
+   std::vector<vertex_descriptor>* previous_nodes,
+   unsigned int rewireType, unsigned int baseType)
+  {
+    Graph& graph = this->getGraph();
+
+    bool delPrevious = false;
+    if (!previous_nodes) {
+      previous_nodes = new std::vector<vertex_descriptor>;
+      delPrevious = true;
+    }
+
+    if (this->getVerbose() >=2) {
+      std::cout << "random_walk: original_node "
+                << original_node << ", previous_nodes";
+      if (previous_nodes->size() > 0) {
+        for (unsigned int i = 0;
+             i < previous_nodes->size(); ++i) {
+          std::cout << " " << (*previous_nodes)[i];
+        }
+      } else {
+        std::cout << " none";
+      }
+      std::cout << ", source_node "
+                << source_node << std::endl;
+    }
+    
+    vertex_descriptor* target_node = 0;
+    std::vector<vertex_descriptor> possible_nodes;
+    std::vector<vertex_descriptor> all_neighbours;
+    out_edge_iterator oi, oi_end;;
+
+    for (tie(oi, oi_end) =
+           boost::out_edges(source_node, graph);
+         oi != oi_end; ++oi) {
+      if (graph[*oi].type == baseType) {
+        bool previous = false;
+        for (unsigned int i = 0;
+             i < previous_nodes->size() && !previous; ++i) {
+          if (target(*oi, graph) == (*previous_nodes)[i]) {
+            previous = true;
+          }
+        }
+        if (!previous) {
+          std::pair<edge_descriptor, bool> e = 
+            edge(original_node, target(*oi, graph), graph);
+          if (!e.second ||
+              (graph[e.first].type != rewireType &&
+               !graph[e.first].parallel)) {
+            possible_nodes.push_back(target(*oi, graph));
+            if (this->getVerbose() >=2) {
+              std::cout << "considering neighbour " << target(*oi, graph)
+                        << std::endl;
+            }
+          } else {
+            previous_nodes->push_back(target(*oi, graph));
+          }
+          all_neighbours.push_back(target(*oi, graph));
+        }
+      }
+    }
+
+    if (possible_nodes.size() > 0) {
+      target_node = new vertex_descriptor;
+      *target_node =
+        static_cast<unsigned int>(rewireGen() * possible_nodes.size());
+    } else if (all_neighbours.size() > 0) {
+      vertex_descriptor step =
+        static_cast<unsigned int>(rewireGen() * all_neighbours.size());
+      previous_nodes->push_back(source_node);
+      target_node = random_walk(original_node, step, 0, rewireType,
+                                baseType);
+    } else {
+      if (this->getVerbose() >=2) {
+        std::cout << "no nodes available" << std::endl;
+      }
+    }
+    
+    if (this->getVerbose() >=2) {
+      std::cout << "returning ";
+      if (target_node) {
+        std::cout << *target_node;
+      } else {
+        std::cout << "nil";
+      }
+      std::cout << std::endl;
+    }
+    if (delPrevious) { delete previous_nodes; }
+    return target_node;
+  }    
 }
+
 #endif
