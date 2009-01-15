@@ -1603,8 +1603,6 @@ int main(int argc, char* argv[])
     delete readFile_options[i];
   }
   
-  std::cout << std::endl;
-  
   return 0;
   
 }
