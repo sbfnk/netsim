@@ -49,7 +49,7 @@ public:
   Label(std::string t, std::string c, unsigned int i,
         std::string drawOption = "",
         rgbColour r = rgbColour(255,255,255)):
-    text(t), colour(c), id(i), rgb(3)
+    text(t), colour(c), id(i), rgb(3), drawOption(drawOption)
   {
     rgb[0] = r.red;
     rgb[1] = r.green;
