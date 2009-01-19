@@ -38,9 +38,9 @@
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
-typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS,
+typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
                               Vertex, Edge> multitype_graph;
-typedef boost::adjacency_list<boost::setS, boost::vecS, boost::bidirectionalS,
+typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
                               Vertex, Edge> onetype_graph;
 
 int main(int argc, char* argv[])
@@ -151,20 +151,19 @@ int main(int argc, char* argv[])
 
   if (vm.count("sim")) {
     std::string simType = vm["sim"].as<std::string>();
-//     if (simType == "EpiGillespie") {
-//       sim = new Simulators::EpiSimulator<boost::mt19937, multitype_graph>
-//         (gen, graph, verbose);
-//     } else if (simType == "EpiRewire") {
-//       sim = new Simulators::EpiRewireSimulator<boost::mt19937, multitype_graph>
-//         (gen, graph, verbose);
-//     } else if (simType == "Chris") {
-//       sim = new Simulators::ChrisSimulator<boost::mt19937, multitype_graph>
-//         (gen, graph, verbose);
-//     } else if (simType == "GroupForm") {
-//       sim = new Simulators::GroupFormSimulator<boost::mt19937, multitype_graph>
-//         (gen, graph, verbose);
-//     } else if (simType == "Rewire") {
-    if (simType == "Rewire") {
+    if (simType == "EpiGillespie") {
+      sim = new Simulators::EpiSimulator<boost::mt19937, multitype_graph>
+        (gen, graph, verbose);
+    } else if (simType == "EpiRewire") {
+      sim = new Simulators::EpiRewireSimulator<boost::mt19937, multitype_graph>
+        (gen, graph, verbose);
+    } else if (simType == "Chris") {
+      sim = new Simulators::ChrisSimulator<boost::mt19937, multitype_graph>
+        (gen, graph, verbose);
+    } else if (simType == "GroupForm") {
+      sim = new Simulators::GroupFormSimulator<boost::mt19937, multitype_graph>
+        (gen, graph, verbose);
+    } else if (simType == "Rewire") {
       sim = new Simulators::RewireSimulator<boost::mt19937, multitype_graph>
         (gen, graph, verbose);
     } else {
