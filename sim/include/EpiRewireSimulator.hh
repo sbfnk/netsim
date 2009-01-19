@@ -266,7 +266,7 @@ namespace Simulators {
     } else if (all_neighbours.size() > 0) {
       vertex_descriptor step =
         all_neighbours[static_cast<unsigned int>
-                       (rewireGen() * all_neighbours.size());
+                       (rewireGen() * all_neighbours.size())];
       previous_nodes->push_back(source_node);
       target_node = random_walk(original_node, step, previous_nodes,
                                 rewireType, baseType);
