@@ -7,7 +7,6 @@
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/connected_components.hpp>
-#include <boost/graph/strong_components.hpp>
 #include <boost/multi_array.hpp>
 
 //! \addtogroup graph_statistics Graph statistics
@@ -587,7 +586,7 @@ namespace boost {
       edge_descriptor;
 
     std::vector<int> component(num_vertices(cg));
-    int num = boost::strong_components(cg, &component[0]);
+    int num = boost::connected_components(cg, &component[0]);
     std::size_t nEdges = num_edges(g);
 
     boost::multi_array<std::size_t, 2> community_matrix

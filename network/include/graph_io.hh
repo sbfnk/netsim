@@ -7,7 +7,6 @@
 
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/connected_components.hpp>
-#include <boost/graph/strong_components.hpp>
 
 #include <iostream>
 #include <string>
@@ -678,7 +677,7 @@ namespace boost {
   unsigned int write_component_dist(const Graph& g, std::string fileName = "")
   {
     std::vector<int> component(num_vertices(g));
-    int num = boost::strong_components(g, &component[0]);
+    int num = boost::connected_components(g, &component[0]);
 
     std::vector<unsigned int> comp_dist(num, 0);
 
