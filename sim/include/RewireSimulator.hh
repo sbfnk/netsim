@@ -116,6 +116,9 @@ namespace Simulators {
     bool updatingVolatility;
     bool acceptance;
     bool pullUpdating;
+    bool randomiseNew;
+
+    unsigned int highestState;
   
   };
 
@@ -126,7 +129,7 @@ namespace Simulators {
     Simulator<Graph>(g, v), randGen(r, boost::uniform_real<> (0,1)),
     active(), verbose(v), rewireEdges(false), updateEdges(false),
     volatility(false), updatingVolatility(false), acceptance(false),
-    pullUpdating(false)
+    pullUpdating(false), randomiseNew(false)
   {
     this->simulator_options.add_options()
       ("rewire-prob,p",po::value<double>()->default_value(0.),
@@ -149,6 +152,8 @@ namespace Simulators {
        "have nodes differ in tendency to accept updating")
       ("pull-updating",
        "pull rather than push on updating")
+      ("randomise-new",
+       "randomise to new states (invalidate --states)")
       ;
     this->recorder_options.add_options()
       ("component-dist,t",po::value<double>(),
@@ -239,6 +244,8 @@ namespace Simulators {
         pullUpdating = true;
       }
     }
+    if (vm.count("randomise-new")) randomiseNew = true;
+    highestState = 0;
     return ret;
   }
 
@@ -769,14 +776,19 @@ namespace Simulators {
         std::cout << "Randomly picked vertex " << v << std::endl;
       }
 
-      unsigned int randState =
-        static_cast<unsigned int>((randGen)() * (model->getStates())) + 1;
-      if (verbose >=2) {
-        std::cout << "Randomly picked state " << randState << std::endl;
+      unsigned int newState;
+      if (randomiseNew) {
+        newState = ++highestState;
+      } else {
+        newState =
+          static_cast<unsigned int>((randGen)() * (model->getStates())) + 1;
       }
 
+      if (verbose >=2) {
+        std::cout << "Assigning state " << newState << std::endl;
+      }
       GroupFormState* myState = dynamic_cast<GroupFormState*>(graph[v].state);
-      myState->setState(randState);
+      myState->setState(newState);
     }
 
     this->updateTime(1.);
