@@ -15,7 +15,7 @@ class GroupFormState :
 public:
   
   GroupFormState(unsigned int b = 0, std::vector<double> t = std::vector<double>(0),
-                 double v = 1.)
+                 double v = 1., double a = 1.)
     : State(b), trait_vector(t), volatility(v), acceptance(a) {;}
   ~GroupFormState() {;}
   
@@ -137,7 +137,7 @@ namespace Models {
       return s->getVolatility();
     }
 
-    double getVolatility(StateType* s) const
+    double getAcceptance(StateType* s) const
     {
       return s->getAcceptance();
     }
