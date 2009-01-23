@@ -16,7 +16,7 @@ public:
   
   GroupFormState(unsigned int b = 0, std::vector<double> t = std::vector<double>(0),
                  double v = 1.)
-    : State(b), trait_vector(t), volatility(v) {;}
+    : State(b), trait_vector(t), volatility(v), acceptance(a) {;}
   ~GroupFormState() {;}
   
   virtual State* clone() { return new GroupFormState(*this); }
@@ -36,12 +36,19 @@ public:
     return volatility;
   }
   
+  const double getAcceptance() const
+  {
+    return acceptance;
+  }
+  
   void setTrait(std::vector<double> t) { trait_vector = t; }
   void setVolatility(double v) { volatility = v; }
+  void setAcceptance(double a) { acceptance = a; }
 
 private:
   std::vector<double> trait_vector;
   double volatility;
+  double acceptance;
 };
 
 namespace Models {
@@ -101,6 +108,12 @@ namespace Models {
       return getVolatility(state);
     }
 
+    double getAcceptance(State* s) const
+    {
+      StateType* state = dynamic_cast<StateType*>(s);
+      return getAcceptance(state);
+    }
+
   private:
 
     double distance(StateType* s1, StateType* s2) const
@@ -122,6 +135,11 @@ namespace Models {
     double getVolatility(StateType* s) const
     {
       return s->getVolatility();
+    }
+
+    double getVolatility(StateType* s) const
+    {
+      return s->getAcceptance();
     }
 
     unsigned int states; //!< number of states (groups).
