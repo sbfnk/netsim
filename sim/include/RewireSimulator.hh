@@ -179,6 +179,11 @@ namespace Simulators {
   parse_options(const po::variables_map& vm)
   { 
     bool ret = Simulator<Graph>::parse_options(vm);
+
+    const Models::GroupFormModel<Graph>* model =
+      dynamic_cast<const Models::GroupFormModel<Graph>*>(this->getModel());
+    highestState = model->getStates();
+
     stopComponent = vm["cmin"].as<unsigned int>();
     rewireProb = vm["rewire-prob"].as<double>();
     if (rewireProb == 0.) {
@@ -244,8 +249,14 @@ namespace Simulators {
         pullUpdating = true;
       }
     }
-    if (vm.count("randomise-new")) randomiseNew = true;
-    highestState = 0;
+    if (vm.count("randomise-new")) {
+      if (highestState > 0) {
+        std::cerr << "WARNING: randomise-new makes no sense with "
+                  << "states > 0" << std::endl;
+      } else {
+        randomiseNew = true;
+      }
+    }
     return ret;
   }
 
@@ -426,8 +437,8 @@ namespace Simulators {
   bool RewireSimulator<RandomGenerator, Graph>::updateState()
   {
     Graph& graph = this->getGraph();
-    const Models::GroupFormModel<Graph>* model =
-      dynamic_cast<const Models::GroupFormModel<Graph>*>(this->getModel());
+    Models::GroupFormModel<Graph>* model =
+      dynamic_cast<Models::GroupFormModel<Graph>*>(this->getModel());
 
     double randRewire = randGen();
     if (randRewire < rewireProb) {
@@ -779,13 +790,14 @@ namespace Simulators {
       unsigned int newState;
       if (randomiseNew) {
         newState = ++highestState;
+        model->addState();
       } else {
         newState =
           static_cast<unsigned int>((randGen)() * (model->getStates())) + 1;
       }
 
       if (verbose >=2) {
-        std::cout << "Assigning state " << newState << std::endl;
+        std::cout << "Assigning state " << model->getVertexState(newState) << std::endl;
       }
       GroupFormState* myState = dynamic_cast<GroupFormState*>(graph[v].state);
       myState->setState(newState);

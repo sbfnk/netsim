@@ -192,6 +192,9 @@ public:
   const Model<Graph>* getModel() const
   { return model; }
 
+  Model<Graph>* getModel()
+  { return model; }
+
   bool doIO() const
   { return (statRecorders.size() > 0); }
 

@@ -79,9 +79,26 @@ namespace Models {
     virtual std::string printState(State* s) const;
     std::vector<unsigned int> getRGB(State* s) const;
 
-    //! Accessor for an element of vertexStates
-    virtual const Label& getVertexState(unsigned int id) const
-    { return (id == 0 ? this->vertexStates[0] : this->vertexStates[id%3+1]); }
+    void addState()
+    {
+      unsigned i = this->vertexStates.size();
+      std::stringstream s;
+      s << i;
+      switch (i % 3) {
+       case 0: 
+        this->vertexStates.push_back
+          (Label(s.str().c_str(), "01;32", i, "", Label::rgbColour(0,0,255)));
+        break;
+       case 1: 
+        this->vertexStates.push_back
+          (Label(s.str().c_str(), "01;31", i, "", Label::rgbColour(255,0,0)));
+        break;
+       case 2:
+        this->vertexStates.push_back
+          (Label(s.str().c_str(), "01;34", i, "", Label::rgbColour(0,255,0)));
+        break;
+      }
+    }
   
     unsigned int getStates() const
     { return states; }
@@ -156,7 +173,7 @@ namespace Models {
   GroupFormModel<Graph>::GroupFormModel(unsigned int)
   {
     this->model_options.add_options()
-      ("states", po::value<unsigned int>()->default_value(1),
+      ("states", po::value<unsigned int>()->default_value(0),
        "number of possible states (groups?)")
       ("traitdim", po::value<unsigned int>()->default_value(1),
        "dimensionality of the trait vector")
@@ -197,22 +214,7 @@ namespace Models {
     this->vertexStates.push_back
       (Label("0", "01;37", 0, "", Label::rgbColour(0,0,0)));
     for (unsigned int i = 1; i < states+1; ++i) {
-      std::stringstream s;
-      s << i;
-      switch ((i-1) % 3) {
-       case 0: 
-        this->vertexStates.push_back
-          (Label(s.str().c_str(), "01;32", i, "", Label::rgbColour(0,0,255)));
-        break;
-       case 1: 
-        this->vertexStates.push_back
-          (Label(s.str().c_str(), "01;31", i, "", Label::rgbColour(255,0,0)));
-        break;
-       case 2:
-        this->vertexStates.push_back
-          (Label(s.str().c_str(), "01;34", i, "", Label::rgbColour(0,255,0)));
-        break;
-      }
+      addState();
     }
   }
 
