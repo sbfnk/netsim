@@ -14,8 +14,9 @@ class GroupFormState :
 {
 public:
   
-  GroupFormState(unsigned int b = 0, std::vector<double> t = std::vector<double>(0))
-    : State(b), trait_vector(t) {;}
+  GroupFormState(unsigned int b = 0, std::vector<double> t = std::vector<double>(0),
+                 double v = 1.)
+    : State(b), trait_vector(t), volatility(v) {;}
   ~GroupFormState() {;}
   
   virtual State* clone() { return new GroupFormState(*this); }
@@ -29,10 +30,18 @@ public:
       return trait_vector[i];
     }
   }
+
+  const double getVolatility() const
+  {
+    return volatility;
+  }
+  
   void setTrait(std::vector<double> t) { trait_vector = t; }
+  void setVolatility(double v) { volatility = v; }
 
 private:
   std::vector<double> trait_vector;
+  double volatility;
 };
 
 namespace Models {
@@ -86,6 +95,12 @@ namespace Models {
       return distance(state1, state2);
     }
 
+    double getVolatility(State* s) const
+    {
+      StateType* state = dynamic_cast<StateType*>(s);
+      return getVolatility(state);
+    }
+
   private:
 
     double distance(StateType* s1, StateType* s2) const
@@ -102,6 +117,11 @@ namespace Models {
         dist += pow(diff, 2);
       }
       return sqrt(dist);
+    }
+
+    double getVolatility(StateType* s) const
+    {
+      return s->getVolatility();
     }
 
     unsigned int states; //!< number of states (groups).

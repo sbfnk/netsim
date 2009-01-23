@@ -107,6 +107,12 @@ namespace Simulators {
     double rewireProb;
     double updateProb;
     double randomiseProb;
+
+    double randomRewiring;
+
+    bool rewireEdges;
+    bool updateEdges;
+    bool volatility;
   
   };
 
@@ -115,7 +121,8 @@ namespace Simulators {
   RewireSimulator(RandomGenerator& r, Graph& g,
 		     unsigned int v) :
     Simulator<Graph>(g, v), randGen(r, boost::uniform_real<> (0,1)),
-    active(), verbose(v)
+    active(), verbose(v), rewireEdges(false), updateEdges(false),
+    volatility(false)
   {
     this->simulator_options.add_options()
       ("rewire-prob,p",po::value<double>()->default_value(0.),
@@ -124,6 +131,14 @@ namespace Simulators {
        "probability of state update")
       ("state-randomise-prob,r",po::value<double>()->default_value(0.),
        "probability of random state assignment")
+      ("random-rewiring,w",po::value<double>()->default_value(0.),
+       "fraction of rewiring which is random")
+      ("edge-based-rewiring",
+       "pick random edges rather than nodes in rewiring")
+      ("edge-based-updating",
+       "pick random edges rather than nodes in updating")
+      ("volatility,o",
+       "have nodes differ in tendency to rewire")
       ;
     this->recorder_options.add_options()
       ("component-dist,t",po::value<double>(),
@@ -162,6 +177,10 @@ namespace Simulators {
     if (rewireProb == 0.) {
       std::cerr << "WARNING: state randomise probability 0" << std::endl;
     }
+    randomRewiring = vm["random-rewiring"].as<double>();
+    if (randomRewiring == 0.) {
+      std::cerr << "WARNING: random rewiring fraction 0" << std::endl;
+    }
     if (vm.count("component-dist")) {
       this->statRecorders.push_back
         (new StatRecorder<Graph>
@@ -190,7 +209,9 @@ namespace Simulators {
            vm.count("community"), vm.count("modularity")),
           rate));
     }
-
+    if (vm.count("volatility")) volatility = true;
+    if (vm.count("edge-based-rewiring")) rewireEdges = true;
+    if (vm.count("edge-based-updating")) updateEdges = true;
     return ret;
   }
 
@@ -224,7 +245,17 @@ namespace Simulators {
 	  if (i>0) std::cout << ",";
 	  std::cout << myState->getTrait(i);
 	}
-	std::cout  << ") with vertex " << *vi << std::endl;
+	std::cout  << ") ";
+      }
+      if (volatility) {
+        double randVol = randGen();
+        myState->setVolatility(randVol);
+        if (verbose >= 2) {
+          std::cout << " and volatility " << randVol;
+        }
+      }
+      if (verbose >=2) {
+        std::cout << " with vertex " << *vi << std::endl;
       }
     }
   }
@@ -359,113 +390,186 @@ namespace Simulators {
       if (verbose >= 2) {
         std::cout << "Rewiring" << std::endl;
       }
-      
-      // find nodes which have a state
-      std::vector<vertex_descriptor> state_nodes;
-      
-      vertex_iterator vi, vi_end;
-      for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-        if (graph[*vi].state->getState() > 0) state_nodes.push_back(*vi);
-      }
 
-      if (state_nodes.size() > 0) {
+      vertex_descriptor source_node;
+      vertex_descriptor cut_node;
+      vertex_descriptor* target_node;
 
-        // pick one at random
-        unsigned int randStateNode =
-          static_cast<unsigned int>((randGen)() * state_nodes.size());
-        
-        if (verbose >=2) {
-          std::cout
-            << "Randomly picked node " << state_nodes[randStateNode] << " ("
-            << model->printState(graph[state_nodes[randStateNode]].state)
-            << ")" << std::endl;
+      // pick edge to rewire
+      if (rewireEdges) {
+        edge_descriptor e = random_edge(graph, randGen);
+
+        if (volatility) {
+          double volSum =
+            model->getVolatility(graph[source(e, graph)].state) +
+            model->getVolatility(graph[target(e, graph)].state);
+          if (!(randGen() * volSum <
+                model->getVolatility(graph[source(e, graph)].state))) {
+            // swap edge around
+            e = edge(target(e, graph), source(e, graph), graph).first;
+          }
         }
         
-        // pick a neighbour of a different state and large distance
-        double differentDistanceSum = 0;
-        double sameDistanceSum = 0;
+        source_node = source(e, graph);
+        cut_node = target(e, graph);
 
-        // loop over all member of group and update ties
-        out_edge_iterator oi, oi_end;;
+      } else {
+
+        // find nodes which have a state
+        std::vector<vertex_descriptor> state_nodes;
+        double volatilitySum(0.);
         
-        // find least similar neighbour and same state neighbours
+        vertex_iterator vi, vi_end;
+        for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
+          if (graph[*vi].state->getState() > 0) {
+            state_nodes.push_back(*vi);
+            if (volatility) {
+              volatilitySum +=
+                model->getVolatility(graph[*vi].state);
+            }
+          }
+        }
+        
+        if (state_nodes.size() > 0) {
           
-        for (tie(oi, oi_end) =
-               boost::out_edges(state_nodes[randStateNode], graph);
-             oi != oi_end; ++oi) {
-          if (graph[target(*oi, graph)].state->getState() !=
-              graph[state_nodes[randStateNode]].state->getState()) {
-            differentDistanceSum +=
-              (model->distance(graph[state_nodes[randStateNode]].state,
-                               graph[target(*oi, graph)].state));
+          // pick one at random
+          if (volatility) {
+            double compareVolatility =
+              model->getVolatility(graph[state_nodes[0]].state);
+            double randVolatility = ((randGen)() * volatilitySum);
+            unsigned int i = 0;
+            while (compareVolatility < randVolatility) {
+              compareVolatility +=
+                model->getVolatility(graph[state_nodes[++i]].state);
+            }
+            source_node = state_nodes[i];
           } else {
-            sameDistanceSum += 1 -
-              (model->distance(graph[state_nodes[randStateNode]].state,
-                               graph[target(*oi, graph)].state));
+            unsigned int randStateNode = static_cast<unsigned int>
+              ((randGen)() * state_nodes.size());
+            source_node = state_nodes[randStateNode];
           }
-        }
-
-        // pick a little similar neighbour at random
-        if (differentDistanceSum > 0. && sameDistanceSum > 0.) {
+          if (verbose >=2) {
+            std::cout
+              << "Randomly picked node " << source_node << " ("
+              << model->printState(graph[source_node].state)
+              << ")";
+            if (volatility) {
+              std::cout << " [volatility "
+                        << model->getVolatility(graph[source_node].state)
+                        << "]" << std::endl;
+            }
+            std::cout << std::endl;
+          }
+          
+          // pick a neighbour of a different state and large distance
+          double differentDistanceSum = 0;
+          // loop over all member of group and update ties
+          out_edge_iterator oi, oi_end;;
+          
+          // find least similar neighbour
+          
+          for (tie(oi, oi_end) =
+                 boost::out_edges(source_node, graph);
+               oi != oi_end; ++oi) {
+            if (graph[target(*oi, graph)].state->getState() !=
+                graph[source_node].state->getState()) {
+              differentDistanceSum +=
+                (model->distance(graph[source_node].state,
+                                 graph[target(*oi, graph)].state));
+            }
+          }
+          
           // pick a little similar neighbour at random
-          double randNeighbour = ((randGen)() * differentDistanceSum);
-          tie(oi, oi_end) = boost::out_edges(state_nodes[randStateNode], graph);
-          double compareDistance =
-            model->distance(graph[state_nodes[randStateNode]].state,
-                            graph[target(*oi, graph)].state);
-          while (compareDistance < randNeighbour) {
-            compareDistance +=
-              model->distance(graph[state_nodes[randStateNode]].state,
-                              graph[target(*(++oi), graph)].state);
-          }
-          vertex_descriptor cut_node = target(*oi, graph);
-
-          // find a new node of the same state by random walk
-          vertex_descriptor* target_node =
-            random_state_walk
-            (state_nodes[randStateNode], state_nodes[randStateNode], 0,
-             sameDistanceSum);
-
-          if (target_node) {
-            if (verbose >=2) {
-              std::cout << "removing link to " << cut_node << " ("
-                        << model->printState(graph[cut_node].state) << ")"
-                        << std::endl;
+          if (differentDistanceSum > 0.) {
+            // pick a little similar neighbour at random
+            double randNeighbour = ((randGen)() * differentDistanceSum);
+            tie(oi, oi_end) = boost::out_edges(source_node, graph);
+            double compareDistance =
+              model->distance(graph[source_node].state,
+                              graph[target(*oi, graph)].state);
+            while (compareDistance < randNeighbour) {
+              compareDistance +=
+                model->distance(graph[source_node].state,
+                                graph[target(*(++oi), graph)].state);
             }
-            // remove weakest link
-            boost::remove_edge
-              (edge(state_nodes[randStateNode], cut_node, graph).first, graph);
-            // link to group node
-            if (verbose >=2) {
-              std::cout << "adding link to " << *target_node << " ("
-                        << model->printState(graph[*target_node].state) << ")"
-                        << std::endl;
-            }
-            boost::add_edge(state_nodes[randStateNode], *target_node, graph);
-            delete target_node;
+            cut_node = target(*oi, graph);
           } else {
-            if (verbose >=2) {
-              std::cout << "Random walk for same state neigbhours of "
-                        << state_nodes[randStateNode] << " failed."
-                        << std::endl;
+            if (verbose >= 2) {
+              std::cout << "No neighbours of different state" << std::endl;
             }
           }
         } else {
           if (verbose >= 2) {
-            if (differentDistanceSum == 0.) { 
-              std::cout << "No neighbours of different state" << std::endl;
+            std::cout << "No node with state" << std::endl;
+          }
+        }
+      }
+
+      if (randomRewiring > 0 && randGen() < randomRewiring) {
+        // random rewiring
+        do {
+          *target_node = random_vertex(graph, randGen);
+        } while (*target_node == source_node ||
+                 edge(source_node, *target_node, graph).second);
+        
+      } else {
+        // local rewiring
+        // only do something if the two nodes don't have the same state
+
+        if (graph[source_node].state->getState() > 0 &&
+            (graph[source_node].state->getState() !=
+             graph[cut_node].state->getState())) {
+
+          double sameDistanceSum(0.);
+          out_edge_iterator oi, oi_end;;
+          for (tie(oi, oi_end) =
+                 boost::out_edges(source_node, graph);
+               oi != oi_end; ++oi) {
+            if (graph[target(*oi, graph)].state->getState() ==
+                graph[source_node].state->getState()) {
+              sameDistanceSum += 1 -
+                (model->distance(graph[source_node].state,
+                                 graph[target(*oi, graph)].state));
             }
-            if (sameDistanceSum == 0.) {            
-              std::cout << "No neighbours of same state" << std::endl;
+          }
+          
+          if (sameDistanceSum > 0.) {
+            // find a new node of the same state by random walk
+            target_node =
+              random_state_walk
+              (source_node, source_node, 0,
+               sameDistanceSum);
+            if (!target_node && verbose >=2) {
+              std::cout << "Random walk for same state neigbhours of "
+                        << source_node << " failed."
+                        << std::endl;
+            }            
+          } else {
+            if (verbose >= 2) {
+                std::cout << "No neighbours of same state" << std::endl;
             }
           }
         }
-      } else {
-        if (verbose >= 2) {
-          std::cout << "No node with state" << std::endl;
-        }
       }
-    }
+      if (target_node) {
+        if (verbose >=2) {
+          std::cout << "removing link to " << cut_node << " ("
+                    << model->printState(graph[cut_node].state) << ")"
+                    << std::endl;
+        }
+        // remove weakest link
+        boost::remove_edge
+          (edge(source_node, cut_node, graph).first, graph);
+        // link to group node
+        if (verbose >=2) {
+          std::cout << "adding link to " << *target_node << " ("
+                    << model->printState(graph[*target_node].state) << ")"
+                    << std::endl;
+        }
+        boost::add_edge(source_node, *target_node, graph);
+        delete target_node;
+      } 
+    } 
 
     double randUpdate = randGen();
     if (randUpdate < updateProb) {
