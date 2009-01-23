@@ -79,6 +79,10 @@ namespace Models {
     virtual std::string printState(State* s) const;
     std::vector<unsigned int> getRGB(State* s) const;
 
+    //! Accessor for an element of vertexStates
+    virtual const Label& getVertexState(unsigned int id) const
+    { return (id == 0 ? this->vertexStates[0] : this->vertexStates[id%3+1]); }
+  
     unsigned int getStates() const
     { return states; }
 
@@ -195,22 +199,18 @@ namespace Models {
     for (unsigned int i = 1; i < states+1; ++i) {
       std::stringstream s;
       s << i;
-      switch (i) {
-       case 1: 
+      switch ((i-1) % 3) {
+       case 0: 
         this->vertexStates.push_back
           (Label(s.str().c_str(), "01;32", i, "", Label::rgbColour(0,0,255)));
         break;
-       case 2: 
+       case 1: 
         this->vertexStates.push_back
           (Label(s.str().c_str(), "01;31", i, "", Label::rgbColour(255,0,0)));
         break;
-       case 3:
+       case 2:
         this->vertexStates.push_back
           (Label(s.str().c_str(), "01;34", i, "", Label::rgbColour(0,255,0)));
-        break;
-       default:
-        this->vertexStates.push_back
-          (Label(s.str().c_str(), "01;37", i, "", Label::rgbColour(0,0,0)));
         break;
       }
     }

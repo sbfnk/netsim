@@ -32,15 +32,18 @@ Counts the number of vertices of a given state in a graph
 */
 template <typename Graph>
 std::vector<unsigned int>
-count_vertices(Graph& g, unsigned int nVertexStates)
+count_vertices(Graph& g)
 {
   typedef typename boost::graph_traits<Graph>::vertex_iterator
     vertex_iterator;
 
-  std::vector<unsigned int> counts(nVertexStates,0);
+  std::vector<unsigned int> counts;
 
   vertex_iterator vi, vi_end;
   for (boost::tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+    if (g[*vi].state->getState()+1 > counts.size()) {
+      counts.resize(g[*vi].state->getState()+1, 0);
+    }
     ++counts[g[*vi].state->getState()];
   }
    
@@ -66,10 +69,13 @@ count_effective_vertices(const Graph& g, unsigned int nVertexStates)
     vertex_iterator;
   typedef typename Model::StateType state_type;
 
-  std::vector<double> counts(nVertexStates,0.);
+  std::vector<double> counts;
 
   vertex_iterator vi, vi_end;
   for (boost::tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+    if (g[*vi].state->getState()+1 > counts.size()) {
+      counts.resize(g[*vi].state->getState()+1, 0.);
+    }
     state_type* s = dynamic_cast<state_type*>(g[*vi].state);
     counts[s->getState()] += (1-s->getInfo());
   }
@@ -283,7 +289,6 @@ public:
 
   void doit(const Graph& g, std::string dir, double time, unsigned int count)
   {
-    unsigned int nVertexStates = m.getVertexStates().size();
     unsigned int nEdgeTypes = m.getEdgeTypes().size();
 
     std::cout << "Time elapsed: " << time << std::endl;
@@ -291,10 +296,11 @@ public:
     std::cout << "Vertex count: " << std::endl;
     
     // count states
-    std::vector<unsigned int> vertexCount = count_vertices(g, nVertexStates);
+    std::vector<unsigned int> vertexCount = count_vertices(g);
+    unsigned int nVertexStates = vertexCount.size();
     for (unsigned int i=0; i < nVertexStates; i++) {
       if (vertexCount[i] > 0) {
-        std::cout << m.getVertexStates()[i] << ": " << vertexCount[i]
+        std::cout << m.getVertexState(i) << ": " << vertexCount[i]
                   << std::endl;
       }
     }
@@ -312,7 +318,7 @@ public:
         for (unsigned int j=0; j < nVertexStates; j++) {
           for (unsigned int k=j; k < nVertexStates; k++) {
             if (pairCount[i][j][k] > 0) {
-              std::cout << m.getVertexStates()[j] << m.getVertexStates()[k]
+              std::cout << m.getVertexState(j) << m.getVertexState(k)
                         << ": " << pairCount[i][j][k] << std::endl;
             }
           }
@@ -329,7 +335,7 @@ public:
         for (unsigned int j=0; j < nVertexStates; j++) {
           for (unsigned int k=j; k < nVertexStates; k++) {
             if (parallelCount[j][k] > 0) {
-              std::cout << m.getVertexStates()[j] << m.getVertexStates()[k]
+              std::cout << m.getVertexState(j) << m.getVertexState(k)
                         << ": " << parallelCount[j][k] << std::endl;
             }
           }
@@ -351,8 +357,8 @@ public:
           for (unsigned int k=0; k < nVertexStates; k++) {
             for (unsigned int l=0; l < nVertexStates; l++) {
               for (unsigned int n=l; n < nVertexStates; n++) {
-                std::cout << m.getVertexStates()[l] << m.getVertexStates()[k]
-                          << m.getVertexStates()[n] << ": "
+                std::cout << m.getVertexState(l) << m.getVertexState(k)
+                          << m.getVertexState(n) << ": "
                           << tripleCount[i][j][k][l][n] << std::endl;
               }
             }
@@ -527,7 +533,6 @@ public:
       std::cerr << "Will not write simulation counts to file." << std::endl;
     }
   
-    unsigned int nVertexStates = m.getVertexStates().size();
     unsigned int nEdgeTypes = m.getEdgeTypes().size();
     
     std::stringstream line("");
@@ -536,7 +541,8 @@ public:
     outputFile << time << '\t';
     
     // count vertices' states
-    std::vector<unsigned int> vertexCount = count_vertices(g, nVertexStates);
+    std::vector<unsigned int> vertexCount = count_vertices(g);
+    unsigned int nVertexStates = vertexCount.size();
     for (unsigned int i = 0; i < nVertexStates; i++) {
       line << vertexCount[i] << '\t';
     }

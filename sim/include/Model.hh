@@ -174,10 +174,10 @@ public:
 
   //! Accessor for vertexStates
   const std::vector<Label>& getVertexStates() const
-  { return vertexStates; }
+  { return  vertexStates; }
 
   //! Accessor for an element of vertexStates
-  const Label& getVertexState(unsigned int id) const
+  virtual const Label& getVertexState(unsigned int id) const
   { return vertexStates[id]; }
   
   //! Accessor for edgeTypes
