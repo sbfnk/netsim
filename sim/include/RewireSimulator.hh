@@ -113,6 +113,7 @@ namespace Simulators {
     bool rewireEdges;
     bool updateEdges;
     bool volatility;
+    bool traits;
     bool updatingVolatility;
     bool acceptance;
     bool pullUpdating;
@@ -128,8 +129,8 @@ namespace Simulators {
 		     unsigned int v) :
     Simulator<Graph>(g, v), randGen(r, boost::uniform_real<> (0,1)),
     active(), verbose(v), rewireEdges(false), updateEdges(false),
-    volatility(false), updatingVolatility(false), acceptance(false),
-    pullUpdating(false), randomiseNew(false)
+    volatility(false), traits(false), updatingVolatility(false),
+    acceptance(false), pullUpdating(false), randomiseNew(false)
   {
     this->simulator_options.add_options()
       ("rewire-prob,p",po::value<double>()->default_value(0.),
@@ -146,6 +147,8 @@ namespace Simulators {
        "pick random edges rather than nodes in updating")
       ("volatility,o",
        "have nodes differ in tendency to rewire")
+      ("traits",
+       "have nodes differ in traits")
       ("updating-volatility",
        "volatility used also in updating")
       ("acceptance",
@@ -230,6 +233,7 @@ namespace Simulators {
           rate));
     }
     if (vm.count("volatility")) volatility = true;
+    if (vm.count("traits")) traits = true;
     if (vm.count("updating-volatility")) updatingVolatility = true;
     if (vm.count("acceptance")) {
       if (updatingVolatility) {
@@ -279,7 +283,11 @@ namespace Simulators {
     for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
       std::vector<double> randTraits;
       for (unsigned int i = 0; i < model->getTraitDim(); ++i) {
-	randTraits.push_back((randGen)());
+        if (traits) {
+          randTraits.push_back((randGen)());
+        } else {
+          randTraits.push_back(.0);
+        }
       }
       GroupFormState* myState = dynamic_cast<GroupFormState*>(graph[*vi].state);
       myState->setTrait(randTraits);
@@ -475,6 +483,7 @@ namespace Simulators {
         // find nodes which have a state
         std::vector<vertex_descriptor> state_nodes;
         double volatilitySum(0.);
+
         
         vertex_iterator vi, vi_end;
         for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
@@ -565,6 +574,7 @@ namespace Simulators {
       }
 
       if (source_node) {
+        std::cout << reinterpret_cast<void*>(source_node) << std::endl;
         if (randomRewiring > 0 && randGen() < randomRewiring) {
           // random rewiring
           target_node = new vertex_descriptor;
