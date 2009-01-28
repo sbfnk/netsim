@@ -574,7 +574,6 @@ namespace Simulators {
       }
 
       if (source_node) {
-        std::cout << reinterpret_cast<void*>(source_node) << std::endl;
         if (randomRewiring > 0 && randGen() < randomRewiring) {
           // random rewiring
           target_node = new vertex_descriptor;
