@@ -377,9 +377,13 @@ namespace Simulators {
               std::cout << "checking neighbour " << target(*oi, graph)
                         << std::endl;
             }
-            distanceSum +=
-              1 - (model->distance(graph[original_node].state,
-                                   graph[target(*oi, graph)].state));
+            if (traits) {
+              distanceSum +=
+                1 - (model->distance(graph[original_node].state,
+                                     graph[target(*oi, graph)].state));
+            } else {
+              ++distanceSum;
+            }
           }
         }
       }
@@ -404,9 +408,13 @@ namespace Simulators {
               std::cout << "checking neighbour " << target(*oi, graph)
                         << std::endl;
             }
-            compareDistance +=
-              1 - model->distance(graph[original_node].state,
-                                  graph[target(*oi, graph)].state);
+            if (traits) {
+              compareDistance +=
+                1 - model->distance(graph[original_node].state,
+                                    graph[target(*oi, graph)].state);
+            } else {
+              ++compareDistance;
+            }
           }
         }
         ++oi;
@@ -541,9 +549,13 @@ namespace Simulators {
                oi != oi_end; ++oi) {
             if (graph[target(*oi, graph)].state->getState() !=
                 graph[*source_node].state->getState()) {
-              differentDistanceSum +=
-                (model->distance(graph[*source_node].state,
-                                 graph[target(*oi, graph)].state));
+              if (traits) {
+                differentDistanceSum +=
+                  (model->distance(graph[*source_node].state,
+                                   graph[target(*oi, graph)].state));
+              } else {
+                ++differentDistanceSum;
+              }
             }
           }
           
@@ -552,13 +564,22 @@ namespace Simulators {
             // pick a little similar neighbour at random
             double randNeighbour = ((randGen)() * differentDistanceSum);
             tie(oi, oi_end) = boost::out_edges(*source_node, graph);
-            double compareDistance =
-              model->distance(graph[*source_node].state,
-                              graph[target(*oi, graph)].state);
-            while (compareDistance < randNeighbour) {
-              compareDistance +=
+            double compareDistance;
+            if (traits) {
+              compareDistance =
                 model->distance(graph[*source_node].state,
-                                graph[target(*(++oi), graph)].state);
+                                graph[target(*oi, graph)].state);
+            } else {
+              compareDistance = 1;
+            }
+            while (compareDistance < randNeighbour) {
+              if (traits) {
+                compareDistance +=
+                  model->distance(graph[*source_node].state,
+                                  graph[target(*(++oi), graph)].state);
+              } else {
+                ++compareDistance;
+              }
             }
             cut_node = target(*oi, graph);
           } else {
@@ -597,9 +618,13 @@ namespace Simulators {
                  oi != oi_end; ++oi) {
               if (graph[target(*oi, graph)].state->getState() ==
                   graph[*source_node].state->getState()) {
-                sameDistanceSum += 1 -
-                  (model->distance(graph[*source_node].state,
-                                   graph[target(*oi, graph)].state));
+                if (traits) {
+                  sameDistanceSum += 1 -
+                    (model->distance(graph[*source_node].state,
+                                     graph[target(*oi, graph)].state));
+                } else {
+                  ++sameDistanceSum;
+                }
               }
             }
             
@@ -724,9 +749,13 @@ namespace Simulators {
                oi != oi_end; ++oi) {
             if (graph[target(*oi, graph)].state->getState() !=
                 graph[source_node].state->getState()) {
-              closenessSum += 1 -
-                (model->distance(graph[source_node].state,
-                                 graph[target(*oi, graph)].state));
+              if (traits) {
+                closenessSum += 1 -
+                  (model->distance(graph[source_node].state,
+                                   graph[target(*oi, graph)].state));
+              } else {
+                ++closenessSum;
+              }
             }
           }
           
@@ -735,13 +764,22 @@ namespace Simulators {
             
             double randNeighbour = ((randGen)() * closenessSum);
             tie(oi, oi_end) = boost::out_edges(source_node, graph);
-            double compareDistance =
-              1 - model->distance(graph[source_node].state,
-                                  graph[target(*oi, graph)].state);
+            double compareDistance;
+            if (traits) {
+              compareDistance =
+                1 - model->distance(graph[source_node].state,
+                                    graph[target(*oi, graph)].state);
+            } else {
+              ++compareDistance;
+            }
             while (compareDistance < randNeighbour) {
-              compareDistance += 1 -
-                model->distance(graph[state_nodes[randStateNode]].state,
-                                graph[target(*(++oi), graph)].state);
+              if (traits) {
+                compareDistance += 1 -
+                  model->distance(graph[state_nodes[randStateNode]].state,
+                                  graph[target(*(++oi), graph)].state);
+              } else {
+                ++compareDistance;
+              }
             }
             
             target_node = new vertex_descriptor;
