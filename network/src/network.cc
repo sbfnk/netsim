@@ -1293,10 +1293,11 @@ int main(int argc, char* argv[])
         modFile.close();
       }
     }
+    graph = saved_graph;
   }
 
   if (vm.count("components") && baseFileName.length() > 0) {
-    write_component_dist(graph, baseFileName+".comp"+ext);
+    write_component_dist(graph, baseFileName+".stat.comp");
   }
 
   if (vm.count("all-stats")) {
@@ -1494,7 +1495,8 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // calculate average path lengths
   /******************************************************************/
-  if (vm.count("path-length") || allStats) {
+//  if (vm.count("path-length") || allStats) {
+  if (vm.count("path-length")) {
     std::stringstream output;
     
     for (unsigned int i = 0; i < nEdgeTypes; ++i) {
