@@ -109,6 +109,9 @@ public:
   Vertex(const Vertex& v)
   { state = v.state->clone(); }
 
+  Vertex& operator=(const Vertex& v)
+  { if (&v != this) {this->state = v.state->clone();} return *this; }
+    
   //! Destructor
   virtual ~Vertex() { if (state) delete state;}
 
