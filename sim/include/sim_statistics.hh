@@ -318,7 +318,7 @@ public:
         for (unsigned int j=0; j < nVertexStates; j++) {
           for (unsigned int k=j; k < nVertexStates; k++) {
             if (pairCount[i][j][k] > 0) {
-              std::cout << m.getVertexState(j) << m.getVertexState(k)
+              std::cout << m.getVertexState(j) << "-" << m.getVertexState(k)
                         << ": " << pairCount[i][j][k] << std::endl;
             }
           }
@@ -1042,16 +1042,19 @@ public:
 
   write_community_structure(Graph& g, const Model& m,
                             bool graphs = false,
-                            bool modularity = false) :
-    m(m), graphs(graphs), modularity(modularity)
+                            bool modularity = false,
+                            unsigned int verbose = 0) :
+    m(m), graphs(graphs), modularity(modularity), verbose(verbose)
   {}
   
   virtual void doit(const Graph& g, std::string dir, double time,
                     unsigned int count)
   {
     Graph temp_graph = g;
-    double mod = boost::community_structure(g, temp_graph, 1., 2,
+    std::cout << "community" << std::endl;
+    double mod = boost::community_structure(g, temp_graph, 1., verbose,
                                             graphs, modularity);
+    std::cout << "done" << std::endl;
 
     if (graphs) {
       if (!fs::exists(dir+"/comm")) {
@@ -1091,6 +1094,81 @@ private:
   const Model& m;
   bool graphs;
   bool modularity;
+  unsigned int verbose;
+};
+
+template <typename Graph>
+class write_same_state_components
+  : public Funct<Graph>
+{
+public:
+
+  write_same_state_components(Graph& g, unsigned int verbose = 0) :
+    verbose(verbose)
+  {}
+  
+  virtual void doit(const Graph& g, std::string dir, double time,
+                    unsigned int count)
+  {
+    Graph temp_graph = g;
+
+    std::vector<int> component(num_vertices(g));
+    int num = boost::connected_components(g, &component[0]);
+    if (verbose >=2 ) {
+      std::cout << num << " components:" << std::endl;;
+    }
+    
+    double fraction;
+    unsigned int nonZeroVertices = 0;
+    // loop over components and calculate state fractions
+    for (int i = 0; i < num; ++i) {
+      std::vector<unsigned int> stateDist;
+      unsigned int componentSize = 0;
+      for (unsigned int j = 0; j < num_vertices(g); ++j) {
+        if (component[j] == i) {
+          if (g[j].state->getState() > 0) {
+            if (g[j].state->getState() + 1 > stateDist.size()) {
+              stateDist.resize(g[j].state->getState() + 1, 0);
+            }
+            ++stateDist[g[j].state->getState()];
+            ++nonZeroVertices;
+            ++componentSize;
+          }
+        }
+      }
+      unsigned int compContr = 0;
+      if (componentSize > 0) {
+        for (unsigned int j = 0; j < stateDist.size(); ++j) {
+          compContr +=  stateDist[j]*(stateDist[j] - 1);
+        }
+        fraction += compContr / static_cast<double>(componentSize);
+      }
+    }
+    if (nonZeroVertices > 0) {
+      fraction /= static_cast<double>(nonZeroVertices);
+    } else {
+      fraction = 0;
+    }
+    std::string outputFileName = dir + "/" + "same_state.sim.dat";
+    std::ofstream outputFile;
+    
+    try {
+        outputFile.open(outputFileName.c_str(),
+                        std::ios::out | std::ios::app | std::ios::ate);
+    }
+    catch (std::exception &e) {
+      std::cerr << "Unable to open output file: " << e.what() << std::endl;
+      std::cerr << "Will not write same state fraction to file." << std::endl;
+    }
+    
+    outputFile << time << '\t';
+    outputFile << fraction;
+    outputFile << std::endl;
+    outputFile.close();
+  }
+
+private:
+  unsigned int verbose;
 };
 
 //----------------------------------------------------------
