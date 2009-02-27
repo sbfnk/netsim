@@ -163,6 +163,8 @@ namespace Simulators {
        "write component distribution in comp directory at arg timesteps")
       ("modularity",po::value<double>(),
        "write modularity at arg timesteps")
+      ("same-state",po::value<double>(),
+       "write same-state fraction in components at arg timesteps")
       ("community",po::value<double>(),
        "write community distribution in comm directory at arg timesteps")
       ;
@@ -212,7 +214,7 @@ namespace Simulators {
     }
     if (vm.count("modularity") || vm.count("community")) {
       double rate = -1;
-      if (vm.count("modularity")) {
+      if (vm.count("modularity") || vm.count("same-state")) {
         if (vm.count("community") &&
             vm["modularity"].as<double>() != vm["community"].as<double>()) {
           rate = std::min(vm["modularity"].as<double>(),
@@ -229,8 +231,14 @@ namespace Simulators {
         (new StatRecorder<Graph>
          (new write_community_structure<Graph, Model<Graph> >
           (this->getGraph(), *(this->getModel()),
-           vm.count("community"), vm.count("modularity")),
+           vm.count("community"), vm.count("modularity"), verbose),
           rate));
+    }
+    if (vm.count("same-state")) {
+      this->statRecorders.push_back
+        (new StatRecorder<Graph>
+         (new write_same_state_components<Graph>(this->getGraph(), verbose),
+          vm["same-state"].as<double>()));
     }
     if (vm.count("volatility")) volatility = true;
     if (vm.count("traits")) traits = true;
@@ -273,13 +281,19 @@ namespace Simulators {
   template <typename RandomGenerator, typename Graph>
   void RewireSimulator<RandomGenerator, Graph>::initialise()
   {
-    Simulator<Graph>::initialise();
     Graph& graph = this->getGraph();
-    const Models::GroupFormModel<Graph>* model =
-      dynamic_cast<const Models::GroupFormModel<Graph>*>(this->getModel());
+    Models::GroupFormModel<Graph>* model =
+      dynamic_cast<Models::GroupFormModel<Graph>*>(this->getModel());
+    vertex_iterator vi, vi_end;
+
+    // check if we need to add states to model
+    for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
+      while (graph[*vi].state->getState() > model->getVertexStates().size()-1) {
+        model->addState();
+      }
+    }
     
     // set trait for each vertex 
-    vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
       std::vector<double> randTraits;
       for (unsigned int i = 0; i < model->getTraitDim(); ++i) {
@@ -322,6 +336,9 @@ namespace Simulators {
         std::cout << " with vertex " << *vi << std::endl;
       }
     }
+
+    //initialise simulator
+    Simulator<Graph>::initialise();
   }
   
   template <typename RandomGenerator, typename Graph>
@@ -586,6 +603,8 @@ namespace Simulators {
             if (verbose >= 2) {
               std::cout << "No neighbours of different state" << std::endl;
             }
+            delete source_node;
+	    source_node = 0;
           }
         } else {
           if (verbose >= 2) {
