@@ -62,12 +62,6 @@ int main(int argc, char* argv[])
     outputDir = dataDirEnv;
   } 
 
-  char* graphDirEnv(getenv("GRAPHDIR"));
-  std::string inputGraphDir = "";
-  if (graphDirEnv) {
-    inputGraphDir = std::string(graphDirEnv) + "/";
-  } 
-
   unsigned int verbose = 0;
   bool printStats = false;
 
@@ -217,7 +211,7 @@ int main(int argc, char* argv[])
 
   graph_options.add_options()
     ("file,f", po::value<std::string>(),
-     "file to read from (one file for all edge types, .graph will be appended)");
+     "file to read from (one file for all edge types)");
 
   if (nEdgeTypes > 1) {
     for (unsigned int i = 0; i < nEdgeTypes; ++i) {
@@ -301,7 +295,7 @@ int main(int argc, char* argv[])
     // read all from one file
     for (unsigned int i = 0; i < edgeTypes.size(); i++) {
       fileNames.push_back
-        (inputGraphDir + vm["file"].as<std::string>() + ".graph");
+        (vm["file"].as<std::string>());
     }
   } else if (edgeTypes.size() > 1) {
     bool graphError = false;
@@ -310,7 +304,7 @@ int main(int argc, char* argv[])
       s.str("");
       s << edgeTypes[i].getText() << "-file";
       if (vm.count(s.str())) {
-        fileNames.push_back(inputGraphDir + vm[s.str()].as<std::string>() + ".graph");
+        fileNames.push_back(vm[s.str()].as<std::string>() + ".graph");
       } else {
         std::cerr << "ERROR: no " << edgeTypes[i].getText()
                   << "-graph file specified" << std::endl;
@@ -471,8 +465,6 @@ int main(int argc, char* argv[])
     cmdLineFile.close();
   }
 
-  saved_graph = graph;
-  
   for (unsigned int nSim = 1; nSim <= numSims; nSim++) {
     
     if (verbose >= 1) {
@@ -484,7 +476,8 @@ int main(int argc, char* argv[])
 
     if (nSim > 1) {
       // recover graph
-      graph = saved_graph;
+      graph.clear();
+      copy_graph(saved_graph, graph);
     }
 
     /******************************************************************/
@@ -559,12 +552,13 @@ int main(int argc, char* argv[])
       keepIC = true;
     }
 
+    if (nSim == 1) {
+      // save graph states
+      copy_graph(graph, saved_graph);
+    }
+    
     if (keepIC) {
-      if (nSim == 1) {
-        // save graph states
-        saved_graph = graph;
-        generateIC = false;
-      }
+      generateIC = false;
     }
 
     std::stringstream runStr(std::ios::in | std::ios::out | std::ios::ate);
