@@ -97,7 +97,7 @@ public:
 
   //! Check if conditions to stop a run have been reached. 
   virtual bool stopCondition() const
-  { return ((stopTime > 0 && getTime() >= stopTime)); }
+  { return (((stopTime > 0 && getTime() >= stopTime)) || stopTime < 0); }
 
   virtual bool parse_options(const po::variables_map& vm)
   {
