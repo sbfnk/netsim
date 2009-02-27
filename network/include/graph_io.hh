@@ -92,6 +92,7 @@ namespace boost {
       } else {
         out << "[fillcolor=\"" << rgbString.str() << "\"";
       }
+      out << " state=" << state[v]->getState();
       out << " label=\"\"]";
     }
     
@@ -152,7 +153,7 @@ namespace boost {
       out << "[";
       if (saveType) out << "type=" << edge[e] << " ";
 //      out << "len=0.1 color=white" << "]";
-      out << "color=white" << "]";
+      out << "color=black" << "]";
     }
 
   private:
@@ -187,7 +188,7 @@ namespace boost {
     void operator()(std::ostream& out, const EdgeType& e) const
     {
       out << "[" << model.getEdgeTypes()[edge[e]].getDrawOption()
-          << " len=0.1 color=white" << "]";
+          << " color=black" << "]";
     }
   
   private:
@@ -239,7 +240,7 @@ namespace boost {
     void operator()(std::ostream& out) const {
       // graph options
 //      out << "graph [overlap=scalexy bgcolor=black outputorder=edgesfirst";
-      out << "graph [overlap=false bgcolor=black outputorder=edgesfirst";
+      out << "graph [overlap=false bgcolor=grey outputorder=edgesfirst";
       // graph title
       if (title.size() > 0) out << " label=\"" << title << "\" labelloc=\"t\"";
       // more graph options
@@ -586,7 +587,10 @@ namespace boost {
             // set default if no drawoption is given
             unsigned int state = defaultState;
 //             double detail = 1.;
-            if (line.find("fillcolor") != std::string::npos) {
+            if (line.find("state") != std::string::npos) {
+              state =
+                cast_stream<unsigned int>(extractDrawOption("state", line));
+            } else if (line.find("fillcolor") != std::string::npos) {
               std::string color = extractDrawOption("fillcolor", line);
               if (color.find("#") != std::string::npos) {
                 // color information is rgb type
@@ -605,19 +609,17 @@ namespace boost {
                 // color information is name type
                 state = color2state[color];
               }
-            } else if (line.find("state") != std::string::npos) {
-              state =
-                cast_stream<unsigned int>(extractDrawOption("state", line));
             }
-              
+
             // typecasting string to int
             unsigned int src = cast_stream<unsigned int>(s);
-            
-	    // add vertices until we have enough to accomodate what is in ic file
+
+            // add vertices until we have enough to accomodate what is in ic file
             while (src >= num_vertices(g)) add_vertex(g);
+            g[src].state = m.newState();
             g[src].state->setState(state);
-	    //XXXXXXXXXXXXXXXXXXXX UPDATE XXXXXXXXXXXXXXXXXXXXXXXX
-//             g[src].state.detail = detail;
+            //XXXXXXXXXXXXXXXXXXXX UPDATE XXXXXXXXXXXXXXXXXXXXXXXX
+            //             g[src].state.detail = detail;
             ++vertexCount;
           }
         }
