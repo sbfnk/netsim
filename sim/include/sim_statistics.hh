@@ -1137,11 +1137,11 @@ public:
         }
       }
       unsigned int compContr = 0;
-      if (componentSize > 0) {
+      if (componentSize > 1) {
         for (unsigned int j = 0; j < stateDist.size(); ++j) {
           compContr +=  stateDist[j]*(stateDist[j] - 1);
         }
-        fraction += compContr / static_cast<double>(componentSize);
+        fraction += compContr / static_cast<double>(componentSize - 1);
       }
     }
     if (nonZeroVertices > 0) {
