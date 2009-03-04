@@ -777,11 +777,11 @@ namespace Simulators {
               }
             }
           }
-          
+
           if (closenessSum > 0) {
             // pick most similar neighbour at random
             
-            double randNeighbour = ((randGen)() * closenessSum);
+            double randNeighbour = ((randGen)() * closenessSum); 
             tie(oi, oi_end) = boost::out_edges(source_node, graph);
             double compareDistance;
             if (traits) {
@@ -789,16 +789,20 @@ namespace Simulators {
                 1 - model->distance(graph[source_node].state,
                                     graph[target(*oi, graph)].state);
             } else {
-              ++compareDistance;
+              compareDistance = 1;
             }
             while (compareDistance < randNeighbour) {
-              if (traits) {
-                compareDistance += 1 -
-                  model->distance(graph[state_nodes[randStateNode]].state,
-                                  graph[target(*(++oi), graph)].state);
-              } else {
-                ++compareDistance;
+              if (graph[target(*oi, graph)].state->getState() !=
+                  graph[source_node].state->getState()) {
+                if (traits) {
+                  compareDistance += 1 -
+                    model->distance(graph[state_nodes[randStateNode]].state,
+                                    graph[target(*(++oi), graph)].state);
+                } else {
+                  ++compareDistance;
+                }
               }
+              ++oi;
             }
             
             target_node = new vertex_descriptor;
