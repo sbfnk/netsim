@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/connected_components.hpp>
 #include <boost/multi_array.hpp>
 #include <boost/filesystem.hpp>
 
