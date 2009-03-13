@@ -14,6 +14,7 @@
 
 #include "InfoSIRS.hh"
 #include "DimInfoSIRS.hh"
+#include "DimInfoVaccSIRS.hh"
 #include "VaccinationSIRS.hh"
 #include "ProtectiveSIRS.hh"
 #include "SingleSIRS.hh"
@@ -92,6 +93,8 @@ namespace Simulators {
   {
     this->knownModels.push_back
       (std::make_pair("DimInfoSIRS", new Models::DimInfoSIRS<Graph>(this->getVerbose())));
+    this->knownModels.push_back
+      (std::make_pair("DimInfoVaccSIRS", new Models::DimInfoVaccSIRS<Graph>(this->getVerbose())));
     this->knownModels.push_back
       (std::make_pair("InfoSIRS", new Models::InfoSIRS<Graph>(this->getVerbose())));
     this->knownModels.push_back
