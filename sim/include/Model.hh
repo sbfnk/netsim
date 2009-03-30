@@ -172,6 +172,10 @@ public:
   virtual State* newState() const
   { return new State; }
 
+  virtual State* newState(unsigned int red, unsigned int green,
+                          unsigned int blue) const
+  { return new State; }
+
   //! Accessor for vertexStates
   const std::vector<Label>& getVertexStates() const
   { return  vertexStates; }
@@ -223,6 +227,9 @@ public:
     return colour;
   }
 
+  unsigned int getStateFromColour(unsigned int colour) const
+  { return rgb2state.find(colour)->second; }
+
 protected:
 
   /*! \brief The vertex states.
@@ -258,6 +265,12 @@ protected:
   */
   std::map<std::string, unsigned int*> rates;
 
+  /*! \brief RGB to state map
+
+  A map of RGB codes to states
+  */
+  std::map<unsigned int, unsigned int> rgb2state;
+  
 private:
   //! Verbosity level
   unsigned int verbose;
@@ -319,6 +332,14 @@ void Model<Graph>::Init(const po::variables_map& vm,
       std::cerr << "setting to 0" << std::endl;
       *(it->second) = 0;
     }
+  }
+
+  for (unsigned i = 0; i < getVertexStates().size(); ++i) {
+    unsigned int colorCode =
+      (getVertexStates()[i].getRGB(0) > 0)*1 +
+      (getVertexStates()[i].getRGB(1) > 0)*2 +
+      (getVertexStates()[i].getRGB(2) > 0)*4;
+    rgb2state.insert(std::make_pair(colorCode, i));
   }
 }
 

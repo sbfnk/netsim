@@ -111,6 +111,13 @@ public:
   State* newState(ModelState s) const
   { ModelState* new_state = new ModelState; *new_state = s; return new_state; }
 
+  virtual State* newState(unsigned int red, unsigned int green,
+                          unsigned int blue) const
+  {
+    return 
+      new ModelState
+      (this->getStateFromColour((red > 0)*1 + (green > 0)*2 + (blue > 0) * 4));
+  } 
 };
 
 template <class Graph>
