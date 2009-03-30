@@ -529,7 +529,7 @@ namespace boost {
   \param[in] graphFileName The name of the file to be read
   \param[in] m The model to be used to assign vertex colours to states.
   \param[in] defaultState The default state of vertices in the graph
-  \return The number of edges which have been read.
+  \return The number of vertices which have been read.
   \ingroup graph_io
   */
   template <typename Graph, typename Model>
@@ -552,20 +552,12 @@ namespace boost {
     // initialize color2state vertex map
     typedef std::map<std::string, unsigned int> ColorToState;
     ColorToState color2state;
-    typedef std::map<unsigned int, unsigned int> RgbToState;
-    RgbToState rgb2state;
     
     for (unsigned int i = 0; i < m.getVertexStates().size(); i++) {
-      std::string color = extractDrawOption("fillcolor",
-                                            m.getVertexStates()[i].getDrawOption());
-      if (color == "") {
-        // color information is rgb type
-        unsigned int colorCode =
-          (m.getVertexStates()[i].getRGB(0) > 0)*1 +
-          (m.getVertexStates()[i].getRGB(1) > 0)*2 +
-          (m.getVertexStates()[i].getRGB(2) > 0)*4;
-        rgb2state.insert(std::make_pair(colorCode, i));
-      } else {
+      std::string color =
+        extractDrawOption("fillcolor",
+                          m.getVertexStates()[i].getDrawOption());
+      if (color.size() > 0) {
         // color information is name type
         color2state.insert(std::make_pair(color,i));
       }
@@ -583,13 +575,25 @@ namespace boost {
           if (lpos == std::string::npos) { // found vertex
             // extract vertex index
             std::string s = line.substr(0, bpos);
+            // typecasting string to int
+            unsigned int src = cast_stream<unsigned int>(s);
             
-            // set default if no drawoption is given
-            unsigned int state = defaultState;
-//             double detail = 1.;
+            // add vertices until we have enough to accomodate what is in ic file
+            while (src >= num_vertices(g)) {
+              add_vertex(g);
+              if (src > num_vertices(g)) {
+                g[src].state = m.newState();
+                g[src].state->setState(defaultState);
+              }
+              ++vertexCount;
+            }
+
+            std::string color;
+            
             if (line.find("state") != std::string::npos) {
-              state =
-                cast_stream<unsigned int>(extractDrawOption("state", line));
+              g[src].state = m.newState();
+              g[src].state->setState
+                (cast_stream<unsigned int>(extractDrawOption("state", line)));
             } else if (line.find("fillcolor") != std::string::npos) {
               std::string color = extractDrawOption("fillcolor", line);
               if (color.find("#") != std::string::npos) {
@@ -598,29 +602,16 @@ namespace boost {
                 std::stringstream(color.substr(2,2)) >> std::hex >> red;
                 std::stringstream(color.substr(4,2)) >> std::hex >> green;
                 std::stringstream(color.substr(6,2)) >> std::hex >> blue;
-                state = rgb2state[(red > 0)*1 + (green > 0)*2 + (blue > 0) * 4];
-//                 detail = 1 - 5/4. * (1 - (red+green+blue)/ static_cast<double>
-//                                     (m.getVertexStates()[state].getRGB(0) +
-//                                      m.getVertexStates()[state].getRGB(1) +
-//                                      m.getVertexStates()[state].getRGB(2)));
-                // brush up rounding errors
-//                 detail = detail > 0 ? detail : 0;
+                g[src].state = m.newState(red, green, blue);
               } else {
                 // color information is name type
-                state = color2state[color];
+                g[src].state = m.newState();
+                g[src].state->setState(color2state[color]);
               }
+            } else {
+              g[src].state = m.newState();
+              g[src].state->setState(defaultState);
             }
-
-            // typecasting string to int
-            unsigned int src = cast_stream<unsigned int>(s);
-
-            // add vertices until we have enough to accomodate what is in ic file
-            while (src >= num_vertices(g)) add_vertex(g);
-            g[src].state = m.newState();
-            g[src].state->setState(state);
-            //XXXXXXXXXXXXXXXXXXXX UPDATE XXXXXXXXXXXXXXXXXXXXXXXX
-            //             g[src].state.detail = detail;
-            ++vertexCount;
           }
         }
       }
@@ -631,6 +622,46 @@ namespace boost {
     file.close();
 
     return vertexCount;
+  
+  }
+
+  //----------------------------------------------------------
+  /*! \brief Read initial states from a lattice PNG file
+  
+  Reads a graph from a lattice PNG file by going through the file
+  pixel-by-pixel. The states are associated with states according to a given
+  model. 
+  
+  \param[out] g The graph to read into
+  \param[in] graphFileName The name of the file to be read
+  \param[in] m The model to be used to assign vertex colours to states.
+  \return The side length of the lattice
+  \ingroup graph_io
+  */
+  template <typename Graph, typename Model>
+  int read_initial_lattice(Graph& g, const std::string graphFileName,
+                           const Model& m)
+  {
+
+    // create canvas
+    pngwriter lattice_image;
+    lattice_image.readfromfile(graphFileName.c_str());
+
+    unsigned int vertexIndex = 0;
+    for (int i = 1; i <= lattice_image.getwidth(); ++i) {
+      for (int j = 1; j <= lattice_image.getheight(); ++j) {
+        if (vertexIndex >= num_vertices(g)) add_vertex(g);
+        int red = lattice_image.read(i,j,1);
+        int green = lattice_image.read(i,j,2);
+        int blue = lattice_image.read(i,j,3);
+        g[vertexIndex].state = m.newState(red, green, blue);
+        ++vertexIndex;
+      }
+    }
+          
+    lattice_image.close();
+
+    return vertexIndex;
   
   }
 

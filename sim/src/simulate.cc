@@ -226,7 +226,9 @@ int main(int argc, char* argv[])
 
   ic_options.add_options()
     ("init,i", po::value<std::string>(),
-     "graphviz file to get initial conditions from")
+     "file to get initial conditions from")
+    ("init-lattice", 
+     "init file is png lattice rather than graphviz")
     ("same-ic", 
      "start with the same initial conditions for each run")
     ("base,b", po::value<std::string>()->default_value
@@ -414,12 +416,18 @@ int main(int argc, char* argv[])
   if (vm.count("init")) { // read initial state from file
 
     std::string icFileName = vm["init"].as<std::string>();
-    int verticesRead = read_initial_graph(graph, icFileName, *model);
+    int verticesRead;
+    if (vm.count("init-lattice")) {
+      verticesRead = read_initial_lattice(graph, icFileName, *model);
+    } else {
+      verticesRead = read_initial_graph(graph, icFileName, *model);
+    }
     if (verticesRead < 0) {
       std::cerr << "ERROR: could not read from file " << icFileName
                 << std::endl;
       return 1;
-    } else if (static_cast<unsigned int>(verticesRead) < num_vertices(graph)) {
+    } else if (static_cast<unsigned int>(verticesRead) <
+               num_vertices(graph)) {
       std::cerr << "ERROR: found only " << verticesRead << " vertex "
                 << "states in " << icFileName << std::endl;
       return 1;
