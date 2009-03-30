@@ -24,7 +24,7 @@ public:
   State(int b = 0) : state(b) {;}
   virtual ~State() {;}
 
-  virtual State* clone() { return new State(*this); }
+  virtual State* clone() const { return new State(*this); }
 
   //! Print a coloured letter representing the vertex state.
   virtual void print(std::ostream &os) const
