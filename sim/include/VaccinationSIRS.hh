@@ -33,7 +33,7 @@ namespace Models {
     VaccinationSIRS(unsigned int v = 0);
     ~VaccinationSIRS() {;}
 
-    virtual Model<Graph>* clone() { return new VaccinationSIRS<Graph>(*this); }
+    virtual Model<Graph>* clone() const { return new VaccinationSIRS<Graph>(*this); }
 
     void Init(const po::variables_map& vm,
               std::vector<StatRecorder<Graph>*>& rec);

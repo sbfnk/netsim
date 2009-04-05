@@ -27,7 +27,7 @@ namespace Models {
     SingleSIRS(unsigned int v = 0);
     ~SingleSIRS() {;}
 
-    virtual Model<Graph>* clone() { return new SingleSIRS<Graph>(*this); }
+    virtual Model<Graph>* clone() const { return new SingleSIRS<Graph>(*this); }
 
     unsigned int getNodeEvents(eventList& events, State* currentState,
                                unsigned int nb) const;

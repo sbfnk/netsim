@@ -15,7 +15,7 @@ public:
     : State(b), info_quality(i) {;}
   ~DimInfoState() {;}
 
-  virtual State* clone() { return new DimInfoState(*this);}
+  virtual State* clone() const { return new DimInfoState(*this);}
 
   double getInfo() const { return info_quality; }
   void setInfo(double i) { info_quality = i; }
@@ -49,7 +49,7 @@ namespace Models {
     DimInfoSIRS(unsigned int v = 0);
     ~DimInfoSIRS() {;}
 
-    virtual Model<Graph>* clone() { return new DimInfoSIRS<Graph>(*this); }
+    virtual Model<Graph>* clone() const { return new DimInfoSIRS<Graph>(*this); }
 
     void Init(const po::variables_map& vm, std::vector<StatRecorder<Graph>*>& rec);
 

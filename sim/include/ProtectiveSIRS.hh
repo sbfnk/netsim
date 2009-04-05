@@ -33,7 +33,7 @@ namespace Models {
     ProtectiveSIRS(unsigned int v = 0);
     ~ProtectiveSIRS() {;}
   
-    virtual Model<Graph>* clone() { return new ProtectiveSIRS<Graph>(*this); }
+    virtual Model<Graph>* clone() const { return new ProtectiveSIRS<Graph>(*this); }
 
     unsigned int getNodeEvents(eventList& events, State* currentState,
                                unsigned int nb) const;

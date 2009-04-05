@@ -19,7 +19,7 @@ public:
     : State(b), trait_vector(t), volatility(v), acceptance(a) {;}
   ~GroupFormState() {;}
   
-  virtual State* clone() { return new GroupFormState(*this); }
+  virtual State* clone() const { return new GroupFormState(*this); }
   
   const std::vector<double>& getTraits() const { return trait_vector; }
   const double getTrait(unsigned int i) const
@@ -68,7 +68,7 @@ namespace Models {
     GroupFormModel(unsigned int v = 0);
     ~GroupFormModel() {;}
     
-    virtual Model<Graph>* clone() { return new GroupFormModel<Graph>(*this); }
+    virtual Model<Graph>* clone() const { return new GroupFormModel<Graph>(*this); }
 
     virtual StateType* newState() const
     { return new StateType(); }

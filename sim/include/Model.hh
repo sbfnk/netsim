@@ -127,7 +127,7 @@ public:
   void print(std::ostream &os) const;
   void Print() const;
 
-  virtual Model<Graph>* clone() = 0;
+  virtual Model<Graph>* clone() const = 0;
 
   /*! \brief Get node events.
 

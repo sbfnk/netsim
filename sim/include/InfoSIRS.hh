@@ -33,7 +33,7 @@ namespace Models {
     InfoSIRS(unsigned int v = 0);
     virtual ~InfoSIRS() {;}
 
-    virtual Model<Graph>* clone() { return new InfoSIRS<Graph>(*this); }
+    virtual Model<Graph>* clone() const { return new InfoSIRS<Graph>(*this); }
 
     void Init(const po::variables_map& vm,
               std::vector<StatRecorder<Graph>*>& rec);

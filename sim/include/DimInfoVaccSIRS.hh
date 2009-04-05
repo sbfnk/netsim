@@ -32,7 +32,7 @@ namespace Models {
     DimInfoVaccSIRS(unsigned int v = 0);
     ~DimInfoVaccSIRS() {;}
 
-    virtual Model<Graph>* clone() { return new DimInfoVaccSIRS<Graph>(*this); }
+    virtual Model<Graph>* clone() const { return new DimInfoVaccSIRS<Graph>(*this); }
 
     void Init(const po::variables_map& vm, std::vector<StatRecorder<Graph>*>& rec);
 
