@@ -64,10 +64,9 @@ namespace Models {
         (this->getStateFromColour((red > 0)*1 + (green > 0)*2 + (blue > 0) * 4));
       double detail =
         1 - 5/4. * (1 - (red+green+blue)/ static_cast<double>
-                    (this->getVertexStates()[state->getState()].getRGB(0)*256 +
-                     this->getVertexStates()[state->getState()].getRGB(1)*256 +
-                     this->getVertexStates()[state->getState()].getRGB(2)*256 +
-                     255));
+                    (this->getVertexStates()[state->getState()].getRGB(0) +
+                     this->getVertexStates()[state->getState()].getRGB(1) +
+                     this->getVertexStates()[state->getState()].getRGB(2)));
       // brush up rounding errors
       detail = detail > 0 ? detail : 0;
       state->setInfo(detail);
@@ -209,7 +208,7 @@ Models::DimInfoSIRS<Graph>::DimInfoSIRS(unsigned int v)
      "whether alpha diminishes or not")
     ("effective,e", po::value<double>(), 
      "write effective data at arg timesteps")
-    ("info-dist,i", po::value<double>(),
+    ("info-dist", po::value<double>(),
      "create information distribution in the dist directory at arg timesteps")
     ("info-dis-corr,c", po::value<double>(),
      "create correlation between information and infection in the corr directory at arg timesteps")
