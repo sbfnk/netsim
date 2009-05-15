@@ -590,11 +590,7 @@ namespace boost {
 
             std::string color;
             
-            if (line.find("state") != std::string::npos) {
-              g[src].state = m.newState();
-              g[src].state->setState
-                (cast_stream<unsigned int>(extractDrawOption("state", line)));
-            } else if (line.find("fillcolor") != std::string::npos) {
+            if (line.find("fillcolor") != std::string::npos) {
               std::string color = extractDrawOption("fillcolor", line);
               if (color.find("#") != std::string::npos) {
                 // color information is rgb type
@@ -608,10 +604,15 @@ namespace boost {
                 g[src].state = m.newState();
                 g[src].state->setState(color2state[color]);
               }
-            } else {
+            } else if (line.find("state") != std::string::npos) {
+              g[src].state = m.newState();
+              g[src].state->setState
+                (cast_stream<unsigned int>(extractDrawOption("state", line)));
+	    } else {
               g[src].state = m.newState();
               g[src].state->setState(defaultState);
             }
+	    ++vertexCount;
           }
         }
       }
