@@ -1013,17 +1013,17 @@ public:
   virtual void doit(const Graph& g, std::string dir, double time,
                     unsigned int count)
   {
-    if (!fs::exists(dir+"/comp")) {
+    if (!fs::exists(dir+"/CompDist")) {
       try {
-        mkdir((dir+"/comp").c_str(), 0755);
+        mkdir((dir+"/CompDist").c_str(), 0755);
       } 
       catch (std::exception &e) {
         std::cerr << "... unable to create directory "
-                  << dir << "/comp" << std::endl;
+                  << dir << "/CompDist" << std::endl;
         return;
       }
     }
-    std::string fileName = generateFileName(dir + "/comp/comp", count);
+    std::string fileName = generateFileName(dir + "/CompDist/cd", count);
     write_component_dist(g, fileName);
   }
 
@@ -1171,6 +1171,72 @@ public:
 private:
   unsigned int verbose;
 };
+
+template <typename Graph>
+class write_components
+  : public Funct<Graph>
+{
+public:
+
+  write_components(Graph& g, unsigned int verbose = 0) :
+    verbose(verbose)
+  {}
+  
+  virtual void doit(const Graph& g, std::string dir, double time,
+                    unsigned int count)
+  {
+    Graph temp_graph = g;
+
+    std::vector<int> component(num_vertices(g));
+    int num = boost::connected_components(g, &component[0]);
+    if (verbose >=2 ) {
+      std::cout << num << " components:" << std::endl;;
+    }
+    std::vector<std::vector<int> > components(num);
+    for (int i = 0; i < num; ++i) {
+      for (unsigned int j = 0; j < num_vertices(g); ++j) {
+        if (component[j] == i) {
+	  components[i].push_back(j);
+        }
+      }
+    }
+    if (!fs::exists(dir+"/comp")) {
+        try {
+          mkdir((dir+"/comp").c_str(), 0755);
+        } 
+        catch (std::exception &e) {
+          std::cerr << "... unable to create directory "
+                    << dir << "/comm" << std::endl;
+          return;
+        }
+    }
+    std::string fileName = generateFileName(dir + "/comp/comp", count);
+
+    std::ofstream outputFile;
+    
+    try {
+        outputFile.open(fileName.c_str(),
+                        std::ios::out | std::ios::app | std::ios::ate);
+    }
+    catch (std::exception &e) {
+      std::cerr << "Unable to open output file: " << e.what() << std::endl;
+      std::cerr << "Will not write same state fraction to file." << std::endl;
+    }
+    
+    for (int i = 0; i < num; ++i) {
+      for (unsigned int j = 0; j < components[i].size(); ++j) {
+	outputFile << i << '\t';
+	outputFile << components[i][j];
+	outputFile << std::endl;
+      }
+    }
+    outputFile.close();
+  }
+
+private:
+  unsigned int verbose;
+};
+
 
 //----------------------------------------------------------
 

@@ -160,7 +160,9 @@ namespace Simulators {
       ;
     this->recorder_options.add_options()
       ("component-dist,t",po::value<double>(),
-       "write component distribution in comp directory at arg timesteps")
+       "write component distribution in CompDist directory at arg timesteps")
+      ("components",po::value<double>(),
+       "write actual components comp directory at arg timesteps")
       ("modularity",po::value<double>(),
        "write modularity at arg timesteps")
       ("same-state",po::value<double>(),
@@ -211,6 +213,12 @@ namespace Simulators {
         (new StatRecorder<Graph>
          (new write_comp_dist<Graph>(this->getGraph()),
           vm["component-dist"].as<double>()));
+    }
+    if (vm.count("components")) {
+      this->statRecorders.push_back
+        (new StatRecorder<Graph>
+         (new write_components<Graph>(this->getGraph()),
+          vm["components"].as<double>()));
     }
     if (vm.count("modularity") || vm.count("community")) {
       double rate = -1;
