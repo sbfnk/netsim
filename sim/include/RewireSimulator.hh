@@ -509,8 +509,6 @@ namespace Simulators {
       dynamic_cast<Models::GroupFormModel<Graph>*>(this->getModel());
 
     double randRewire = randGen();
-    std::cout << "step " << counter << std::endl;
-    std::cout << "randRewire " << randRewire << " " << rewireProb << std::endl;
 
     if (randRewire < rewireProb) {
       // rewiring stage
@@ -762,7 +760,6 @@ namespace Simulators {
     } 
 
     double randUpdate = randGen();
-    std::cout << "randUpdate " << randUpdate << " " << updateProb << std::endl;
     if (randUpdate < updateProb) {
       // update stage
       if (verbose >= 2) {
@@ -927,7 +924,6 @@ namespace Simulators {
     }
   
     double randRandomise = randGen();
-    std::cout << "randRandomise " << randRandomise << " " << randomiseProb << std::endl;
     if (randRandomise < randomiseProb) {
       // randomisation stage
       if (verbose >= 2) {
