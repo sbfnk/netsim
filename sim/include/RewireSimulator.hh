@@ -957,6 +957,8 @@ namespace Simulators {
       myState->setState(newState);
     }
 
+    this->updateTime(1.);
+
     ++counter;
     if (recordEffectiveRates > 0 && counter % recordEffectiveRates == 0) {
       std::ofstream outputFile;
@@ -987,9 +989,6 @@ namespace Simulators {
       randomiseCounter = 0;
       randomRewireCounter = 0;
     }
-
-
-    this->updateTime(1.);
 
     return true;
   }
