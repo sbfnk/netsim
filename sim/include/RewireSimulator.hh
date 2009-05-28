@@ -107,8 +107,13 @@ namespace Simulators {
     double rewireProb;
     double updateProb;
     double randomiseProb;
-
     double randomRewiring;
+
+    unsigned int rewireCounter;
+    unsigned int updateCounter;
+    unsigned int randomiseCounter;
+    unsigned int randomRewireCounter;
+    unsigned int counter;
 
     bool rewireEdges;
     bool updateEdges;
@@ -118,6 +123,8 @@ namespace Simulators {
     bool acceptance;
     bool pullUpdating;
     bool randomiseNew;
+    bool randomWalk;
+    unsigned int recordEffectiveRates;
 
     unsigned int highestState;
   
@@ -130,7 +137,8 @@ namespace Simulators {
     Simulator<Graph>(g, v), randGen(r, boost::uniform_real<> (0,1)),
     active(), verbose(v), rewireEdges(false), updateEdges(false),
     volatility(false), traits(false), updatingVolatility(false),
-    acceptance(false), pullUpdating(false), randomiseNew(false)
+    acceptance(false), pullUpdating(false), randomiseNew(false),
+    randomWalk(true), recordEffectiveRates(false)
   {
     this->simulator_options.add_options()
       ("rewire-prob,p",po::value<double>()->default_value(0.),
@@ -157,6 +165,8 @@ namespace Simulators {
        "pull rather than push on updating")
       ("randomise-new",
        "randomise to new states (invalidate --states)")
+      ("no-random-walk",
+       "don't do random walk on rewiring")
       ;
     this->recorder_options.add_options()
       ("component-dist,t",po::value<double>(),
@@ -169,6 +179,8 @@ namespace Simulators {
        "write same-state fraction in components at arg timesteps")
       ("community",po::value<double>(),
        "write community distribution in comm directory at arg timesteps")
+      ("effective-rates",po::value<unsigned int>(),
+       "write effective rates to rates.sim.dat at arg timesteps")
       ;
     this->stop_options.add_options()
       ("cmin", po::value<unsigned int>()->default_value(0),
@@ -248,6 +260,16 @@ namespace Simulators {
          (new write_same_state_components<Graph>(this->getGraph(), verbose),
           vm["same-state"].as<double>()));
     }
+    if (vm.count("effective-rates")) {
+      recordEffectiveRates = vm["effective-rates"].as<unsigned int>();
+      rewireCounter = 0;
+      updateCounter = 0;
+      randomiseCounter = 0;
+      randomRewireCounter = 0;
+      counter = 0;
+    } else {
+      recordEffectiveRates = 0;
+    }
     if (vm.count("volatility")) volatility = true;
     if (vm.count("traits")) traits = true;
     if (vm.count("updating-volatility")) updatingVolatility = true;
@@ -276,6 +298,11 @@ namespace Simulators {
       } else {
         randomiseNew = true;
       }
+    }
+    if (vm.count("no-random-walk")) {
+      randomWalk = false;
+    } else {
+      randomWalk = true;
     }
     return ret;
   }
@@ -482,6 +509,7 @@ namespace Simulators {
       dynamic_cast<Models::GroupFormModel<Graph>*>(this->getModel());
 
     double randRewire = randGen();
+
     if (randRewire < rewireProb) {
       // rewiring stage
       if (verbose >= 2) {
@@ -633,45 +661,68 @@ namespace Simulators {
         } else {
           // local rewiring
           // only do something if the two nodes don't have the same state
-  
+	  
           if (graph[*source_node].state->getState() > 0 &&
               (graph[*source_node].state->getState() !=
                graph[cut_node].state->getState())) {
   
-            double sameDistanceSum(0.);
-            out_edge_iterator oi, oi_end;;
-            for (tie(oi, oi_end) =
-                   boost::out_edges(*source_node, graph);
-                 oi != oi_end; ++oi) {
-              if (graph[target(*oi, graph)].state->getState() ==
-                  graph[*source_node].state->getState()) {
-                if (traits) {
-                  sameDistanceSum += 1 -
-                    (model->distance(graph[*source_node].state,
-                                     graph[target(*oi, graph)].state));
-                } else {
-                  ++sameDistanceSum;
-                }
-              }
-            }
-            
-            if (sameDistanceSum > 0.) {
-              // find a new node of the same state by random walk
-              target_node =
-                random_state_walk
-                (*source_node, *source_node, 0,
-                 sameDistanceSum);
-              if (!target_node && verbose >=2) {
-                std::cout << "Random walk for same state neighbours of "
-                          << *source_node << " failed."
-                          << std::endl;
-              }            
-            } else {
-              if (verbose >= 2) {
+	    if (randomWalk) {
+	      double sameDistanceSum(0.);
+	      out_edge_iterator oi, oi_end;;
+	      for (tie(oi, oi_end) =
+		     boost::out_edges(*source_node, graph);
+		   oi != oi_end; ++oi) {
+		if (graph[target(*oi, graph)].state->getState() ==
+		    graph[*source_node].state->getState()) {
+		  if (traits) {
+		    sameDistanceSum += 1 -
+		      (model->distance(graph[*source_node].state,
+				       graph[target(*oi, graph)].state));
+		  } else {
+		    ++sameDistanceSum;
+		  }
+		}
+	      }
+	      
+	      if (sameDistanceSum > 0.) {
+		// find a new node of the same state by random walk
+		target_node =
+		  random_state_walk
+		  (*source_node, *source_node, 0,
+		   sameDistanceSum);
+		if (!target_node && verbose >=2) {
+		  std::cout << "Random walk for same state neighbours of "
+			    << *source_node << " failed."
+			    << std::endl;
+		}            
+	      } else {
+		if (verbose >= 2) {
                   std::cout << "No neighbours of same state" << std::endl;
-              }
-            }
-          }
+		}
+	      }
+	    } else {
+	      // no random walk
+	      // find vertices of the same state
+	      std::vector<vertex_descriptor> v;
+	      vertex_iterator vi, vi_end;
+	      
+	      for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
+		if ((*vi != *source_node) &&
+		    (graph[*vi].state->getState() == 
+		     graph[*source_node].state->getState()) &&
+		    (!edge(*source_node, *vi, graph).second)) {
+		  v.push_back(*vi);
+		}
+	      }
+	      if (v.size() > 0) {
+		//pick a random number
+		unsigned int randInt = 
+		  static_cast<unsigned int>(randGen() * v.size());
+		target_node = new vertex_descriptor;
+		*target_node = v[randInt];
+	      }
+	    }
+	  }
         }
         if (target_node) {
           if (verbose >=2) {
@@ -886,6 +937,38 @@ namespace Simulators {
       GroupFormState* myState = dynamic_cast<GroupFormState*>(graph[v].state);
       myState->setState(newState);
     }
+
+    ++counter;
+    if (recordEffectiveRates > 0 && counter % recordEffectiveRates == 0) {
+      std::ofstream outputFile;
+      std::string fileName = (this->getDir() + "/rates.sim.dat");
+      
+      try {
+        outputFile.open(fileName.c_str(),
+                        std::ios::out | std::ios::app | std::ios::ate);
+      }
+      catch (std::exception &e) {
+	std::cerr << "Unable to open output file: " << e.what() << std::endl;
+	std::cerr << "Will not write effective rates to file." << std::endl;
+      }
+      
+      outputFile << this->getTime() << '\t'
+		 << (rewireCounter / static_cast<double>(counter)) << '\t'
+		 << (updateCounter / static_cast<double>(counter)) << '\t'
+		 << (randomiseCounter / static_cast<double>(counter)) << '\t'
+		 << (randomRewireCounter / static_cast<double>(counter));
+
+      outputFile << std::endl;
+      
+      outputFile.close();
+
+      counter = 0;
+      rewireCounter = 0;
+      updateCounter = 0;
+      randomiseCounter = 0;
+      randomRewireCounter = 0;
+    }
+
 
     this->updateTime(1.);
 
