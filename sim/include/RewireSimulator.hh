@@ -516,6 +516,8 @@ namespace Simulators {
         std::cout << "Rewiring" << std::endl;
       }
 
+      bool rewireRandomly = false;
+
       vertex_descriptor* source_node(0);
       vertex_descriptor cut_node;
       vertex_descriptor* target_node(0);
@@ -657,7 +659,7 @@ namespace Simulators {
             *target_node = random_vertex(graph, randGen);
           } while (*target_node == *source_node ||
                    edge(*source_node, *target_node, graph).second);
-          
+	  rewireRandomly = true;
         } else {
           // local rewiring
           // only do something if the two nodes don't have the same state
@@ -741,6 +743,11 @@ namespace Simulators {
           }
           boost::add_edge(*source_node, *target_node, graph);
           delete target_node;
+	  if (rewireRandomly) {
+	    ++randomRewireCounter;
+	  } else {
+	    ++rewireCounter;
+	  }
 	}
 	delete source_node;
       }   
@@ -897,7 +904,7 @@ namespace Simulators {
             dynamic_cast<GroupFormState*>(graph[*target_node].state);
           myState->setState
             (graph[source_node].state->getState());
-          // add to active nodes
+	  ++updateCounter;
           if (verbose >=2) {
             std::cout << " accepted." << std::endl;
           }
@@ -931,8 +938,10 @@ namespace Simulators {
           static_cast<unsigned int>((randGen)() * (model->getStates())) + 1;
       }
 
+      ++randomiseCounter;
       if (verbose >=2) {
-        std::cout << "Assigning state " << model->getVertexState(newState) << std::endl;
+        std::cout << "Assigning state " << model->getVertexState(newState) 
+<< std::endl;
       }
       GroupFormState* myState = dynamic_cast<GroupFormState*>(graph[v].state);
       myState->setState(newState);
