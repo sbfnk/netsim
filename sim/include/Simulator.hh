@@ -201,6 +201,9 @@ public:
   void setDir(std::string s)
   { dir = s; }
 
+  std::string getDir() const
+  { return dir; }
+
 protected:
 
   po::options_description simulator_options;
