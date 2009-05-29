@@ -1226,7 +1226,14 @@ int main(int argc, char* argv[])
   if (vm.count("output-file")) {
     baseFileName = vm["output-file"].as<std::string>();
   } else if (readAll && (vm.count("split") || !verbose)) {
-    baseFileName = readGraph.substr(0,readGraph.rfind("."));
+    baseFileName = readGraph;
+    if (baseFileName.substr(baseFileName.length()-2) == "gz") {
+      baseFileName = readGraph.substr(0,baseFileName.length()-2);
+      if (baseFileName.substr(baseFileName.length()-1) == ".") {      
+        baseFileName = readGraph.substr(0,baseFileName.length()-1);
+      }
+    }
+    baseFileName = baseFileName.substr(0,baseFileName.rfind("."));
   }
 
   std::string ext;

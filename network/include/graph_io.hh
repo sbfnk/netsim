@@ -452,10 +452,10 @@ namespace boost {
     }
   
     boost::iostreams::filtering_istream in;
-    in.push(file);
     if (compressed) {
       in.push(boost::iostreams::gzip_decompressor());
     }
+    in.push(file);
     // map
     typedef std::map<std::string, unsigned int> StyleToType;
     StyleToType style2type;
@@ -482,10 +482,10 @@ namespace boost {
       while(!in.eof()) {
         //read line
         getline(in, line);
-      
+        
         // if edge or vertex
         if (line.find("];") != std::string::npos) { // found ];
-        
+          
           std::string::size_type lpos = line.find("--");
           std::string::size_type bpos = line.find("[");
         
@@ -521,7 +521,7 @@ namespace boost {
               // count
               ++edgeCount;
             }
-          
+            
           } else { // if vertex
 
             std::string s = line.substr(0, bpos);
@@ -532,8 +532,7 @@ namespace boost {
             }
             
             if (addVertices) {
-            
-	      // add vertices until we have enough to accomodate what is in graph file
+              // add vertices until we have enough to accomodate what is in graph file
               while (src >= num_vertices(g)) add_vertex(g);
             }
           }
@@ -542,9 +541,9 @@ namespace boost {
     } else { // is_open = false
       return -1;
     }
-  
+    
     return edgeCount;
-  
+    
   }
 
   //----------------------------------------------------------
