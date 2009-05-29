@@ -72,5 +72,6 @@ out/simulate.o: include/Vertex.hh include/Simulator.hh \
 	${CODEDIR}/network/include/graph_io.hh \
 	${CODEDIR}/network/include/nearest_infected.hh \
 	${CODEDIR}/network/include/Edge.hh \
-	${CODEDIR}/network/include/community_structure.hh
+	${CODEDIR}/network/include/community_structure.hh \
+	${CODEDIR}/network/include/graph_structure.hh
 
