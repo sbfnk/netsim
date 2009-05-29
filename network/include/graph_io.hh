@@ -561,9 +561,9 @@ namespace boost {
   */
   template <typename Graph, typename Model>
   int read_initial_graph(Graph& g, const std::string graphFileName,
-                         const Model& m, unsigned int defaultState = 0)
+                         const Model& m, unsigned int defaultState = 0,
+                         unsigned int verbose = 0)
   {
-
     // open file
     bool compressed = false;
     if (graphFileName.substr(graphFileName.length()-2) == "gz") {
@@ -648,6 +648,10 @@ namespace boost {
               g[src].state = m.newState();
               g[src].state->setState
                 (cast_stream<unsigned int>(extractDrawOption("state", line)));
+              if (verbose > 1) {
+                std::cout << "assigning vertex " << src << " state "
+                          << g[src].state->getState() << std::endl;
+              }
 	    } else {
               g[src].state = m.newState();
               g[src].state->setState(defaultState);

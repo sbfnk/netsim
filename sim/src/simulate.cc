@@ -420,7 +420,8 @@ int main(int argc, char* argv[])
     if (vm.count("init-lattice")) {
       verticesRead = read_initial_lattice(graph, icFileName, *model);
     } else {
-      verticesRead = read_initial_graph(graph, icFileName, *model);
+      verticesRead = read_initial_graph(graph, icFileName, *model, baseState,
+                                        verbose);
     }
     if (verticesRead < 0) {
       std::cerr << "ERROR: could not read from file " << icFileName
