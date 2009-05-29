@@ -7,7 +7,11 @@
 
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/connected_components.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/device/file.hpp>
 
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -272,8 +276,13 @@ namespace boost {
     typedef typename boost::edge_property_type<Graph>::type::value_type
       edge_property_type;
 
-    std::ofstream out(fileName.c_str());
-    std::stringstream s;
+    boost::iostreams::filtering_ostream out;
+    out.push(boost::iostreams::gzip_compressor());
+    out.push(boost::iostreams::file_sink(fileName+std::string(".gz"), 
+					  BOOST_IOS::trunc)); 
+
+//     std::ofstream out(fileName.c_str());
+//     std::stringstream s;
 
     write_graphviz(out, g,
                    make_vertex_writer(vertexOptions),
@@ -297,8 +306,12 @@ namespace boost {
     typedef typename boost::edge_property_type<Graph>::type::value_type
       edge_property_type;
 
-    std::ofstream out(fileName.c_str());
-    std::stringstream s;
+    boost::iostreams::filtering_ostream out;
+    out.push(boost::iostreams::gzip_compressor());
+    out.push(boost::iostreams::file_sink(fileName+std::string(".gz"), 
+					  BOOST_IOS::trunc)); 
+//     std::ofstream out(fileName.c_str());
+//     std::stringstream s;
 
     write_graphviz(out, g,
                    make_vertex_writer(),
@@ -328,7 +341,11 @@ namespace boost {
     typedef typename boost::edge_property_type<Graph>::type::value_type
       edge_property_type;
   
-    std::ofstream out(fileName.c_str());
+    boost::iostreams::filtering_ostream out;
+    out.push(boost::iostreams::gzip_compressor());
+    out.push(boost::iostreams::file_sink(fileName+std::string(".gz"), 
+					  BOOST_IOS::trunc)); 
+//     std::ofstream out(fileName.c_str());
     std::stringstream s;
     if (timeLabel > 0) s << "Time: " << timeLabel;
     if (timeLabel < 0) s << "Time: start";
@@ -415,16 +432,30 @@ namespace boost {
     edgeStyles.push_back("style=\"dotted\"");
 
     if (vertexOptions) vertexOptions->clear();
+
+    bool compressed = false;
+    if (graphFileName.substr(graphFileName.length()-2) == "gz") {
+      compressed = true;
+    }
   
     // open file
     std::ifstream file;
     try {      
-      file.open(graphFileName.c_str(), std::ios::in);
+      std::ios_base::openmode mode = std::ios::in;
+      if (compressed) {
+	mode |= std::ios::binary;
+      }
+      file.open(graphFileName.c_str(), mode);
     }
     catch (std::exception &e) {
       return -1;
     }
   
+    boost::iostreams::filtering_istream in;
+    in.push(file);
+    if (compressed) {
+      in.push(boost::iostreams::gzip_decompressor());
+    }
     // map
     typedef std::map<std::string, unsigned int> StyleToType;
     StyleToType style2type;
@@ -444,14 +475,13 @@ namespace boost {
 
     // read file
     std::string line = "";
-    std::stringstream sstr; // for typecasting
   
     int edgeCount = 0;
   
-    if (file.is_open()) {
-      while(!file.eof()) {
+    if (in.is_complete()) {
+      while(!in.eof()) {
         //read line
-        getline(file, line);
+        getline(in, line);
       
         // if edge or vertex
         if (line.find("];") != std::string::npos) { // found ];
@@ -513,8 +543,6 @@ namespace boost {
       return -1;
     }
   
-    file.close();
-  
     return edgeCount;
   
   }
@@ -538,13 +566,26 @@ namespace boost {
   {
 
     // open file
+    bool compressed = false;
+    if (graphFileName.substr(graphFileName.length()-2) == "gz") {
+      compressed = true;
+    }
     std::ifstream file;
     try {      
-      file.open(graphFileName.c_str(), std::ios::in);
+      std::ios_base::openmode mode = std::ios::in;
+      if (compressed) {
+	mode |= std::ios::binary;
+      }
+      file.open(graphFileName.c_str(), mode);
     }
     catch (std::exception &e) {
       return -1;
     }
+    boost::iostreams::filtering_istream in;
+    if (compressed) {
+      in.push(boost::iostreams::gzip_decompressor());
+    }
+    in.push(file);
 
     int vertexCount = 0;
     std::string line = "";
@@ -563,10 +604,10 @@ namespace boost {
       }
     }
     
-    if (file.is_open()) {
-      while(!file.eof()) {
+    if (in.is_complete()) {
+      while(!in.eof()) {
         //read line
-        getline(file, line);
+        getline(in, line);
         
         // if edge or vertex
         if (line.find("];") != std::string::npos) { // found edge or vertex
