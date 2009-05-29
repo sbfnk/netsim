@@ -5,6 +5,7 @@
 #ifndef GRAPH_STATISTICS_HH
 #define GRAPH_STATISTICS_HH
 
+#include <math.h>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/connected_components.hpp>
 #include <boost/multi_array.hpp>
@@ -613,12 +614,13 @@ namespace boost {
       for (int j = 0; j < num; ++j) {
         tempSum += community_matrix[i][j];
       }
-      rowSqSum += tempSum * tempSum;
+      rowSqSum += (community_matrix[i][i] + tempSum) *
+        (community_matrix[i][i] + tempSum);
     }
     
     return
       (trace / static_cast<double>(nEdges)) -
-      (rowSqSum / static_cast<double>(nEdges * nEdges));
+      (rowSqSum / static_cast<double>(4* nEdges * nEdges));
   }
 } // namespace boost
 
