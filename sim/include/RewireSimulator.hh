@@ -124,6 +124,7 @@ namespace Simulators {
     bool pullUpdating;
     bool randomiseNew;
     bool randomWalk;
+    bool recordInitiator;
     unsigned int recordEffectiveRates;
 
     unsigned int highestState;
@@ -138,7 +139,7 @@ namespace Simulators {
     active(), verbose(v), rewireEdges(false), updateEdges(false),
     volatility(false), traits(false), updatingVolatility(false),
     acceptance(false), pullUpdating(false), randomiseNew(false),
-    randomWalk(true), recordEffectiveRates(false)
+    randomWalk(true), recordInitiator(false), recordEffectiveRates(0)
   {
     this->simulator_options.add_options()
       ("rewire-prob,p",po::value<double>()->default_value(0.),
@@ -181,6 +182,8 @@ namespace Simulators {
        "write community distribution in comm directory at arg timesteps")
       ("effective-rates",po::value<unsigned int>(),
        "write effective rates to rates.sim.dat at arg timesteps")
+      ("record-initiators",
+       "record initiators in Initiator directory")
       ;
     this->stop_options.add_options()
       ("cmin", po::value<unsigned int>()->default_value(0),
@@ -269,6 +272,20 @@ namespace Simulators {
       counter = 0;
     } else {
       recordEffectiveRates = 0;
+    }
+    if (vm.count("record-initiators")) {
+      recordInitiator = true;
+      if (!fs::exists(this->getDir()+"/Initiators")) {
+	try {
+	  mkdir((this->getDir()+"/Initiators").c_str(), 0755);
+	} 
+	catch (std::exception &e) {
+	  std::cerr << "... unable to create directory "
+		    << this->getDir() << "/Initiators" << std::endl;
+	  std::cerr << "unsetting record-initiators" << std::endl;
+	  recordInitiator = false;
+	}
+      }
     }
     if (vm.count("volatility")) volatility = true;
     if (vm.count("traits")) traits = true;
@@ -951,6 +968,13 @@ namespace Simulators {
       }
       GroupFormState* myState = dynamic_cast<GroupFormState*>(graph[v].state);
       myState->setState(newState);
+      if (randomiseNew && recordInitiator) {
+	std::string fileName = 
+	  generateFileName(this->getDir() + "/Initiators/group", highestState, 
+			   "graph");
+	write_graph(this->getGraph(), fileName, *(this->getModel()), 
+		    this->getTime());
+      }
     }
 
     this->updateTime(1.);
