@@ -7,6 +7,7 @@
 
 #include <fstream>
 #include <sys/stat.h>
+#include <math.h>
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/connected_components.hpp>
@@ -1235,6 +1236,69 @@ public:
 
 private:
   unsigned int verbose;
+};
+
+template <typename Graph, typename Model>
+class write_group_modularity
+  : public Funct<Graph>
+{
+public:
+
+  write_group_modularity(const Model& m, Graph& g, unsigned int verbose = 0,
+			 unsigned int edgeType = 0) :
+    verbose(verbose), edgeType(edgeType)
+  {}
+  
+  virtual void doit(const Graph& g, std::string dir, double time,
+                    unsigned int count)
+  {
+    std::string outputFileName = dir + "/" + "groupmod.sim.dat";
+    std::ofstream outputFile;
+    
+    try {
+      outputFile.open(outputFileName.c_str(),
+                      std::ios::out | std::ios::app | std::ios::ate);
+    }
+    catch (std::exception &e) {
+      std::cerr << "Unable to open output file: " << e.what() << std::endl;
+      std::cerr << "Will not write simulation counts to file." << std::endl;
+    }
+  
+    unsigned int nEdgeTypes = m.getEdgeTypes().size();
+    unsigned int nVertexStates = m.getVertexStates().size();
+    
+    std::stringstream line("");
+
+    // first in line is current time
+    outputFile << time << '\t';
+
+    double modularity = 0.;
+
+    boost::multi_array<unsigned int, 3> pairCount =
+      count_state_pairs(g, nVertexStates, nEdgeTypes);
+    // count pairs
+    for (unsigned int j = 0; j < nVertexStates; j++) {
+      unsigned int intraCount = 0;
+      unsigned int interCount = 0;
+      for (unsigned int k = 0; k < nVertexStates; k++) {
+	if (j == k) {
+	  intraCount += pairCount[edgeType][j][k];
+	} else {
+	  interCount += pairCount[edgeType][j][k];
+	}
+      }
+      modularity += (intraCount / static_cast<double>(num_edges(g)))
+	- pow((2*intraCount + interCount) / (2*num_edges(g)), 2);
+    }
+    
+    outputFile << modularity << std::endl;
+    outputFile.close();
+  }
+
+private:
+  unsigned int verbose;
+  unsigned int edgeType;
+  const Model& m;
 };
 
 
