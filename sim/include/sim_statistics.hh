@@ -1053,7 +1053,6 @@ public:
                     unsigned int count)
   {
     Graph temp_graph = g;
-    std::cout << "community" << std::endl;
     double mod = boost::community_structure(g, temp_graph, 1., verbose,
                                             graphs, modularity);
     std::cout << "done" << std::endl;
@@ -1244,9 +1243,9 @@ class write_group_modularity
 {
 public:
 
-  write_group_modularity(const Model& m, Graph& g, unsigned int verbose = 0,
+  write_group_modularity(Graph& g, const Model& m, unsigned int verbose = 0,
 			 unsigned int edgeType = 0) :
-    verbose(verbose), edgeType(edgeType)
+    m(m), verbose(verbose), edgeType(edgeType)
   {}
   
   virtual void doit(const Graph& g, std::string dir, double time,
@@ -1296,9 +1295,9 @@ public:
   }
 
 private:
+  const Model& m;
   unsigned int verbose;
   unsigned int edgeType;
-  const Model& m;
 };
 
 
