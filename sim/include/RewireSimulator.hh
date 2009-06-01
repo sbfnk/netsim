@@ -176,6 +176,8 @@ namespace Simulators {
        "write actual components comp directory at arg timesteps")
       ("modularity",po::value<double>(),
        "write modularity at arg timesteps")
+      ("group-modularity",po::value<double>(),
+       "write group modularity at arg timesteps")
       ("same-state",po::value<double>(),
        "write same-state fraction in components at arg timesteps")
       ("community",po::value<double>(),
@@ -257,6 +259,13 @@ namespace Simulators {
            vm.count("community"), vm.count("modularity"), verbose),
           rate));
     }
+    if (vm.count("group-modularity")) {
+      this->statRecorders.push_back
+        (new StatRecorder<Graph>
+         (new write_group_modularity<Graph, Model<Graph> >
+	  (this->getGraph(), *(this->getModel()), verbose),
+          vm["group-modularity"].as<double>()));
+    }
     if (vm.count("same-state")) {
       this->statRecorders.push_back
         (new StatRecorder<Graph>
@@ -275,17 +284,6 @@ namespace Simulators {
     }
     if (vm.count("record-initiators")) {
       recordInitiator = true;
-      if (!fs::exists(this->getDir()+"/Initiators")) {
-	try {
-	  mkdir((this->getDir()+"/Initiators").c_str(), 0755);
-	} 
-	catch (std::exception &e) {
-	  std::cerr << "... unable to create directory "
-		    << this->getDir() << "/Initiators" << std::endl;
-	  std::cerr << "unsetting record-initiators" << std::endl;
-	  recordInitiator = false;
-	}
-      }
     }
     if (vm.count("volatility")) volatility = true;
     if (vm.count("traits")) traits = true;
@@ -969,6 +967,21 @@ namespace Simulators {
       GroupFormState* myState = dynamic_cast<GroupFormState*>(graph[v].state);
       myState->setState(newState);
       if (randomiseNew && recordInitiator) {
+        std::cout << "does it exist? " << (this->getDir()+"/Initiators")
+	          << std::endl;
+        if (!fs::exists(this->getDir()+"/Initiators")) {
+        std::cout << "mkdir " << (this->getDir()+"/Initiators")
+	          << std::endl;
+  	  try {
+	    mkdir((this->getDir()+"/Initiators").c_str(), 0755);
+	  } 
+	  catch (std::exception &e) {
+	    std::cerr << "... unable to create directory "
+		      << this->getDir() << "/Initiators" << std::endl;
+	    std::cerr << "unsetting record-initiators" << std::endl;
+	    recordInitiator = false;
+	  }
+	}
 	std::string fileName = 
 	  generateFileName(this->getDir() + "/Initiators/group", highestState, 
 			   "graph");
