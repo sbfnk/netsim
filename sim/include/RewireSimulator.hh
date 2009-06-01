@@ -125,6 +125,7 @@ namespace Simulators {
     bool randomiseNew;
     bool randomWalk;
     bool recordInitiator;
+    bool steadyRates;
     unsigned int recordEffectiveRates;
 
     unsigned int highestState;
@@ -139,7 +140,8 @@ namespace Simulators {
     active(), verbose(v), rewireEdges(false), updateEdges(false),
     volatility(false), traits(false), updatingVolatility(false),
     acceptance(false), pullUpdating(false), randomiseNew(false),
-    randomWalk(true), recordInitiator(false), recordEffectiveRates(0)
+    randomWalk(true), recordInitiator(false), steadyRates(false),
+    recordEffectiveRates(0)
   {
     this->simulator_options.add_options()
       ("rewire-prob,p",po::value<double>()->default_value(0.),
@@ -168,6 +170,8 @@ namespace Simulators {
        "randomise to new states (invalidate --states)")
       ("no-random-walk",
        "don't do random walk on rewiring")
+      ("steady-rates",
+       "try to produce steady rates")
       ;
     this->recorder_options.add_options()
       ("component-dist,t",po::value<double>(),
@@ -281,6 +285,9 @@ namespace Simulators {
       counter = 0;
     } else {
       recordEffectiveRates = 0;
+    }
+    if (vm.count("steady-rates")) {
+      steadyRates = true;
     }
     if (vm.count("record-initiators")) {
       recordInitiator = true;
@@ -539,7 +546,27 @@ namespace Simulators {
 
       // pick edge to rewire
       if (rewireEdges) {
-        edge_descriptor e = random_edge(graph, randGen);
+        edge_descriptor e;
+	if (steadyRates) {
+	  std::vector<edge_descriptor> intraEdges;
+	  BOOST_FOREACH(edge_descriptor ed, edges(graph)) {
+	    if (((graph[source(ed, graph)].state->getState() +
+		  graph[target(ed, graph)].state->getState()) > 0) &&
+		(graph[source(ed, graph)].state->getState() !=
+		 graph[target(ed, graph)].state->getState())) {
+	      intraEdges.push_back(ed);
+	    }
+	  }
+	  if (intraEdges.size() > 0) {
+            e = intraEdges[static_cast<unsigned int>
+              ((randGen)() * intraEdges.size())];
+	  } else {
+	    // just pick one at random to prevent errors
+	    e = random_edge(graph, randGen);
+	  }
+	} else {
+	  e = random_edge(graph, randGen);
+	}
 
         if (volatility) {
           double volSum =
@@ -786,7 +813,27 @@ namespace Simulators {
 
       if (updateEdges) {
         // edge-based updating
-        edge_descriptor e = random_edge(graph, randGen);
+        edge_descriptor e;
+	if (steadyRates) {
+	  std::vector<edge_descriptor> intraEdges;
+	  BOOST_FOREACH(edge_descriptor ed, edges(graph)) {
+	    if (((graph[source(ed, graph)].state->getState() +
+		  graph[target(ed, graph)].state->getState()) > 0) &&
+		(graph[source(ed, graph)].state->getState() !=
+		 graph[target(ed, graph)].state->getState())) {
+	      intraEdges.push_back(ed);
+	    }
+	  }
+	  if (intraEdges.size() > 0) {
+            e = intraEdges[static_cast<unsigned int>
+              ((randGen)() * intraEdges.size())];
+	  } else {
+	    // just pick one at random to prevent errors
+	    e = random_edge(graph, randGen);
+	  }
+	} else {
+	  e = random_edge(graph, randGen);
+	}
 
         if (updatingVolatility) {
           double volSum =
@@ -808,6 +855,11 @@ namespace Simulators {
           }
         }
 
+	if (graph[source(e, graph)].state->getState() == 0) {
+	  // swap edge around
+	  e = edge(target(e, graph), source(e, graph), graph).first;
+	}
+	  
         if (graph[source(e, graph)].state->getState() > 0 &&
             (graph[source(e, graph)].state->getState() !=
              graph[target(e, graph)].state->getState())) {
