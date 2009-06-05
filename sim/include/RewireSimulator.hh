@@ -553,11 +553,10 @@ namespace Simulators {
     recordEffectiveTimer += timeStep;
          
     double randEvent = randGen();
+    int event = 0;
 
-    int event = -1;
-    for (double tempEvent = 0; tempEvent < randEvent; 
-	 tempEvent += rates[event]) {
-      ++event;
+    for (; (randEvent - rates[event]) > 0; ++event) {
+      randEvent -= rates[event];
     }
     
     switch(event) {
@@ -573,7 +572,10 @@ namespace Simulators {
 
 	// choose a random edge
 	edge_descriptor e = random_edge(graph, randGen);
-	if (graph[source(e, graph)].state->getState() > 0) {
+	vertex_descriptor source_node = source(e, graph);
+	vertex_descriptor target_node = target(e, graph);
+
+	if (graph[source_node].state->getState() > 0) {
 	  // collect nodes of same state
 	  std::vector<vertex_descriptor> sameState;
 	  vertex_iterator vi, vi_end;
@@ -585,27 +587,26 @@ namespace Simulators {
 	  }
 	  if (sameState.size() > 0) {
 	    // reuse randEvent number to select target node
-	    vertex_descriptor target_node =
+	    vertex_descriptor newtarget =
 	      sameState[static_cast<unsigned int>
-			(randEvent / rates[REWIRING] * num_vertices(graph))];
+			(randEvent / rates[REWIRING] * sameState.size())];
 	  
-	    // rewire
-	    if (verbose >=2) {
-	      std::cout << "Rewiring edge " << source(e, graph) << " (" 
-			<< model->printState(graph[source(e, graph)].state) 
-			<< ") -- " << target(e, graph) << " (" 
-			<< model->printState(graph[target(e, graph)].state) 
-			<< ") ";
-	    }
 	    boost::remove_edge(e, graph);
-	    boost::add_edge(source(e, graph), target_node, graph);
+	    boost::add_edge(source_node, newtarget, graph);
+
 	    if (verbose >=2) {
-	      std::cout << " to new edge " << source(e, graph) << " ("
-			<< model->printState(graph[source(e, graph)].state) 
+	      std::cout << "Rewiring edge " << source_node << " (" 
+			<< model->printState(graph[source_node].state) 
 			<< ") -- " << target_node << " (" 
-			<< model->printState(graph[target_node].state) << ")"
+			<< model->printState(graph[target_node].state) 
+			<< ") "
+			<< " to new edge " << source_node << " ("
+			<< model->printState(graph[source_node].state) 
+			<< ") -- " << newtarget << " (" 
+			<< model->printState(graph[newtarget].state) << ")"
 			<< std::endl;
 	    }
+
 	    ++rewireCounter;
 	  }
 	}
@@ -624,6 +625,7 @@ namespace Simulators {
 
 	//choose a random edge
 	edge_descriptor e = random_edge(graph, randGen);
+
 	if (graph[source(e, graph)].state->getState() > 0) {
 	  GroupFormState* myState =
 	    dynamic_cast<GroupFormState*>(graph[target(e, graph)].state);
@@ -706,6 +708,8 @@ namespace Simulators {
 	edge_descriptor e = random_edge(graph, randGen);
 	vertex_descriptor source_node = source(e, graph);
 	vertex_descriptor target_node = target(e, graph);
+
+	boost::remove_edge(e, graph);
 	
 	// find unconnected vertices
 	std::vector<vertex_descriptor> unconnected;
