@@ -369,7 +369,6 @@ namespace Simulators {
     
     // set trait for each vertex 
     for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-      std::cout << *vi << std::endl;
       std::vector<double> randTraits;
       for (unsigned int i = 0; i < model->getTraitDim(); ++i) {
         if (traits) {
