@@ -6,7 +6,7 @@ CPPFLAGS     = -Wall -g -I${CODEDIR} -Iinclude -pg
 
 LINKER      = g++
 LDFLAGS     = -lpng -lpngwriter -lfreetype -lboost_program_options \
-              -lboost_filesystem -gp
+              -lboost_filesystem -lboost_iostreams -pg
 
 #--------------------------------------------------------------------
 
