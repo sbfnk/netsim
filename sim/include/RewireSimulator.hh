@@ -141,6 +141,7 @@ namespace Simulators {
     std::vector<double> rates;
 
     std::vector<edge_descriptor> tempEdges; // for faster access
+    std::vector<unsigned int> tempVertices; // for faster access
     double rateSum;
   
   };
@@ -355,14 +356,23 @@ namespace Simulators {
     Models::GroupFormModel<Graph>* model =
       dynamic_cast<Models::GroupFormModel<Graph>*>(this->getModel());
     vertex_iterator vi, vi_end;
+    edge_iterator ei, ei_end;
 
     // This will not change
     numEdges = num_edges(graph);
     numVertices = num_vertices(graph);
 
+    for (tie(ei, ei_end) = edges(graph); ei != ei_end; ei++) {
+      tempEdges.push_back(*ei);
+    }
+
+    for (tie(vi, vi_end) = vertices(graph); vi != vi_end; vi++) {
+      tempVertices.push_back(tempVertices[*vi]);
+    }
+
     // check if we need to add states to model
     for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-      while (graph[*vi].state->getState() > model->getVertexStates().size()-1) {
+      while (tempVertices[*vi] > model->getVertexStates().size()-1) {
         model->addState();
       }
     }
@@ -422,11 +432,6 @@ namespace Simulators {
     rates.push_back(numVertices * randomiseProb / rateSum);
     rates.push_back(numEdges * randomRewiring / rateSum);
 
-    edge_iterator ei, ei_end;
-    for (tie(ei, ei_end) = edges(graph); ei != ei_end; ei++) {
-      tempEdges.push_back(*ei);
-    }
-
     //initialise simulator
     Simulator<Graph>::initialise();
   }
@@ -470,8 +475,8 @@ namespace Simulators {
       for (tie(oi, oi_end) =
              boost::out_edges(source_node, graph);
            oi != oi_end; ++oi) {
-        if (graph[source_node].state->getState() ==
-            graph[target(*oi, graph)].state->getState()) {
+        if (tempVertices[source_node] ==
+            tempVertices[target(*oi, graph)]) {
           bool previous = false;
           for (unsigned int i = 0;
                i < previous_nodes->size() && !previous; ++i) {
@@ -501,8 +506,8 @@ namespace Simulators {
       tie(oi, oi_end) = boost::out_edges(source_node, graph);      
       double compareDistance = 0.;
       while (compareDistance == 0. || compareDistance < randSameStateNeighbour) {
-        if (graph[source_node].state->getState() ==
-            graph[target(*oi, graph)].state->getState()) {
+        if (tempVertices[source_node] ==
+            tempVertices[target(*oi, graph)]) {
           bool previous = false;
           for (unsigned int i = 0;
                i < previous_nodes->size() && !previous; ++i) {
@@ -594,13 +599,13 @@ namespace Simulators {
 	vertex_descriptor source_node = source(tempEdges[randEdge], graph);
 	vertex_descriptor target_node = target(tempEdges[randEdge], graph);
 
-	if (graph[source_node].state->getState() > 0) {
+	if (tempVertices[source_node] > 0) {
 	  // collect nodes of same state
 	  std::vector<vertex_descriptor> sameState;
-	  vertex_iterator vi, vi_end;
+          vertex_iterator vi, vi_end;
 	  for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-	    if (graph[*vi].state->getState() == 
-		graph[source_node].state->getState()) {
+	    if (tempVertices[*vi] == 
+		tempVertices[source_node]) {
 	      sameState.push_back(*vi);
 	    }
 	  }
@@ -652,17 +657,17 @@ namespace Simulators {
 	vertex_descriptor source_node = source(tempEdges[randEdge], graph);
 	vertex_descriptor target_node = target(tempEdges[randEdge], graph);
 
-	if (graph[source_node].state->getState() > 0) {
+	if (tempVertices[source_node] > 0) {
 	  GroupFormState* myState =
 	    dynamic_cast<GroupFormState*>(graph[target_node].state);
-	  myState->setState
-	    (graph[source_node].state->getState());
+	  myState->setState(tempVertices[source_node]);
 	  if (verbose >=2) {
 	    std::cout << "Spreading state " 
 		      << model->printState(graph[target_node].state)
 		      << " from node " << source_node << " to node " 
 		      << target_node << std::endl;
 	  }
+          tempVertices[target_node] = tempVertices[source_node];
 	  ++updateCounter;
 	}
       }
@@ -697,6 +702,7 @@ namespace Simulators {
 		    << model->getVertexState(newState) << std::endl;
 	}
 
+        tempVertices[v] = newState;
 	++randomiseCounter;
 
 	if (recordInitiator) {
