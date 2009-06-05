@@ -585,9 +585,9 @@ namespace Simulators {
 	  }
 	  if (sameState.size() > 0) {
 	    // reuse randEvent number to select target node
-	    vertex_descriptor target_node = 
-	      static_cast<unsigned int>
-	      (randEvent / rates[REWIRING] * num_vertices(graph));
+	    vertex_descriptor target_node =
+	      sameState[static_cast<unsigned int>
+			(randEvent / rates[REWIRING] * num_vertices(graph))];
 	  
 	    // rewire
 	    if (verbose >=2) {
@@ -720,8 +720,8 @@ namespace Simulators {
 	// random nmber
 
 	vertex_descriptor newtarget = 
-	  static_cast<unsigned int>
-	  (randEvent / rates[RANDOMREWIRING] * unconnected.size());
+	  unconnected[static_cast<unsigned int>
+		      (randEvent / rates[RANDOMREWIRING] * unconnected.size())];
       
 	boost::add_edge(source_node, newtarget, graph);
 
