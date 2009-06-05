@@ -21,7 +21,7 @@
 //! \addtogroup simulator Simulator
 
 namespace Simulators {
-  
+
   /*! \brief The Group formation simulation
     
   \ingroup simulator
@@ -47,6 +47,8 @@ namespace Simulators {
     typedef typename boost::variate_generator
     <RandomGenerator&, boost::uniform_real<> > uniform_gen;
 
+    enum {REWIRING, STATESPREAD, INNOVATION, RANDOMREWIRING};
+  
   public:
 
     /*! \brief Constructor
@@ -126,9 +128,13 @@ namespace Simulators {
     bool randomWalk;
     bool recordInitiator;
     bool steadyRates;
-    unsigned int recordEffectiveRates;
+    double recordEffectiveRates;
+    double recordEffectiveTimer;
 
     unsigned int highestState;
+
+    std::vector<double> rates;
+    double rateSum;
   
   };
 
@@ -141,7 +147,7 @@ namespace Simulators {
     volatility(false), traits(false), updatingVolatility(false),
     acceptance(false), pullUpdating(false), randomiseNew(false),
     randomWalk(true), recordInitiator(false), steadyRates(false),
-    recordEffectiveRates(0)
+    recordEffectiveRates(0.), recordEffectiveTimer(0.), rateSum(0.)
   {
     this->simulator_options.add_options()
       ("rewire-prob,p",po::value<double>()->default_value(0.),
@@ -186,7 +192,7 @@ namespace Simulators {
        "write same-state fraction in components at arg timesteps")
       ("community",po::value<double>(),
        "write community distribution in comm directory at arg timesteps")
-      ("effective-rates",po::value<unsigned int>(),
+      ("effective-rates",po::value<double>(),
        "write effective rates to rates.sim.dat at arg timesteps")
       ("record-initiators",
        "record initiators in Initiator directory")
@@ -277,12 +283,12 @@ namespace Simulators {
           vm["same-state"].as<double>()));
     }
     if (vm.count("effective-rates")) {
-      recordEffectiveRates = vm["effective-rates"].as<unsigned int>();
+      recordEffectiveRates = vm["effective-rates"].as<double>();
+      recordEffectiveTimer = recordEffectiveRates;
       rewireCounter = 0;
       updateCounter = 0;
       randomiseCounter = 0;
       randomRewireCounter = 0;
-      counter = 0;
     } else {
       recordEffectiveRates = 0;
     }
@@ -393,6 +399,17 @@ namespace Simulators {
         std::cout << " with vertex " << *vi << std::endl;
       }
     }
+
+    rateSum = 
+      num_edges(graph) * rewireProb +
+      num_edges(graph) * updateProb +
+      num_vertices(graph) * randomiseProb +
+      num_edges(graph) * randomRewiring;
+
+    rates.push_back(num_edges(graph) * rewireProb / rateSum);
+    rates.push_back(num_edges(graph) * updateProb / rateSum);
+    rates.push_back(num_vertices(graph) * randomiseProb / rateSum);
+    rates.push_back(num_edges(graph) * randomRewiring / rateSum);
 
     //initialise simulator
     Simulator<Graph>::initialise();
@@ -530,528 +547,215 @@ namespace Simulators {
     Models::GroupFormModel<Graph>* model =
       dynamic_cast<Models::GroupFormModel<Graph>*>(this->getModel());
 
-    double randRewire = randGen();
+    // draw a random number from [0,1) for the timestep advance
+    double timeStep = -log(randGen())/rateSum;
+    this->updateTime(timeStep);
+    recordEffectiveTimer += timeStep;
+         
+    double randEvent = randGen();
 
-    if (randRewire < rewireProb) {
-      // rewiring stage
-      if (verbose >= 2) {
-        std::cout << "Rewiring" << std::endl;
-      }
+    int event = -1;
+    for (double tempEvent = 0; tempEvent < randEvent; 
+	 tempEvent += rates[event]) {
+      ++event;
+    }
+    
+    switch(event) {
 
-      bool rewireRandomly = false;
+    case REWIRING: 
 
-      vertex_descriptor* source_node(0);
-      vertex_descriptor cut_node;
-      vertex_descriptor* target_node(0);
+      {
 
-      // pick edge to rewire
-      if (rewireEdges) {
-        edge_descriptor e;
-	if (steadyRates) {
-	  std::vector<edge_descriptor> intraEdges;
-	  BOOST_FOREACH(edge_descriptor ed, edges(graph)) {
-	    if (((graph[source(ed, graph)].state->getState() +
-		  graph[target(ed, graph)].state->getState()) > 0) &&
-		(graph[source(ed, graph)].state->getState() !=
-		 graph[target(ed, graph)].state->getState())) {
-	      intraEdges.push_back(ed);
-	    }
-	  }
-	  if (intraEdges.size() > 0) {
-            e = intraEdges[static_cast<unsigned int>
-              ((randGen)() * intraEdges.size())];
-	  } else {
-	    // just pick one at random to prevent errors
-	    e = random_edge(graph, randGen);
-	  }
-	} else {
-	  e = random_edge(graph, randGen);
+	// rewiring stage
+	if (verbose >= 2) {
+	  std::cout << "Rewiring" << std::endl;
 	}
 
-        if (volatility) {
-          double volSum =
-            model->getVolatility(graph[source(e, graph)].state) +
-            model->getVolatility(graph[target(e, graph)].state);
-          if (!(randGen() * volSum <
-                model->getVolatility(graph[source(e, graph)].state))) {
-            // swap edge around
-            e = edge(target(e, graph), source(e, graph), graph).first;
-          }
-        }
-
-	if (graph[source(e, graph)].state->getState() == 0) {
-	  // swap edge around
-	  e = edge(target(e, graph), source(e, graph), graph).first;
-	}
-	  
-        
-        source_node = new vertex_descriptor;
-	*source_node = source(e, graph);
-        cut_node = target(e, graph);
-
-      } else {
-
-        // find nodes which have a state
-        std::vector<vertex_descriptor> state_nodes;
-        double volatilitySum(0.);
-
-        
-        vertex_iterator vi, vi_end;
-        for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-          if (graph[*vi].state->getState() > 0) {
-            state_nodes.push_back(*vi);
-            if (volatility) {
-              volatilitySum +=
-                model->getVolatility(graph[*vi].state);
-            }
-          }
-        }
-        
-        if (state_nodes.size() > 0) {
-          
-          // pick one at random
-          if (volatility) {
-            double compareVolatility =
-              model->getVolatility(graph[state_nodes[0]].state);
-            double randVolatility = ((randGen)() * volatilitySum);
-            unsigned int i = 0;
-            while (compareVolatility < randVolatility) {
-              compareVolatility +=
-                model->getVolatility(graph[state_nodes[++i]].state);
-            }
-            source_node = new vertex_descriptor;
-            *source_node = state_nodes[i];
-          } else {
-            unsigned int randStateNode = static_cast<unsigned int>
-              ((randGen)() * state_nodes.size());
-            source_node = new vertex_descriptor;
-            *source_node = state_nodes[randStateNode];
-          }
-          if (verbose >=2) {
-            std::cout
-              << "Randomly picked node " << *source_node << " ("
-              << model->printState(graph[*source_node].state)
-              << ")";
-            if (volatility) {
-              std::cout << " [volatility "
-                        << model->getVolatility(graph[*source_node].state)
-                        << "]" << std::endl;
-            }
-            std::cout << std::endl;
-          }
-          
-          // pick a neighbour of a different state and large distance
-          double differentDistanceSum = 0;
-          // loop over all member of group and update ties
-          out_edge_iterator oi, oi_end;;
-          
-          // find least similar neighbour
-          
-          for (tie(oi, oi_end) =
-                 boost::out_edges(*source_node, graph);
-               oi != oi_end; ++oi) {
-            if (graph[target(*oi, graph)].state->getState() !=
-                graph[*source_node].state->getState()) {
-              if (traits) {
-                differentDistanceSum +=
-                  (model->distance(graph[*source_node].state,
-                                   graph[target(*oi, graph)].state));
-              } else {
-                ++differentDistanceSum;
-              }
-            }
-          }
-          
-          // pick a little similar neighbour at random
-          if (differentDistanceSum > 0.) {
-            // pick a little similar neighbour at random
-            double randNeighbour = ((randGen)() * differentDistanceSum);
-            tie(oi, oi_end) = boost::out_edges(*source_node, graph);
-            double compareDistance;
-            if (traits) {
-              compareDistance =
-                model->distance(graph[*source_node].state,
-                                graph[target(*oi, graph)].state);
-            } else {
-              compareDistance = 1;
-            }
-            while (compareDistance < randNeighbour) {
-              if (traits) {
-                compareDistance +=
-                  model->distance(graph[*source_node].state,
-                                  graph[target(*(++oi), graph)].state);
-              } else {
-                ++compareDistance;
-              }
-            }
-            cut_node = target(*oi, graph);
-          } else {
-            if (verbose >= 2) {
-              std::cout << "No neighbours of different state" << std::endl;
-            }
-            delete source_node;
-	    source_node = 0;
-          }
-        } else {
-          if (verbose >= 2) {
-            std::cout << "No node with state" << std::endl;
-          }
-        }
-      }
-
-      if (source_node) {
-        if (randomRewiring > 0 && randGen() < randomRewiring) {
-          // random rewiring
-          target_node = new vertex_descriptor;
-          do {
-            *target_node = random_vertex(graph, randGen);
-          } while (*target_node == *source_node ||
-                   edge(*source_node, *target_node, graph).second);
-	  rewireRandomly = true;
-        } else {
-          // local rewiring
-          // only do something if the two nodes don't have the same state
-	  
-          if (graph[*source_node].state->getState() > 0 &&
-              (graph[*source_node].state->getState() !=
-               graph[cut_node].state->getState())) {
-  
-	    if (randomWalk) {
-	      double sameDistanceSum(0.);
-	      out_edge_iterator oi, oi_end;;
-	      for (tie(oi, oi_end) =
-		     boost::out_edges(*source_node, graph);
-		   oi != oi_end; ++oi) {
-		if (graph[target(*oi, graph)].state->getState() ==
-		    graph[*source_node].state->getState()) {
-		  if (traits) {
-		    sameDistanceSum += 1 -
-		      (model->distance(graph[*source_node].state,
-				       graph[target(*oi, graph)].state));
-		  } else {
-		    ++sameDistanceSum;
-		  }
-		}
-	      }
-	      
-	      if (sameDistanceSum > 0.) {
-		// find a new node of the same state by random walk
-		target_node =
-		  random_state_walk
-		  (*source_node, *source_node, 0,
-		   sameDistanceSum);
-		if (!target_node && verbose >=2) {
-		  std::cout << "Random walk for same state neighbours of "
-			    << *source_node << " failed."
-			    << std::endl;
-		}            
-	      } else {
-		if (verbose >= 2) {
-                  std::cout << "No neighbours of same state" << std::endl;
-		}
-	      }
-	    } else {
-	      // no random walk
-	      // find vertices of the same state
-	      std::vector<vertex_descriptor> v;
-	      vertex_iterator vi, vi_end;
-	      
-	      for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-		if ((*vi != *source_node) &&
-		    (graph[*vi].state->getState() == 
-		     graph[*source_node].state->getState()) &&
-		    (!edge(*source_node, *vi, graph).second)) {
-		  v.push_back(*vi);
-		}
-	      }
-	      if (v.size() > 0) {
-		//pick a random number
-		unsigned int randInt = 
-		  static_cast<unsigned int>(randGen() * v.size());
-		target_node = new vertex_descriptor;
-		*target_node = v[randInt];
-	      }
+	// choose a random edge
+	edge_descriptor e = random_edge(graph, randGen);
+	if (graph[source(e, graph)].state->getState() > 0) {
+	  // collect nodes of same state
+	  std::vector<vertex_descriptor> sameState;
+	  vertex_iterator vi, vi_end;
+	  for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
+	    if (graph[*vi].state->getState() == 
+		graph[source(e, graph)].state->getState()) {
+	      sameState.push_back(*vi);
 	    }
 	  }
-        }
-        if (target_node) {
-          if (verbose >=2) {
-            std::cout << "removing link to " << cut_node << " ("
-                      << model->printState(graph[cut_node].state) << ")"
-                      << std::endl;
-          }
-          // remove weakest link
-          boost::remove_edge
-            (edge(*source_node, cut_node, graph).first, graph);
-          // link to group node
-          if (verbose >=2) {
-            std::cout << "adding link to " << *target_node << " ("
-                      << model->printState(graph[*target_node].state) << ")"
-                      << std::endl;
-          }
-          boost::add_edge(*source_node, *target_node, graph);
-          delete target_node;
-	  if (rewireRandomly) {
-	    ++randomRewireCounter;
-	  } else {
+	  if (sameState.size() > 0) {
+	    // reuse randEvent number to select target node
+	    vertex_descriptor target_node = 
+	      static_cast<unsigned int>
+	      (randEvent / rates[REWIRING] * num_vertices(graph));
+	  
+	    // rewire
+	    if (verbose >=2) {
+	      std::cout << "Rewiring edge " << source(e, graph) << " (" 
+			<< model->printState(graph[source(e, graph)].state) 
+			<< ") -- " << target(e, graph) << " (" 
+			<< model->printState(graph[target(e, graph)].state) 
+			<< ") ";
+	    }
+	    boost::remove_edge(e, graph);
+	    boost::add_edge(source(e, graph), target_node, graph);
+	    if (verbose >=2) {
+	      std::cout << " to new edge " << source(e, graph) << " ("
+			<< model->printState(graph[source(e, graph)].state) 
+			<< ") -- " << target_node << " (" 
+			<< model->printState(graph[target_node].state) << ")"
+			<< std::endl;
+	    }
 	    ++rewireCounter;
 	  }
 	}
-	delete source_node;
-      }   
-    } 
-
-    double randUpdate = randGen();
-    if (randUpdate < updateProb) {
-      // update stage
-      if (verbose >= 2) {
-        std::cout << "Updating" << std::endl;
       }
 
-      vertex_descriptor source_node;
-      vertex_descriptor* target_node(0);
+      break;
 
-      if (updateEdges) {
-        // edge-based updating
-        edge_descriptor e;
-	if (steadyRates) {
-	  std::vector<edge_descriptor> intraEdges;
-	  BOOST_FOREACH(edge_descriptor ed, edges(graph)) {
-	    if (((graph[source(ed, graph)].state->getState() +
-		  graph[target(ed, graph)].state->getState()) > 0) &&
-		(graph[source(ed, graph)].state->getState() !=
-		 graph[target(ed, graph)].state->getState())) {
-	      intraEdges.push_back(ed);
+    case STATESPREAD: 
+
+      {
+
+	// state spread stage
+	if (verbose >= 2) {
+	  std::cout << "State spread" << std::endl;
+	}
+
+	//choose a random edge
+	edge_descriptor e = random_edge(graph, randGen);
+	if (graph[source(e, graph)].state->getState() > 0) {
+	  GroupFormState* myState =
+	    dynamic_cast<GroupFormState*>(graph[target(e, graph)].state);
+	  myState->setState
+	    (graph[source(e, graph)].state->getState());
+	  if (verbose >=2) {
+	    std::cout << "Spreading state " 
+		      << model->printState(graph[target(e, graph)].state)
+		      << " from node " << source(e, graph) << " to node " 
+		      << target(e, graph) << std::endl;
+	  }
+	  ++updateCounter;
+	}
+      }
+
+      break;
+
+    case INNOVATION: 
+
+      {
+
+	// innovation stage
+	if (verbose >= 2) {
+	  std::cout << "Innovation" << std::endl;
+	}
+
+	vertex_descriptor v = random_vertex(graph, randGen);
+	if (verbose >=2) {
+	  std::cout << "Randomly picked vertex " << v << std::endl;
+	}
+
+	unsigned int newState;
+	newState = ++highestState;
+	model->addState();
+
+	GroupFormState* myState = dynamic_cast<GroupFormState*>(graph[v].state);
+	myState->setState(newState);
+
+	if (verbose >=2) {
+	  std::cout << "Assigning randomly picked vertex " << v 
+		    << " new state " 
+		    << model->getVertexState(newState) << std::endl;
+	}
+
+	++randomiseCounter;
+
+	if (recordInitiator) {
+	  if (!fs::exists(this->getDir()+"/Initiators")) {
+	    try {
+	      mkdir((this->getDir()+"/Initiators").c_str(), 0755);
+	    } 
+	    catch (std::exception &e) {
+	      std::cerr << "... unable to create directory "
+			<< this->getDir() << "/Initiators" << std::endl;
+	      std::cerr << "unsetting record-initiators" << std::endl;
+	      recordInitiator = false;
 	    }
 	  }
-	  if (intraEdges.size() > 0) {
-            e = intraEdges[static_cast<unsigned int>
-              ((randGen)() * intraEdges.size())];
-	  } else {
-	    // just pick one at random to prevent errors
-	    e = random_edge(graph, randGen);
-	  }
-	} else {
-	  e = random_edge(graph, randGen);
+	  std::string fileName = 
+	    generateFileName(this->getDir() + "/Initiators/group", 
+			     highestState, "graph");
+	  write_graph(this->getGraph(), fileName, *(this->getModel()), 
+		      this->getTime());
 	}
 
-        if (updatingVolatility) {
-          double volSum =
-            model->getVolatility(graph[source(e, graph)].state) +
-            model->getVolatility(graph[target(e, graph)].state);
-          if (randGen() * volSum <
-              model->getVolatility(graph[source(e, graph)].state)) {
-            // swap edge around
-            e = edge(target(e, graph), source(e, graph), graph).first;
-          }
-        } else if (acceptance) {
-          double accSum =
-            model->getAcceptance(graph[source(e, graph)].state) +
-            model->getAcceptance(graph[target(e, graph)].state);
-          if (randGen() * accSum <
-                model->getAcceptance(graph[source(e, graph)].state)) {
-            // swap edge around
-            e = edge(target(e, graph), source(e, graph), graph).first;
-          }
-        }
-
-	if (graph[source(e, graph)].state->getState() == 0) {
-	  // swap edge around
-	  e = edge(target(e, graph), source(e, graph), graph).first;
-	}
-	  
-        if (graph[source(e, graph)].state->getState() > 0 &&
-            (graph[source(e, graph)].state->getState() !=
-             graph[target(e, graph)].state->getState())) {
-              
-          source_node = source(e, graph);
-          target_node = new vertex_descriptor;
-          *target_node = target(e, graph);
-        }
-      } else {
-        // state-based updating
+      }
       
-        // find nodes which have a state
-        std::vector<vertex_descriptor> state_nodes;
-        
-        vertex_iterator vi, vi_end;
-        for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-          if (graph[*vi].state->getState() > 0) state_nodes.push_back(*vi);
-        }
-        
-        if (state_nodes.size() > 0) {
-          
-          // pick node with a state at random
-          unsigned int randStateNode =
-            static_cast<unsigned int>((randGen)() * state_nodes.size());
+      break;
 
-          source_node = state_nodes[randStateNode];
-          
-          if (verbose >=2) {
-            std::cout
-              << "Randomly picked node " << source_node << " ("
-              << model->printState(graph[source_node].state)
-              << ")" << std::endl;
-          }
-        
-          // pick a neighbour of a different state and low distance
-          double closenessSum = 0;
-          
-          // loop over all member of group and update ties
-          out_edge_iterator oi, oi_end;;
-          
-          // find most similar neighbour
-          
-          for (tie(oi, oi_end) =
-                 boost::out_edges(source_node, graph);
-               oi != oi_end; ++oi) {
-            if (graph[target(*oi, graph)].state->getState() !=
-                graph[source_node].state->getState()) {
-              if (traits) {
-                closenessSum += 1 -
-                  (model->distance(graph[source_node].state,
-                                   graph[target(*oi, graph)].state));
-              } else {
-                ++closenessSum;
-              }
-            }
-          }
+    case RANDOMREWIRING: 
+      
+      {
 
-          if (closenessSum > 0) {
-            // pick most similar neighbour at random
-            
-            double randNeighbour = ((randGen)() * closenessSum); 
-            tie(oi, oi_end) = boost::out_edges(source_node, graph);
-            double compareDistance;
-            if (traits) {
-              compareDistance =
-                1 - model->distance(graph[source_node].state,
-                                    graph[target(*oi, graph)].state);
-            } else {
-              compareDistance = 1;
-            }
-            while (compareDistance < randNeighbour) {
-              if (graph[target(*oi, graph)].state->getState() !=
-                  graph[source_node].state->getState()) {
-                if (traits) {
-                  compareDistance += 1 -
-                    model->distance(graph[state_nodes[randStateNode]].state,
-                                    graph[target(*(++oi), graph)].state);
-                } else {
-                  ++compareDistance;
-                }
-              }
-              ++oi;
-            }
-            
-            target_node = new vertex_descriptor;
-            if (pullUpdating) {
-              *target_node = source_node;
-              source_node = target(*oi, graph);
-            } else {
-              *target_node  = target(*oi, graph);
-            }
-              
-
-          } else {
-            if (verbose >=2) {
-              std::cout << "no close neighbours" << std::endl;
-            }
-          }
-        } else {
-          if (verbose >= 2) {
-            std::cout << "No node with state" << std::endl;
-          }
-        }
-      }
-      if (target_node) {
-        double randAccept = randGen();
-        if (verbose >=2) {
-          std::cout << "Update request to " << *target_node << " ("
-                    << model->printState(graph[*target_node].state)
-                    << ")";
-        }
-        if (randAccept < model->getAcceptance()) {
-          // accept invitation
-          GroupFormState* myState =
-            dynamic_cast<GroupFormState*>(graph[*target_node].state);
-          myState->setState
-            (graph[source_node].state->getState());
-	  ++updateCounter;
-          if (verbose >=2) {
-            std::cout << " accepted." << std::endl;
-          }
-        } else {
-          if (verbose >=2) {
-            std::cout << " refused." << std::endl;
-          }
-        }
-        delete target_node;
-      } 
-    }
-  
-    double randRandomise = randGen();
-    if (randRandomise < randomiseProb) {
-      // randomisation stage
-      if (verbose >= 2) {
-        std::cout << "Randomising" << std::endl;
-      }
-
-      vertex_descriptor v = random_vertex(graph, randGen);
-      if (verbose >=2) {
-        std::cout << "Randomly picked vertex " << v << std::endl;
-      }
-
-      unsigned int newState;
-      if (randomiseNew) {
-        newState = ++highestState;
-        model->addState();
-      } else {
-        newState =
-          static_cast<unsigned int>((randGen)() * (model->getStates())) + 1;
-      }
-
-      ++randomiseCounter;
-      if (verbose >=2) {
-        std::cout << "Assigning state " << model->getVertexState(newState) 
-		  << std::endl;
-      }
-      GroupFormState* myState = dynamic_cast<GroupFormState*>(graph[v].state);
-      myState->setState(newState);
-      if (randomiseNew && recordInitiator) {
-        std::cout << "does it exist? " << (this->getDir()+"/Initiators")
-	          << std::endl;
-        if (!fs::exists(this->getDir()+"/Initiators")) {
-        std::cout << "mkdir " << (this->getDir()+"/Initiators")
-	          << std::endl;
-  	  try {
-	    mkdir((this->getDir()+"/Initiators").c_str(), 0755);
-	  } 
-	  catch (std::exception &e) {
-	    std::cerr << "... unable to create directory "
-		      << this->getDir() << "/Initiators" << std::endl;
-	    std::cerr << "unsetting record-initiators" << std::endl;
-	    recordInitiator = false;
+	// random rewiring stage
+	if (verbose >= 2) {
+	  std::cout << "Random rewiring" << std::endl;
+	}
+	
+	// choose a random edge
+	edge_descriptor e = random_edge(graph, randGen);
+	vertex_descriptor source_node = source(e, graph);
+	vertex_descriptor target_node = target(e, graph);
+	
+	// find unconnected vertices
+	std::vector<vertex_descriptor> unconnected;
+	vertex_iterator vi, vi_end;
+	for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
+	  if (edge(source_node, *vi, graph).second == false) {
+	    unconnected.push_back(*vi);
 	  }
 	}
-	std::string fileName = 
-	  generateFileName(this->getDir() + "/Initiators/group", highestState, 
-			   "graph");
-	write_graph(this->getGraph(), fileName, *(this->getModel()), 
-		    this->getTime());
-      }
-    }
 
-    this->updateTime(1.);
+	// choose a random unconnected edge, reusing previously used
+	// random nmber
+
+	vertex_descriptor newtarget = 
+	  static_cast<unsigned int>
+	  (randEvent / rates[RANDOMREWIRING] * unconnected.size());
+      
+	boost::add_edge(source_node, newtarget, graph);
+
+	if (verbose >=2) {
+	  std::cout << "Rewiring edge " << source_node << " (" 
+		    << model->printState(graph[source_node].state) 
+		    << ") -- " << target_node << " (" 
+		    << model->printState(graph[target_node].state) 
+		    << ") "
+		    << " to new edge " << source_node << " ("
+		    << model->printState(graph[source_node].state) 
+		    << ") -- " << newtarget << " (" 
+		    << model->printState(graph[newtarget].state) << ")"
+		    << std::endl;
+	}
+
+	++randomRewireCounter;
+
+      }
+
+      break;
+
+    }
 
     ++counter;
-    if (recordEffectiveRates > 0 && counter % recordEffectiveRates == 0) {
+
+    if (recordEffectiveRates > 0  && 
+	recordEffectiveTimer >= recordEffectiveRates) {
       std::ofstream outputFile;
       std::string fileName = (this->getDir() + "/rates.sim.dat");
       
       try {
-        outputFile.open(fileName.c_str(),
-                        std::ios::out | std::ios::app | std::ios::ate);
+	outputFile.open(fileName.c_str(),
+			std::ios::out | std::ios::app | std::ios::ate);
       }
       catch (std::exception &e) {
 	std::cerr << "Unable to open output file: " << e.what() << std::endl;
@@ -1059,22 +763,22 @@ namespace Simulators {
       }
       
       outputFile << this->getTime() << '\t'
-		 << (rewireCounter / static_cast<double>(counter)) << '\t'
-		 << (updateCounter / static_cast<double>(counter)) << '\t'
-		 << (randomiseCounter / static_cast<double>(counter)) << '\t'
-		 << (randomRewireCounter / static_cast<double>(counter));
-
+		 << (rewireCounter / recordEffectiveTimer) << '\t'
+		 << (updateCounter / recordEffectiveTimer) << '\t'
+		 << (randomiseCounter / recordEffectiveTimer) << '\t'
+		 << (randomRewireCounter / recordEffectiveTimer);
+      
       outputFile << std::endl;
       
       outputFile.close();
-
-      counter = 0;
+      
+      recordEffectiveTimer = 0.;
       rewireCounter = 0;
       updateCounter = 0;
       randomiseCounter = 0;
       randomRewireCounter = 0;
     }
-
+  
     return true;
   }
 
