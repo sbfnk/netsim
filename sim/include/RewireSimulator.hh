@@ -310,7 +310,7 @@ namespace Simulators {
     }
 
     for (tie(vi, vi_end) = vertices(graph); vi != vi_end; vi++) {
-      tempVertices.push_back(tempVertices[*vi]);
+      tempVertices.push_back(graph[*vi].state->getState());
     }
 
     // check if we need to add states to model
