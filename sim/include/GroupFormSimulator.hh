@@ -149,24 +149,24 @@ namespace Simulators {
     const Models::GroupFormModel<Graph>* model =
       dynamic_cast<const Models::GroupFormModel<Graph>*>(this->getModel());
     
-    // set trait for each vertex 
-    vertex_iterator vi, vi_end;
-    for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-      std::vector<double> randTraits;
-      for (unsigned int i = 0; i < model->getTraitDim(); ++i) {
-	randTraits.push_back((randGen)());
-      }
-      GroupFormState* myState = dynamic_cast<GroupFormState*>(graph[*vi].state);
-      myState->setTrait(randTraits);
-      if (verbose >=1) {
-        std::cout << "Associating trait (";
-	for (unsigned int i = 0; i < model->getTraitDim(); ++i) {
-	  if (i>0) std::cout << ",";
-	  std::cout << myState->getTrait(i);
-	}
-	std::cout  << ") with vertex " << *vi << std::endl;
-      }
-    }
+//     // set trait for each vertex 
+//     vertex_iterator vi, vi_end;
+//     for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
+//       std::vector<double> randTraits;
+//       for (unsigned int i = 0; i < model->getTraitDim(); ++i) {
+// 	randTraits.push_back((randGen)());
+//       }
+//       GroupFormState* myState = dynamic_cast<GroupFormState*>(graph[*vi].state);
+//       myState->setTrait(randTraits);
+//       if (verbose >=1) {
+//         std::cout << "Associating trait (";
+// 	for (unsigned int i = 0; i < model->getTraitDim(); ++i) {
+// 	  if (i>0) std::cout << ",";
+// 	  std::cout << myState->getTrait(i);
+// 	}
+// 	std::cout  << ") with vertex " << *vi << std::endl;
+//       }
+//     }
 
     // initially seed groups
     for (unsigned int i = 1; i <= model->getStates(); ++i) {

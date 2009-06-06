@@ -29,7 +29,6 @@
 
 #include "sim_statistics.hh"
 
-#include "GroupFormSimulator.hh"
 #include "RewireSimulator.hh"
 #include "EpiSimulator.hh"
 #include "EpiRewireSimulator.hh"
@@ -87,7 +86,7 @@ int main(int argc, char* argv[])
     ("very-verbose,V",
      "produce very verbose output")
     ("sim", po::value<std::string>()->default_value("EpiGillespie"),
-     "simulator to use (EpiGillespie, Chris, GroupForm, Rewire)")
+     "simulator to use (EpiGillespie, Chris, Rewire)")
     ("output-dir,o",po::value<std::string>(),
      "output directory for graph and data output (as subdir of $DATADIR)")
     ("nsims", po::value<unsigned int>()->default_value(1),
@@ -153,9 +152,6 @@ int main(int argc, char* argv[])
         (gen, graph, verbose);
     } else if (simType == "Chris") {
       sim = new Simulators::ChrisSimulator<boost::mt19937, multitype_graph>
-        (gen, graph, verbose);
-    } else if (simType == "GroupForm") {
-      sim = new Simulators::GroupFormSimulator<boost::mt19937, multitype_graph>
         (gen, graph, verbose);
     } else if (simType == "Rewire") {
       sim = new Simulators::RewireSimulator<boost::mt19937, multitype_graph>

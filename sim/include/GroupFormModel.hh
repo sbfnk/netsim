@@ -14,41 +14,13 @@ class GroupFormState :
 {
 public:
   
-  GroupFormState(unsigned int b = 0, std::vector<double> t = std::vector<double>(0),
-                 double v = 1., double a = 1.)
-    : State(b), trait_vector(t), volatility(v), acceptance(a) {;}
+  GroupFormState(unsigned int b = 0)
+    : State(b) {;}
   ~GroupFormState() {;}
   
   virtual State* clone() const { return new GroupFormState(*this); }
   
-  const std::vector<double>& getTraits() const { return trait_vector; }
-  const double getTrait(unsigned int i) const
-  {
-    if (i+1 > trait_vector.size()) {
-      return 0.;
-    } else {
-      return trait_vector[i];
-    }
-  }
-
-  const double getVolatility() const
-  {
-    return volatility;
-  }
-  
-  const double getAcceptance() const
-  {
-    return acceptance;
-  }
-  
-  void setTrait(std::vector<double> t) { trait_vector = t; }
-  void setVolatility(double v) { volatility = v; }
-  void setAcceptance(double a) { acceptance = a; }
-
 private:
-  std::vector<double> trait_vector;
-  double volatility;
-  double acceptance;
 };
 
 namespace Models {
@@ -100,96 +72,13 @@ namespace Models {
       }
     }
   
-    unsigned int getStates() const
-    { return states; }
-
-    unsigned int getTraitDim() const
-    { return trait_dim; }
-
-    double getAcceptance() const
-    { return acceptance; }
-
-    double accept(State* s1, State* s2) const
-    {
-      StateType* state1 = dynamic_cast<StateType*>(s1);
-      StateType* state2 = dynamic_cast<StateType*>(s2);
-      return acceptance*(1-distance(state1, state2));
-    }
-
-    double distance(State* s1, State* s2) const
-    {
-      StateType* state1 = dynamic_cast<StateType*>(s1);
-      StateType* state2 = dynamic_cast<StateType*>(s2);
-      return distance(state1, state2);
-    }
-
-    double getVolatility(State* s) const
-    {
-      StateType* state = dynamic_cast<StateType*>(s);
-      return getVolatility(state);
-    }
-
-    double getAcceptance(State* s) const
-    {
-      StateType* state = dynamic_cast<StateType*>(s);
-      return getAcceptance(state);
-    }
-
   private:
-
-    double distance(StateType* s1, StateType* s2) const
-    {
-      double dist = 0.;
-      for (unsigned int i = 0; i < s1->getTraits().size(); ++i) {
-        double diff = 0.;
-        if (close) {
-          diff = std::min(fabs(s1->getTrait(i)-s2->getTrait(i)),
-                          1 - fabs(s1->getTrait(i)-s2->getTrait(i)));
-        } else {
-          diff = s1->getTrait(i) - s2->getTrait(i);
-        }                              
-        dist += pow(diff, 2);
-      }
-      return sqrt(dist);
-    }
-
-    double getVolatility(StateType* s) const
-    {
-      return s->getVolatility();
-    }
-
-    double getAcceptance(StateType* s) const
-    {
-      return s->getAcceptance();
-    }
-
-    unsigned int states; //!< number of states (groups).
-    unsigned int trait_dim; //!< Dimension of the trait vector
-    double acceptance; //!< Base property of acceptance.
-    bool close;
   };
 
   template <class Graph>
   GroupFormModel<Graph>::GroupFormModel(unsigned int)
   {
-    this->model_options.add_options()
-      ("states", po::value<unsigned int>()->default_value(0),
-       "number of possible states (groups?)")
-      ("traitdim", po::value<unsigned int>()->default_value(1),
-       "dimensionality of the trait vector")
-      ("alpha", po::value<double>()->default_value(1.),
-       "alpha")
-      ("avg-trait", po::value<double>(),
-       "write average trait for each state at arg timesteps")
-      ("close",
-       "close ring at [0,1] when calculating distances")
-      ;
-
     this->edgeTypes.push_back(Label("x", "", 0, "style=\"solid\""));
-
-    this->params.insert(std::make_pair("alpha", &acceptance));
-    this->intParams.insert(std::make_pair("states", &states));
-    this->intParams.insert(std::make_pair("traitdim", &trait_dim));
   }
 
   template <class Graph>
@@ -198,24 +87,9 @@ namespace Models {
   {
     Model<Graph>::Init(vm, rec);
 
-    close = vm.count("close");
-
-    if (vm.count("avg-trait")) {
-      rec.push_back
-        (new StatRecorder<Graph>
-         (new write_avg_trait<Graph, GroupFormModel>(*this), 
-          vm["avg-trait"].as<double>()));
-    }
-    
-    /*************************************/
-    // define vertex classes
-    /************************************/
     // ungrouped state
     this->vertexStates.push_back
       (Label("0", "01;37", 0, "", Label::rgbColour(0,0,0)));
-    for (unsigned int i = 1; i < states+1; ++i) {
-      addState();
-    }
   }
 
   template <class Graph>
@@ -225,16 +99,15 @@ namespace Models {
     StateType* myState = dynamic_cast<StateType*>(s);
     std::vector<unsigned int> rgb;
     
-    double darkening = 1 - (1 - distance(myState, new StateType()))*4./5.;
     rgb.push_back
       (static_cast<unsigned int>
-       (this->getVertexState(myState->getState()).getRGB(0) * darkening));
+       (this->getVertexState(myState->getState()).getRGB(0)));
     rgb.push_back
       (static_cast<unsigned int>
-       (this->getVertexState(myState->getState()).getRGB(1) * darkening));
+       (this->getVertexState(myState->getState()).getRGB(1)));
     rgb.push_back
       (static_cast<unsigned int>
-       (this->getVertexState(myState->getState()).getRGB(2) * darkening));
+       (this->getVertexState(myState->getState()).getRGB(2)));
     
     return rgb;
   }
@@ -248,10 +121,6 @@ namespace Models {
     std::streamsize prec = ss.precision();
     ss << this->getVertexState(myState->getState()) << " <"
        << std::setprecision(2);
-    for (unsigned int i = 0; i < myState->getTraits().size(); ++i) {
-      if (i > 0) ss << ",";
-      ss << myState->getTrait(i);
-    }
     ss << std::setprecision(prec) << ">";
     ss.unsetf(std::ios::fixed);
     return ss.str();
