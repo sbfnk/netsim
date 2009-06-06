@@ -123,6 +123,8 @@ namespace Simulators {
     unsigned int numVertices;
 
     bool recordInitiator;
+    bool groupLifeTimes;
+
     double recordEffectiveRates;
     double recordEffectiveTimer;
 
@@ -132,6 +134,12 @@ namespace Simulators {
 
     std::vector<edge_descriptor> tempEdges; // for faster access
     std::vector<unsigned int> tempVertices; // for faster access
+
+    std::vector<unsigned int> nMembers; // number of members in each group
+
+    // the times at which groups are initiated 
+    std::vector<double> groupInitiationTimes; 
+
     double rateSum;
   
   };
@@ -141,7 +149,7 @@ namespace Simulators {
   RewireSimulator(RandomGenerator& r, Graph& g,
 		     unsigned int v) :
     Simulator<Graph>(g, v), randGen(r, boost::uniform_real<> (0,1)),
-    active(), verbose(v), recordInitiator(false),
+    active(), verbose(v), recordInitiator(false), groupLifeTimes(false),
     recordEffectiveRates(0.), recordEffectiveTimer(0.), rateSum(0.)
   {
     this->simulator_options.add_options()
@@ -171,6 +179,8 @@ namespace Simulators {
        "write effective rates to rates.sim.dat at arg timesteps")
       ("record-initiators",
        "record initiators in Initiator directory")
+      ("group-lifetimes",
+       "save group lifetimes to lifetimes.sim.dat")
       ;
     this->stop_options.add_options()
       ("cmin", po::value<unsigned int>()->default_value(0),
@@ -268,6 +278,9 @@ namespace Simulators {
     if (vm.count("record-initiators")) {
       recordInitiator = true;
     }
+    if (vm.count("group-lifetimes")) {
+      groupLifeTimes = true;
+    }
     return ret;
   }
 
@@ -289,6 +302,8 @@ namespace Simulators {
     // This will not change
     numEdges = num_edges(graph);
     numVertices = num_vertices(graph);
+    nMembers.push_back(numVertices);
+    groupInitiationTimes.push_back(0.);
 
     for (tie(ei, ei_end) = edges(graph); ei != ei_end; ei++) {
       tempEdges.push_back(*ei);
@@ -413,7 +428,6 @@ namespace Simulators {
 	}
 
 	//choose a random edge
-// 	edge_descriptor e = random_edge(graph, randGen);
 
         unsigned int randEdge = static_cast<unsigned int>
           (randGen() * numEdges);
@@ -422,6 +436,14 @@ namespace Simulators {
 	vertex_descriptor target_node = target(tempEdges[randEdge], graph);
 
 	if (tempVertices[source_node] > 0) {
+	  ++nMembers[tempVertices[source_node]];
+	  --nMembers[tempVertices[target_node]];
+	  if (groupLifeTimes && nMembers[tempVertices[target_node]] == 0) {
+	    write_data((this->getDir() + "/lifetimes.sim.dat"),
+		       tempVertices[target_node], 
+		       this->getTime() - groupInitiationTimes[target_node]);
+	  }
+	  
 	  GroupFormState* myState =
 	    dynamic_cast<GroupFormState*>(graph[target_node].state);
 	  myState->setState(tempVertices[source_node]);
@@ -456,6 +478,14 @@ namespace Simulators {
 	newState = ++highestState;
 	model->addState();
 
+	nMembers.push_back(1);
+	--nMembers[tempVertices[v]];
+	if (groupLifeTimes && nMembers[tempVertices[v]] == 0) {
+	  write_data((this->getDir() + "/lifetimes.sim.dat"),
+		     tempVertices[v], 
+		     this->getTime() - groupInitiationTimes[v]);
+	}
+	  
 	GroupFormState* myState =
           dynamic_cast<GroupFormState*>(graph[v].state);
 	myState->setState(newState);
@@ -557,27 +587,15 @@ namespace Simulators {
 
     if (recordEffectiveRates > 0  && 
 	recordEffectiveTimer >= recordEffectiveRates) {
-      std::ofstream outputFile;
-      std::string fileName = (this->getDir() + "/rates.sim.dat");
+
+      std::vector<double> effectiveRates;
       
-      try {
-	outputFile.open(fileName.c_str(),
-			std::ios::out | std::ios::app | std::ios::ate);
-      }
-      catch (std::exception &e) {
-	std::cerr << "Unable to open output file: " << e.what() << std::endl;
-	std::cerr << "Will not write effective rates to file." << std::endl;
-      }
-      
-      outputFile << this->getTime() << '\t'
-		 << (rewireCounter / recordEffectiveTimer) << '\t'
-		 << (updateCounter / recordEffectiveTimer) << '\t'
-		 << (randomiseCounter / recordEffectiveTimer) << '\t'
-		 << (randomRewireCounter / recordEffectiveTimer);
-      
-      outputFile << std::endl;
-      
-      outputFile.close();
+      effectiveRates.push_back(rewireCounter / recordEffectiveTimer);
+      effectiveRates.push_back(updateCounter / recordEffectiveTimer);
+      effectiveRates.push_back(randomiseCounter / recordEffectiveTimer);
+      effectiveRates.push_back(randomRewireCounter / recordEffectiveTimer);
+
+      write_data(this->getDir() + "/rates.sim.dat", time, effectiveRates);
       
       recordEffectiveTimer = 0.;
       rewireCounter = 0;
