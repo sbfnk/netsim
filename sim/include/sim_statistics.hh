@@ -23,6 +23,71 @@ namespace fs = boost::filesystem;
 //! \addtogroup sim_statistics Simulation statistics
 
 //----------------------------------------------------------
+/*! \brief Write data to file
+  
+Writes a line of data to a file
+
+\param[in] fileName The name of the file to write to
+\param[in] x The x value
+\param[in] y The y value
+\return true if successful, false if not
+\ingroup sim_statistics
+*/
+template<typename TX, typename TY>
+bool write_data(std::string fileName, TX x, TY y)
+{
+  std::ofstream outputFile;
+  
+  try {
+    outputFile.open(fileName.c_str(),
+		    std::ios::out | std::ios::app | std::ios::ate);
+  }
+  catch (std::exception &e) {
+    std::cerr << "Unable to open output file: " << e.what() << std::endl;
+    return false;
+  }
+  
+  outputFile << x << '\t' << y;
+  outputFile.close();
+
+  return true;
+}
+    
+//----------------------------------------------------------
+/*! \brief Write data to file
+  
+Writes a line of multiple column data to a file
+
+\param[in] fileName The name of the file to write to
+\param[in] x The x value
+\param[in] y_vect A vector of y values
+\return true if successful, false if not
+\ingroup sim_statistics
+*/
+template<typename TX, typename TY>
+bool write_data(std::string fileName, TX x, std::vector<TY>& y_vect)
+{
+  std::ofstream outputFile;
+  
+  try {
+    outputFile.open(fileName.c_str(),
+		    std::ios::out | std::ios::app | std::ios::ate);
+  }
+  catch (std::exception &e) {
+    std::cerr << "Unable to open output file: " << e.what() << std::endl;
+    return false;
+  }
+  
+  outputFile << x << '\t';
+  BOOST_FOREACH(TY y, y_vect) {
+    outputFile << y << '\t';
+  }
+  outputFile.close();
+
+  return true;
+}
+    
+//----------------------------------------------------------
 /*! \brief Count vertices.
   
 Counts the number of vertices of a given state in a graph
@@ -523,93 +588,44 @@ public:
   virtual void doit(const Graph& g, std::string dir, double time,
                     unsigned int count)
   {
-    std::string outputFileName = dir + "/" + "singles.sim.dat";
-    std::ofstream outputFile;
-    
-    try {
-      outputFile.open(outputFileName.c_str(),
-                      std::ios::out | std::ios::app | std::ios::ate);
-    }
-    catch (std::exception &e) {
-      std::cerr << "Unable to open output file: " << e.what() << std::endl;
-      std::cerr << "Will not write simulation counts to file." << std::endl;
-    }
   
     unsigned int nEdgeTypes = m.getEdgeTypes().size();
-    
-    std::stringstream line("");
+    unsigned int nVertexStates = m.getVertexStates().size();
 
-    // first in line is current time
-    outputFile << time << '\t';
-    
-    // count vertices' states
-    std::vector<unsigned int> vertexCount = count_vertices(g);
-    unsigned int nVertexStates = vertexCount.size();
-    for (unsigned int i = 0; i < nVertexStates; i++) {
-      line << vertexCount[i] << '\t';
-    }
-    line << std::endl;
-    outputFile << line.str();
-    outputFile.close();
-    line.str("");
+    // count singles
+    std::vector<unsigned int> data = count_vertices(g);
+    write_data((dir + "/singles.sim.dat"), time, data);
 
+    // count pairs
     if (pairs) {
-      outputFileName = dir + "/" + "pairs.sim.dat";
-      
-      try {
-        outputFile.open(outputFileName.c_str(),
-                        std::ios::out | std::ios::app | std::ios::ate);
-      }
-      catch (std::exception &e) {
-        std::cerr << "Unable to open output file: " << e.what() << std::endl;
-        std::cerr << "Will not write simulation counts to file." << std::endl;
-      }
-      
-      outputFile << time << '\t';
-
+      data.clear();
       boost::multi_array<unsigned int, 3> pairCount =
-        count_state_pairs(g, nVertexStates, nEdgeTypes);
-      // count pairs
+	count_state_pairs(g, nVertexStates, nEdgeTypes);
       for (unsigned int i = 0; i < nEdgeTypes; i++) {
-        for (unsigned int j = 0; j < nVertexStates; j++) {
-          for (unsigned int k = j; k < nVertexStates; k++) {
-            line << pairCount[i][j][k] << '\t';
-          }
-        }
+	for (unsigned int j = 0; j < nVertexStates; j++) {
+	  for (unsigned int k = j; k < nVertexStates; k++) {
+	    data.push_back(pairCount[i][j][k]);
+	  }
+	}
       }
-
+      
       // count parallel pairs
       if (nEdgeTypes > 1) {
-        boost::multi_array<unsigned int, 2> parallelCount =
-          count_parallel_edges(g, nVertexStates);
-      
-        for (unsigned int j = 0; j < nVertexStates; j++) {
-          for (unsigned int k = j; k < nVertexStates; k++) {
-            line << parallelCount[j][k] << '\t';
-          }
-        }
+	boost::multi_array<unsigned int, 2> parallelCount =
+	  count_parallel_edges(g, nVertexStates);
+	
+	for (unsigned int j = 0; j < nVertexStates; j++) {
+	  for (unsigned int k = j; k < nVertexStates; k++) {
+	    data.push_back(parallelCount[j][k]);
+	  }
+	}
       }
-      line << std::endl;
-      outputFile << line.str();
-      outputFile.close();
-      line.str("");
+      write_data((dir + "/pairs.sim.dat"), time, data);
     }
 
     if (triples) {
-      outputFileName = dir + "/" + "triples.sim.dat";
+      data.clear();
       
-      try {
-        outputFile.open(outputFileName.c_str(),
-                        std::ios::out | std::ios::app | std::ios::ate);
-      }
-      catch (std::exception &e) {
-        std::cerr << "Unable to open output file: " << e.what() << std::endl;
-        std::cerr << "Will not write simulation counts to file." << std::endl;
-      }
-      
-      outputFile << time << '\t';
-
-
       boost::multi_array<unsigned int, 5> tripleCount =
         count_state_triples(g, nVertexStates, nEdgeTypes);
       
@@ -618,19 +634,15 @@ public:
           for (unsigned int k=0; k < nVertexStates; k++) {
             for (unsigned int l=0; l < nVertexStates; l++) {
               for (unsigned int n=l; n < nVertexStates; n++) {
-                line << tripleCount[i][j][k][l][n] << '\t';
+                data.push_back(tripleCount[i][j][k][l][n]);
               }
             }
           }
         }
       }
 
-      line << std::endl;
-      outputFile << line.str();
-      outputFile.close();
-      line.str("");
+      write_data((dir + "/triples.sim.dat"), time, data);
     }
-    
   }
 
 private:
@@ -654,28 +666,9 @@ public:
   virtual void doit(const Graph& g, std::string dir, double time,
                     unsigned int count)
   {
-    std::string outputFileName = dir + "/" + "effective.sim.dat";
-    std::ofstream outputFile;
-    
-    try {
-      outputFile.open(outputFileName.c_str(),
-                      std::ios::out | std::ios::app | std::ios::ate);
-    }
-    catch (std::exception &e) {
-      std::cerr << "Unable to open output file: " << e.what() << std::endl;
-      std::cerr << "Will not write simulation counts to file." << std::endl;
-    }
-    
-    outputFile << time << '\t';
-
-    unsigned int nVertexStates = m.getVertexStates().size();
     std::vector<double> effVertexCount =
-      count_effective_vertices<Graph, Model>(g, nVertexStates);
-    for (unsigned int i = 0; i < nVertexStates; i++) {
-      outputFile << effVertexCount[i] << '\t';
-    }
-    outputFile << std::endl;
-    outputFile.close();
+      count_effective_vertices<Graph, Model>(g, m.getVertexStates().size());
+    write_data((dir + "/effective.sim.dat"), time, effVertexCount);
   }    
   
 private:
@@ -696,28 +689,9 @@ public:
   virtual void doit(const Graph& g, std::string dir, double time,
                     unsigned int count)
   {
-    std::string outputFileName = dir + "/" + "avg_trait.sim.dat";
-    std::ofstream outputFile;
-    
-    try {
-      outputFile.open(outputFileName.c_str(),
-                      std::ios::out | std::ios::app | std::ios::ate);
-    }
-    catch (std::exception &e) {
-      std::cerr << "Unable to open output file: " << e.what() << std::endl;
-      std::cerr << "Will not write simulation counts to file." << std::endl;
-    }
-    
-    outputFile << time << '\t';
-
-    unsigned int nVertexStates = m.getVertexStates().size();
     std::vector<double> avgTrait =
-      calc_avg_trait<Graph, Model>(g, nVertexStates);
-    for (unsigned int i = 0; i < nVertexStates; i++) {
-      outputFile << avgTrait[i] << '\t';
-    }
-    outputFile << std::endl;
-    outputFile.close();
+      calc_avg_trait<Graph, Model>(g, m.getVertexStates().size());
+    write_data((dir + "/avg_trait.sim.dat"), time, avgTrait);
   }    
   
 private:
@@ -1072,22 +1046,7 @@ public:
       write_graph(temp_graph, fileName, m, time);
     }
     if (modularity) {
-      std::string outputFileName = dir + "/" + "modularity.sim.dat";
-      std::ofstream outputFile;
-      
-      try {
-        outputFile.open(outputFileName.c_str(),
-                        std::ios::out | std::ios::app | std::ios::ate);
-      }
-      catch (std::exception &e) {
-        std::cerr << "Unable to open output file: " << e.what() << std::endl;
-        std::cerr << "Will not write modularity to file." << std::endl;
-      }
-      
-      outputFile << time << '\t';
-      outputFile << mod;
-      outputFile << std::endl;
-      outputFile.close();
+      write_data((dir + "/modularity.sim.dat"), time, mod);
     }
   }
 
@@ -1150,22 +1109,7 @@ public:
     } else {
       fraction = 0;
     }
-    std::string outputFileName = dir + "/" + "same_state.sim.dat";
-    std::ofstream outputFile;
-    
-    try {
-        outputFile.open(outputFileName.c_str(),
-                        std::ios::out | std::ios::app | std::ios::ate);
-    }
-    catch (std::exception &e) {
-      std::cerr << "Unable to open output file: " << e.what() << std::endl;
-      std::cerr << "Will not write same state fraction to file." << std::endl;
-    }
-    
-    outputFile << time << '\t';
-    outputFile << fraction;
-    outputFile << std::endl;
-    outputFile.close();
+    write_data((dir + "/same_state.sim.dat"), time, fraction);
   }
 
 private:
@@ -1251,26 +1195,10 @@ public:
   virtual void doit(const Graph& g, std::string dir, double time,
                     unsigned int count)
   {
-    std::string outputFileName = dir + "/" + "groupmod.sim.dat";
-    std::ofstream outputFile;
-    
-    try {
-      outputFile.open(outputFileName.c_str(),
-                      std::ios::out | std::ios::app | std::ios::ate);
-    }
-    catch (std::exception &e) {
-      std::cerr << "Unable to open output file: " << e.what() << std::endl;
-      std::cerr << "Will not write simulation counts to file." << std::endl;
-    }
-  
+
     unsigned int nEdgeTypes = m.getEdgeTypes().size();
     unsigned int nVertexStates = m.getVertexStates().size();
     
-    std::stringstream line("");
-
-    // first in line is current time
-    outputFile << time << '\t';
-
     double modularity = 0.;
 
     boost::multi_array<unsigned int, 3> pairCount =
@@ -1290,8 +1218,7 @@ public:
 	- pow((2*intraCount + interCount) / (2*num_edges(g)), 2);
     }
     
-    outputFile << modularity << std::endl;
-    outputFile.close();
+    write_data((dir + "/groupmod.sim.dat"), time, modularity);
   }
 
 private:
