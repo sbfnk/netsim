@@ -13,6 +13,7 @@
 #include <boost/graph/connected_components.hpp>
 #include <boost/multi_array.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/foreach.hpp>
 
 #include "network/include/nearest_infected.hh"
 #include "network/include/community_structure.hh"
@@ -47,7 +48,7 @@ bool write_data(std::string fileName, TX x, TY y)
     return false;
   }
   
-  outputFile << x << '\t' << y;
+  outputFile << x << '\t' << y << std::endl;
   outputFile.close();
 
   return true;
@@ -82,6 +83,7 @@ bool write_data(std::string fileName, TX x, std::vector<TY>& y_vect)
   BOOST_FOREACH(TY y, y_vect) {
     outputFile << y << '\t';
   }
+  outputFile << std::endl;
   outputFile.close();
 
   return true;
