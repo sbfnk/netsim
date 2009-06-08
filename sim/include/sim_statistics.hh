@@ -99,20 +99,17 @@ Counts the number of vertices of a given state in a graph
 \return A vector of state counts.
 \ingroup sim_statistics
 */
-template <typename Graph>
+template <typename Graph, typename Model>
 std::vector<unsigned int>
-count_vertices(Graph& g)
+count_vertices(Graph& g, const Model& m)
 {
   typedef typename boost::graph_traits<Graph>::vertex_iterator
     vertex_iterator;
 
-  std::vector<unsigned int> counts;
+  std::vector<unsigned int> counts(m.getVertexStates().size());
 
   vertex_iterator vi, vi_end;
   for (boost::tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
-    if (g[*vi].state->getState()+1 > counts.size()) {
-      counts.resize(g[*vi].state->getState()+1, 0);
-    }
     ++counts[g[*vi].state->getState()];
   }
    
@@ -365,7 +362,7 @@ public:
     std::cout << "Vertex count: " << std::endl;
     
     // count states
-    std::vector<unsigned int> vertexCount = count_vertices(g);
+    std::vector<unsigned int> vertexCount = count_vertices(g, m);
     unsigned int nVertexStates = vertexCount.size();
     for (unsigned int i=0; i < nVertexStates; i++) {
       if (vertexCount[i] > 0) {
@@ -595,7 +592,7 @@ public:
     unsigned int nVertexStates = m.getVertexStates().size();
 
     // count singles
-    std::vector<unsigned int> data = count_vertices(g);
+    std::vector<unsigned int> data = count_vertices(g, m);
     write_data((dir + "/singles.sim.dat"), time, data);
 
     // count pairs
