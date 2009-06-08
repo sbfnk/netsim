@@ -267,7 +267,7 @@ namespace Simulators {
     }
     if (vm.count("effective-rates")) {
       recordEffectiveRates = vm["effective-rates"].as<double>();
-      recordEffectiveTimer = recordEffectiveRates;
+      recordEffectiveTimer = 0;
       rewireCounter = 0;
       updateCounter = 0;
       randomiseCounter = 0;
@@ -383,8 +383,8 @@ namespace Simulators {
 	  std::vector<vertex_descriptor> sameState;
           vertex_iterator vi, vi_end;
 	  for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-	    if (tempVertices[*vi] == 
-		tempVertices[source_node]) {
+	    if ((*vi != source_node) &&
+	        (tempVertices[*vi] == tempVertices[source_node])) {
 	      sameState.push_back(*vi);
 	    }
 	  }
@@ -439,9 +439,17 @@ namespace Simulators {
 	  ++nMembers[tempVertices[source_node]];
 	  --nMembers[tempVertices[target_node]];
 	  if (groupLifeTimes && nMembers[tempVertices[target_node]] == 0) {
+	    if (verbose >= 2) {
+	      std::cout << "time: " << this->getTime() << ", Group " 
+			<< tempVertices[target_node] << " dies out, lifetime "
+			<< (this->getTime() - 
+			    groupInitiationTimes[tempVertices[target_node]])
+			<< std::endl;
+	    }
 	    write_data((this->getDir() + "/lifetimes.sim.dat"),
 		       tempVertices[target_node], 
-		       this->getTime() - groupInitiationTimes[target_node]);
+		       this->getTime() - 
+		       groupInitiationTimes[tempVertices[target_node]]);
 	  }
 	  
 	  GroupFormState* myState =
@@ -477,13 +485,20 @@ namespace Simulators {
 	unsigned int newState;
 	newState = ++highestState;
 	model->addState();
+	groupInitiationTimes.push_back(this->getTime());
 
-	nMembers.push_back(1);
 	--nMembers[tempVertices[v]];
 	if (groupLifeTimes && nMembers[tempVertices[v]] == 0) {
+	  if (verbose >= 2) {
+	    std::cout << "time: " << this->getTime() << ", Group " 
+		      << tempVertices[v] << " dies out, lifetime "
+		      << (this->getTime() - 
+			  groupInitiationTimes[tempVertices[v]])
+		      << std::endl;
+	  }
 	  write_data((this->getDir() + "/lifetimes.sim.dat"),
 		     tempVertices[v], 
-		     this->getTime() - groupInitiationTimes[v]);
+		     this->getTime() - groupInitiationTimes[tempVertices[v]]);
 	}
 	  
 	GroupFormState* myState =
@@ -493,10 +508,15 @@ namespace Simulators {
 	if (verbose >=2) {
 	  std::cout << "Assigning randomly picked vertex " << v 
 		    << " new state " 
-		    << model->getVertexState(newState) << std::endl;
+		    << model->getVertexState(newState);
+	  if (groupLifeTimes) {
+	    std::cout << " at time " << this->getTime();
+	  }
+	  std::cout << std::endl;
 	}
 
         tempVertices[v] = newState;
+	nMembers.push_back(1);
 	++randomiseCounter;
 
 	if (recordInitiator) {
@@ -590,12 +610,17 @@ namespace Simulators {
 
       std::vector<double> effectiveRates;
       
-      effectiveRates.push_back(rewireCounter / recordEffectiveTimer);
-      effectiveRates.push_back(updateCounter / recordEffectiveTimer);
-      effectiveRates.push_back(randomiseCounter / recordEffectiveTimer);
-      effectiveRates.push_back(randomRewireCounter / recordEffectiveTimer);
+      effectiveRates.push_back(rewireCounter / (recordEffectiveTimer *
+						numEdges));
+      effectiveRates.push_back(updateCounter / (recordEffectiveTimer *
+						numEdges));
+      effectiveRates.push_back(randomiseCounter / (recordEffectiveTimer *
+						   numVertices));
+      effectiveRates.push_back(randomRewireCounter / (recordEffectiveTimer *
+						      numEdges));
 
-      write_data(this->getDir() + "/rates.sim.dat", time, effectiveRates);
+      write_data(this->getDir() + "/rates.sim.dat", this->getTime(), 
+		 effectiveRates);
       
       recordEffectiveTimer = 0.;
       rewireCounter = 0;
