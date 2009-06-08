@@ -308,8 +308,13 @@ int main(int argc, char* argv[])
                   << "-graph file specified" << std::endl;
         graphError = true;
       }
+      if (graphError) return 1;
     }
-    if (graphError) return 1;
+  } else if (vm.count("init")) {
+    for (unsigned int i = 0; i < edgeTypes.size(); i++) {
+      fileNames.push_back
+        (vm["init"].as<std::string>());
+    }
   } else {
     std::cerr << "ERROR: no graph file specified" << std::endl;
     return 1;
