@@ -281,9 +281,6 @@ namespace boost {
     out.push(boost::iostreams::file_sink(fileName+std::string(".gz"), 
 					  BOOST_IOS::trunc)); 
 
-//     std::ofstream out(fileName.c_str());
-//     std::stringstream s;
-
     write_graphviz(out, g,
                    make_vertex_writer(vertexOptions),
                    make_edge_writer(get(&edge_property_type::type, g), saveType),
@@ -310,9 +307,6 @@ namespace boost {
     out.push(boost::iostreams::gzip_compressor());
     out.push(boost::iostreams::file_sink(fileName+std::string(".gz"), 
 					  BOOST_IOS::trunc)); 
-//     std::ofstream out(fileName.c_str());
-//     std::stringstream s;
-
     write_graphviz(out, g,
                    make_vertex_writer(),
                    make_edge_writer(get(&edge_property_type::type, g), saveType),
