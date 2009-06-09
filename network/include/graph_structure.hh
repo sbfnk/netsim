@@ -121,10 +121,12 @@ namespace boost {
 
   template <typename Graph>
   bool suitable(Graph& g,
-                std::vector<typename graph_traits<Graph>::vertex_descriptor>& stubs,
+                std::vector<typename graph_traits<Graph>::vertex_descriptor>& 
+		stubs,
                 std::vector<std::vector<bool> >& seen_edges)
   {
-    typedef typename std::vector<typename graph_traits<Graph>::vertex_descriptor>::iterator iter;
+    typedef typename std::vector
+      <typename graph_traits<Graph>::vertex_descriptor>::iterator iter;
     
     for (iter s = stubs.begin(); s != stubs.end(); s++) 
       for (iter t = s + 1; t != stubs.end(); t++) 
@@ -225,6 +227,105 @@ namespace boost {
   vertices with each vertex multiply according to degree) and connecting them
   randomly, as described in Kim and Vu's 2003 paper.
   
+  \param[in] g The graph to fill
+  \param[out] rrg_edges Vector of vertex pairs representing edges.
+  \param[in] d The (constant) degree.
+  \param[in] et The edge type.
+  \param[in] r The random generator to be used.
+  \return true if generation of random graph successful, false if one is left
+  without possible pairs of nodes before convergence to a full regular graph.
+  \ingroup graph_generators
+  */
+  template <typename Graph, typename RandomGenerator>
+  bool random_regular_graph(Graph& g,
+                            unsigned int d,
+			    typename edge_property_type<Graph>::type et,
+                            RandomGenerator& r)
+  {
+    typedef typename graph_traits<Graph>::vertex_descriptor
+      vertex_descriptor;
+    typedef typename graph_traits<Graph>::edge_iterator
+      edge_iterator;
+
+    typedef std::vector<std::pair<unsigned int, unsigned int> > GraphEdges;
+    typedef typename GraphEdges::iterator GraphEdgeIter;
+
+    GraphEdges rrg_edges;
+    
+    uniform_real<> uni_dist(0, 1);
+    variate_generator<RandomGenerator&, uniform_real<> > uni_gen(r, uni_dist);
+
+    // define seen_edges NxN zero matrix
+    std::vector<std::vector<bool> >
+      seen_edges(N, std::vector<bool>(N, false));
+
+    // loop over graph and fill seen_edges
+    edge_iterator ei, ei_end;
+    for (tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
+      seen_edges[source(*ei, g)][target(*ei, g)] = true;
+      seen_edges[target(*ei, g)][source(*ei, g)] = true;
+    }
+    
+    // define stubs
+    std::vector<vertex_descriptor> stubs;
+    
+    // init stubs
+    for (unsigned int i = 0; i < N; ++i)
+      for (unsigned int j = 0; j < d; ++j)
+        stubs.push_back(i);
+    
+    // construct random regular graph
+    while (stubs.size()) {
+      
+      // select source and target from stubs
+      unsigned int src = 
+	static_cast<vertex_descriptor>(uni_gen() * stubs.size());
+      unsigned int trg = 
+	static_cast<vertex_descriptor>(uni_gen() * stubs.size());
+      unsigned int source = stubs[src];
+      unsigned int target = stubs[trg];
+      
+      // check if pair is suitable
+      if ((source != target) && !(seen_edges[source][target])) {
+        
+        // removing source and target from stubs
+        stubs.erase(stubs.begin() + src);
+        if (src > trg) {
+          stubs.erase(stubs.begin() + trg);
+        } else {
+          stubs.erase(stubs.begin() + trg - 1);
+        }
+        
+        // update seen_edges
+        seen_edges[source][target] = true;
+        seen_edges[target][source] = true;         
+        
+        // add edge to rrg_edges
+        rrg_edges.push_back(std::make_pair(source, target));
+        
+      } else { // check if suitable stubs left
+
+        if (!suitable(g, stubs, seen_edges)) return false; 
+        // failure - no more suitable pairs
+      }
+    }   
+
+    for (GraphEdgeIter it = rrg_edges.begin(); it != rrg_edges.end(); it++) {
+      boost::add_edge((*it).first, (*it).second, et, g);
+    }
+    
+    return true; // success
+  }
+  
+  //----------------------------------------------------------
+  /*! \brief Create a graph following a given degree distribution
+    
+  Creates a graph with a degree distribution given from a file by
+  creating a vertex of stubs (a list of vertices with each vertex
+  multiply according to degree) and connecting them 
+  randomly, as described in Kim and Vu's 2003 paper.
+  
+  \param[in] fileName The file
   \param[in] g The graph to mark the parallel edges in.
   \param[out] rrg_edges Vector of vertex pairs representing edges.
   \param[in] d The (constant) degree.
@@ -236,7 +337,8 @@ namespace boost {
   */
   template <typename Graph, typename RandomGenerator>
   bool random_regular_graph(Graph& g,
-                            std::vector<std::pair<unsigned int, unsigned int> >& rrg_edges,
+                            std::vector<std::pair<unsigned int, unsigned int> >&
+			    rrg_edges,
                             const unsigned int d,
                             const unsigned int N,
                             RandomGenerator& r
@@ -273,13 +375,15 @@ namespace boost {
     while (stubs.size()) {
       
       // select source and target from stubs
-      unsigned int src = static_cast<vertex_descriptor>(uni_gen() * stubs.size());
-      unsigned int trg = static_cast<vertex_descriptor>(uni_gen() * stubs.size());
+      unsigned int src = 
+	static_cast<vertex_descriptor>(uni_gen() * stubs.size());
+      unsigned int trg = 
+	static_cast<vertex_descriptor>(uni_gen() * stubs.size());
       unsigned int source = stubs[src];
       unsigned int target = stubs[trg];
       
       // check if pair is suitable
-      if ( (source != target) && !(seen_edges[source][target]) ) {
+      if ((source != target) && !(seen_edges[source][target])) {
         
         // removing source and target from stubs
         stubs.erase(stubs.begin() + src);

@@ -758,13 +758,10 @@ int main(int argc, char* argv[])
       /******************************************************************/
       // generate random graph with desired properties
       /******************************************************************/
-//       typedef boost::erdos_renyi_iterator2<boost::mt19937, dualtype_graph>
-//         rg_iterator;
-      
+
       typedef boost::erdos_renyi_iterator<boost::mt19937, onetype_graph>
         rg_iterator;
       
-//       double p = (double)opt.edges*2.0/((double)N*(double)(N-1));
       double p = (double)opt.edges*2.0/((double)N*(double)N);
       if (p> 1) p=1;
       
@@ -804,17 +801,10 @@ int main(int argc, char* argv[])
       bool success = false;
       unsigned int count = 0;
 
-      typedef std::vector<std::pair<unsigned int, unsigned int> > GraphEdges;
-      GraphEdges rrg_edges;
-
       if (opt.jointDegree > 0) {
         // generate joint graph
-        rrg_edges.clear();         
-        ++count;
-        
-        while (!success) {
-          success = boost::random_regular_graph(graph, rrg_edges,
-                                                opt.jointDegree, N, gen);
+	unsigned int count = boost::random_regular_graph(graph, Edge(i),
+							 opt.jointDegree, gen);
           if (success) {            
             for (GraphEdges::iterator it = rrg_edges.begin();
                  it != rrg_edges.end(); ++it){
