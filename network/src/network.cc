@@ -390,7 +390,7 @@ int main(int argc, char* argv[])
     po::options_description* confo
       = new po::options_description(s.str().c_str());
     s.str("");
-    s << prefix.str() << "file";
+    s << prefix.str() << "degree-file";
     confo->add_options()
       (s.str().c_str(), po::value<std::string>(),
        "degree file of the graph");
@@ -883,7 +883,7 @@ int main(int argc, char* argv[])
       
       confOptions opt;
 
-      optStr = currentEdgeLabel + "file";
+      optStr = currentEdgeLabel + "degree-file";
       if (vm.count(optStr)) {
         opt.degreeFile = vm[optStr].as<std::string>();
       } 
@@ -896,16 +896,21 @@ int main(int argc, char* argv[])
       // generate configuration graph with desired properties
       /******************************************************************/
       
-      int count = boost::configuration_graph(opt.degreeFile, graph, Edge(i),
-					     gen, opt.numIterations);
-
-      if (count < 0) {
-	std::cerr << "WARNING: Creation of configuration graph failed." 
-		  << std::endl; 
-      }
-      if (verbose && count > 0) {
-	std::cout << "Configuration graph"
-		  << " was generated in " << count << " trials\n";
+      if (opt.degreeFile.length() > 0) {
+	int count = boost::configuration_graph(opt.degreeFile, graph, Edge(i),
+					       gen, opt.numIterations);
+	
+	if (count < 0) {
+	  std::cerr << "WARNING: Creation of configuration graph failed." 
+		    << std::endl; 
+	}
+	if (verbose && count > 0) {
+	  std::cout << "Configuration graph"
+		    << " was generated in " << count << " trials\n";
+	}
+      } else {
+	  std::cerr << "WARNING: No degree file given" 
+		    << std::endl; 
       }
       
       // copy graph to all edgetypes
