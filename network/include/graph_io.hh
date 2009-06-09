@@ -624,7 +624,15 @@ namespace boost {
 
             std::string color;
             
-            if (line.find("fillcolor") != std::string::npos) {
+            if (line.find("state") != std::string::npos) {
+              g[src].state = m.newState();
+              g[src].state->setState
+                (cast_stream<unsigned int>(extractDrawOption("state", line)));
+              if (verbose > 1) {
+                std::cout << "assigning vertex " << src << " state "
+                          << g[src].state->getState() << std::endl;
+              }
+            } else if (line.find("fillcolor") != std::string::npos) {
               std::string color = extractDrawOption("fillcolor", line);
               if (color.find("#") != std::string::npos) {
                 // color information is rgb type
@@ -633,18 +641,14 @@ namespace boost {
                 std::stringstream(color.substr(4,2)) >> std::hex >> green;
                 std::stringstream(color.substr(6,2)) >> std::hex >> blue;
                 g[src].state = m.newState(red, green, blue);
+                if (verbose > 1) {
+                  std::cout << "assigning vertex " << src << " state "
+                            << *g[src].state << " from fillcolor" << std::endl;
+	        }
               } else {
                 // color information is name type
                 g[src].state = m.newState();
                 g[src].state->setState(color2state[color]);
-              }
-            } else if (line.find("state") != std::string::npos) {
-              g[src].state = m.newState();
-              g[src].state->setState
-                (cast_stream<unsigned int>(extractDrawOption("state", line)));
-              if (verbose > 1) {
-                std::cout << "assigning vertex " << src << " state "
-                          << g[src].state->getState() << std::endl;
               }
 	    } else {
               g[src].state = m.newState();
