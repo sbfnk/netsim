@@ -64,9 +64,16 @@ struct rgOptions {
 };
 
 struct rrgOptions {
-  rrgOptions() : degree(0), jointDegree(0) {}
+  rrgOptions() : degree(0), jointDegree(0), numIterations(100) {}
   unsigned int degree;
   unsigned int jointDegree;
+  unsigned int numIterations;
+};
+
+struct confOptions {
+  confOptions() : degreeFile(""), numIterations(100) {}
+  std::string degreeFile;
+  unsigned int numIterations;
 };
 
 struct swOptions {
@@ -240,8 +247,8 @@ int main(int argc, char* argv[])
       ((prefix + "topology").c_str(),
        po::value<std::string>(),
        (prefix + "network topology\n((tri-)lattice, "+
-        "tree, random, random-regular, small-world, plod, albert-barabasi, "+
-        "community, complete, read, null)").c_str());
+        "tree, random, random-regular, configuration, small-world, plod, "+
+	"albert-barabasi, community, complete, read, null)").c_str());
   }
   
   po::options_description assortativity_options
@@ -365,7 +372,34 @@ int main(int argc, char* argv[])
     rrgo->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "degree of the joint core of two random regular graphs. If not given, the overlapping is random.");
+    s << prefix.str() << "iterations";
+    rrgo->add_options()
+      (s.str().c_str(), po::value<unsigned int>(),
+       "number of iterations to try in creating the graph.");
     rrg_options.push_back(rrgo);
+  }
+  
+  // configuration graph
+  std::vector<po::options_description*> conf_options;
+  for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+    std::stringstream s, prefix;
+    if (nEdgeTypes > 1) {
+      prefix << edgeLabels[i] << "-";
+    }
+    s << prefix.str() << "configuration graph regular graph options";
+    po::options_description* confo
+      = new po::options_description(s.str().c_str());
+    s.str("");
+    s << prefix.str() << "file";
+    confo->add_options()
+      (s.str().c_str(), po::value<std::string>(),
+       "degree file of the graph");
+    s.str("");
+    s << prefix.str() << "iterations";
+    confo->add_options()
+      (s.str().c_str(), po::value<unsigned int>(),
+       "number of iterations to try in creating the graph.");
+    conf_options.push_back(confo);
   }
   
   // small-world graph
@@ -539,6 +573,7 @@ int main(int argc, char* argv[])
     all_options.add(*(tree_options[i]));
     all_options.add(*(rg_options[i]));
     all_options.add(*(rrg_options[i]));
+    all_options.add(*(conf_options[i]));
     all_options.add(*(sw_options[i]));
     all_options.add(*(plod_options[i]));
     all_options.add(*(ab_options[i]));
@@ -786,6 +821,10 @@ int main(int argc, char* argv[])
       if (vm.count(optStr)) {
         opt.jointDegree = vm[optStr].as<unsigned int>();
       }
+      optStr = currentEdgeLabel + "iterations";
+      if (vm.count(optStr)) {
+        opt.numIterations = vm[optStr].as<unsigned int>();
+      }
       if (opt.degree + opt.jointDegree == 0) {
         std::cerr << "WARNING: Neither degree nor joint-degree specified, "
                   << " for random-regular " << edgeLabels[i] << "-graph."
@@ -798,25 +837,19 @@ int main(int argc, char* argv[])
       // generate random regular graph with desired properties
       /******************************************************************/
       
-      bool success = false;
-      unsigned int count = 0;
-
       if (opt.jointDegree > 0) {
         // generate joint graph
-	unsigned int count = boost::random_regular_graph(graph, Edge(i),
-							 opt.jointDegree, gen);
-          if (success) {            
-            for (GraphEdges::iterator it = rrg_edges.begin();
-                 it != rrg_edges.end(); ++it){
-              boost::add_edge((*it).first, (*it).second,
-                              Edge(i), temp_graph);
-            }
-          }
-        }
-        
-        if (verbose) {
-          std::cout << "Random regular graph of degree " << opt.jointDegree
-                    << " was generated in " << count << " trials\n";
+	int count = boost::random_regular_graph(graph, Edge(i),
+						opt.jointDegree, gen,
+						opt.numIterations);
+
+	if (count < 0) {
+	  std::cerr << "WARNING: Creation of random graph failed." 
+		    << std::endl; 
+	}
+        if (verbose && count > 0) {
+	  std::cout << "Random regular graph of degree " << opt.jointDegree
+		    << " was generated in " << count << " trials\n";
         }
 
         // copy graph to all edgetypes
@@ -828,27 +861,58 @@ int main(int argc, char* argv[])
 
       if (opt.degree > 0) {
         // generate additional graph, excluding existing edges
-        success = 0;
-        count = 0;
-        rrg_edges.clear();
-        ++count;
-        while (!success) {
-          success = boost::random_regular_graph(graph, rrg_edges,
-                                                opt.degree, N, gen);
-          if (success) {            
-            for (GraphEdges::iterator it = rrg_edges.begin();
-                 it != rrg_edges.end(); ++it){
-              boost::add_edge((*it).first, (*it).second,
-                              Edge(i), temp_graph);
-            }
-          }
-        }
+	int count = boost::random_regular_graph(graph, Edge(i),
+						opt.degree, gen,
+						opt.numIterations);
         
-        if (verbose) {
-          std::cout << "Random regular graph of degree " << opt.degree
-                    << " was generated in " << count << " trials\n";
+	if (count < 0) {
+	  std::cerr << "WARNING: Creation of random graph failed." 
+		    << std::endl; 
+	}
+        if (verbose && count > 0) {
+	  std::cout << "Random regular graph of degree " << opt.degree
+		    << " was generated in " << count << " trials\n";
         }
       }
+      
+    } else if (topology == "configuration") {
+      
+      /******************************************************************/
+      // read configuration graph specific parameters
+      /******************************************************************/
+      
+      confOptions opt;
+
+      optStr = currentEdgeLabel + "file";
+      if (vm.count(optStr)) {
+        opt.degreeFile = vm[optStr].as<std::string>();
+      } 
+      optStr = currentEdgeLabel + "iterations";
+      if (vm.count(optStr)) {
+        opt.numIterations = vm[optStr].as<unsigned int>();
+      }
+      
+      /******************************************************************/
+      // generate configuration graph with desired properties
+      /******************************************************************/
+      
+      int count = boost::configuration_graph(opt.degreeFile, graph, Edge(i),
+					     gen, opt.numIterations);
+
+      if (count < 0) {
+	std::cerr << "WARNING: Creation of configuration graph failed." 
+		  << std::endl; 
+      }
+      if (verbose && count > 0) {
+	std::cout << "Configuration graph"
+		  << " was generated in " << count << " trials\n";
+      }
+      
+      // copy graph to all edgetypes
+      for (unsigned int j = 0; j < edgeTypes.size(); j++) {
+	boost::copy_edges(temp_graph, graph, Edge(j));
+      }
+      temp_graph.clear();
       
     } else if (topology == "small-world") {
       
