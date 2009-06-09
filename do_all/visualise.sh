@@ -34,7 +34,7 @@ do
   neato -Tgif $I -o $I.gif
 done
 
-gthumb $run_dir &
+#gthumb $run_dir &
 
 exit 0
 

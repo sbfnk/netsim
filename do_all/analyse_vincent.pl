@@ -1,17 +1,21 @@
 #!/usr/bin/perl
 
 use Getopt::Long;
+use POSIX qw(floor);
 
 my $threshold = 10000;
 my $info = 0;
 my $numinf = 0;
 my $means = 0;
 
+my $resolution = 0;
+
 my $code_dir = @ENV{'CODEDIR'};
 my $data_dir = @ENV{'DATADIR'};
 
 my $alpha_scale = 1.;
 my $beta_scale = 1.;
+my $scale = 1.;
 
 my $no_header = 0;
 
@@ -21,7 +25,9 @@ GetOptions("threshold=i" => \$threshold,
 	   "vinf" => \$num_inf,
 	   "alpha-scale=f" => \$alpha_scale,
 	   "beta-scale=f" => \$beta_scale,
-	   "means" => \$means);
+	   "scale=f" => \$scale,
+	   "means" => \$means,
+	   "resolution=f" => \$resolution);
 
 
 my $usage = "Usage: analyse_vincent.pl [-t threshold] [-x x-axis] [-i] [-v]".
@@ -42,6 +48,11 @@ if ($info) {
   $countstring = "infected vertices";
 } else {
   $countstring = "infections";
+}
+
+if (!($scale == 1.)) {
+  $alpha_scale = $scale;
+  $beta_scale = $scale;
 }
 
 my %data;
@@ -67,25 +78,37 @@ while ($line = <IN>) {
     if ($means) {
       $data{$var2}{$var1} = ($sum / $count);
     } else {
-      $data{$var2}{$var1} = $count;
+      if ($count > 0) {
+        $data{$var2}{$var1} = $count;
+      } else {
+        $data{$var2}{$var1} = "-1";
+      }
     }
-    $columns{$var1} = 1;
+    if ($resolution == 0 || abs($var1 / $resolution - floor($var1 / $resolution + 0.5)) < 1e-10) {
+      $columns{$var1} = 1;
+    }
   }
 }
 
 if ($info) {
-  foreach $var2 (sort keys %data) {
+  foreach $var2 (sort {$a <=> $b} keys %data) {
     foreach $var1 (sort keys %{$data{$var2}}) {
       print $var1."$delimiter".$data{$var2}{$var1}."\n";
     }
   }
 } else {
   my $firstline = !$no_header;
-  foreach $var2 (sort keys %data) {
+  foreach $var2 (sort {$a <=> $b} keys %data) {
     if ($firstline) {
       $linestring = "   0"."$delimiter";
-      foreach $var1 (sort keys %columns) {
-	$linestring .= sprintf("%.2f",$var1)."$delimiter";
+      foreach $var1 (sort {$a <=> $b} keys %columns) {
+	if ($var1 < 10) {
+	  $linestring .= sprintf("%.2f",$var1)."$delimiter";
+	} elsif ($var1 < 100) {
+	  $linestring .= sprintf("%.1f",$var1)."$delimiter";
+	} else {
+	  $linestring .= sprintf("%4.0f",$var1)."$delimiter";
+	}
       }
       chop $linestring;
       print "$linestring\n";
@@ -93,7 +116,7 @@ if ($info) {
     }
 
     $linestring = sprintf("%.2f",$var2)."$delimiter";
-    foreach $var1 (sort keys %columns) {
+    foreach $var1 (sort {$a <=> $b} keys %columns) {
       $linestring .= sprintf("%4.0f",$data{$var2}{$var1})."$delimiter";
     }
     chop $linestring;

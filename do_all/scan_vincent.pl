@@ -41,13 +41,14 @@ $ha = shift(@ARGV);
 ($beta_step > 0) || ($beta_step = $step);
 ($param_step > 0) && ($beta_step > 0) || die($usage);
 
-print "Varying $param in [$la,$ha) in steps of $alpha_step and beta in [$lb,$hb) in steps of $beta_step\n";
+print "Varying $param in [$la,$ha) in steps of $param_step and beta in [$lb,$hb) in steps of $beta_step\n";
 print "Parameters: @ARGV\n\n";
 
 for ($alpha = $la; $alpha <= $ha; $alpha += $param_step) {
   for ($beta = $lb; $beta <= $hb; $beta += $beta_step) {
     print("$param=$alpha beta=$beta\n");
-    $arguments = sprintf("--$param=%.2f --beta=%.2f",$alpha,$beta);
+#    $arguments = sprintf("--$param=%.2f --beta=%.2f",$alpha,$beta);
+    $arguments = "--$param=$alpha --beta=$beta";
     system("$command $arguments @ARGV");
   }
 }
