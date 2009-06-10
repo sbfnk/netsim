@@ -112,6 +112,8 @@ int main(int argc, char* argv[])
 
   std::string readGraph = ""; // default is to generate graph.
   bool readAll = false;
+  std::string readDegree = ""; // default is to generate graph.
+  bool confAll = false;
   std::string edgeLabels = "di";
 
   bool allStats = false;
@@ -237,6 +239,8 @@ int main(int argc, char* argv[])
      "number of vertices")
     ("read-file,r", po::value<std::string>(),
      "read full graph from file (ignores topology options")
+    ("configuration-graph,c", po::value<std::string>(),
+     "create graph according to full degree distribution from file")
     ;
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     std::string prefix("");
@@ -646,7 +650,37 @@ int main(int argc, char* argv[])
     readAll = true;
   }
 
-  for (unsigned int i = 0; i < edgeTypes.size(); ++i) {
+  if (vm.count("configuration-graph")) {
+    if (readAll) {
+      std::cerr << "WARNING: read-file and configuration-graph given." << std::endl;
+      std::cerr << "Will only use read-file." << std::endl;
+    }
+    readDegree = vm["configuration-graph"].as<std::string>();
+    confAll = true;
+  }
+
+  if (confAll) {
+    
+    /******************************************************************/
+    // generate configuration graph with desired properties
+    /******************************************************************/
+    
+    if (readDegree.length() > 0) {
+      int count = boost::configuration_graph(readDegree, graph, gen);
+      
+      if (count < 0) {
+        std::cerr << "WARNING: Creation of configuration graph failed." 
+                  << std::endl; 
+      }
+      if (verbose && count > 0) {
+        std::cout << "Configuration graph"
+                  << " was generated in " << count << " trials\n";
+      }
+    } else {
+        std::cerr << "WARNING: No degree file given" 
+                  << std::endl; 
+    }
+  } else for (unsigned int i = 0; i < edgeTypes.size(); ++i) {
 
     onetype_graph temp_graph;
     boost::add_vertices(temp_graph, N);
@@ -669,7 +703,7 @@ int main(int argc, char* argv[])
       std::cerr << main_options << graph_options << std::endl;
       return 1;
     }
-    
+
     if (topology == "lattice") {
 
       /******************************************************************/
@@ -839,7 +873,7 @@ int main(int argc, char* argv[])
       
       if (opt.jointDegree > 0) {
         // generate joint graph
-	int count = boost::random_regular_graph(graph, Edge(i),
+	int count = boost::random_regular_graph(temp_graph, Edge(i),
 						opt.jointDegree, gen,
 						opt.numIterations);
 
@@ -912,12 +946,6 @@ int main(int argc, char* argv[])
 	  std::cerr << "WARNING: No degree file given" 
 		    << std::endl; 
       }
-      
-      // copy graph to all edgetypes
-      for (unsigned int j = 0; j < edgeTypes.size(); j++) {
-	boost::copy_edges(temp_graph, graph, Edge(j));
-      }
-      temp_graph.clear();
       
     } else if (topology == "small-world") {
       
