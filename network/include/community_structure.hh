@@ -40,7 +40,7 @@ namespace boost {
         std::cout << "Iteration: " << iter << ", max centrality: " 
                   << (max_centrality / dividend);
       }
-      if (printModularity && original_graph) {
+      if ((printModularity || best_mod_graph) && original_graph) {
         double mod = graph_modularity(*original_graph, g);
         if (verbose >=2) {
           std::cout << ", modularity: " << mod;
