@@ -458,10 +458,10 @@ namespace boost {
   \ingroup graph_statistics
   */
   template <typename Graph>
-  void print_degrees(Graph& g, unsigned int nEdgeTypes)
+  void print_degrees(Graph& g, unsigned int nEdgeTypes,
+                     bool print = true, std::string baseFileName = "")
   {
 
-    std::cout << "print degrees" << std::endl;
     typedef typename boost::graph_traits<Graph>::vertex_iterator
       vertex_iterator;
 
@@ -476,24 +476,54 @@ namespace boost {
     
     unsigned int vLength = s.str().length();
 
+    std::vector< std::vector<unsigned int> > degrees;
+    degrees.resize(num_vertices(g));
+
+    unsigned int maxDegree = 0;
     vertex_iterator vi, vi_end;
+    for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+        unsigned int deg = out_degree_type(*vi, g, i);
+        degrees[*vi].push_back(deg);
+        if (deg > maxDegree) {
+	  maxDegree = deg;
+	}
+      }
+    }
+    s.str("");
+    s << maxDegree;
+    unsigned int mdLength = s.str().length();
+
+    s.str("");
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
       bool firstLine = true;
       for (unsigned int i = 0; i < nEdgeTypes; ++i) {
         if (firstLine) {
-          std::cout << std::setw(vLength) << *vi;
+          s << std::setw(vLength) << *vi;
           firstLine = false;
         } else {
-          for (unsigned int j = 0; j < vLength; ++j) std::cout << " ";
+          for (unsigned int j = 0; j < vLength; ++j) s << " ";
         }
         
-        std::cout << " : ";
-        for (unsigned j = 0; j < out_degree_type(*vi, g, i); ++j) {
-          std::cout << symbols[i];
+        s << " : ";
+	s << std::setw(mdLength) << degrees[*vi][i] << " ";
+
+        for (unsigned j = 0; j < degrees[*vi][i]; ++j) {
+          s << symbols[i];
         }
-        std::cout << std::endl;
+        s << std::endl;
       }
     }
+
+    if (print) {
+      std::cout << s.str();
+    }
+    if (baseFileName.length() > 0) {
+      std::string vDegName = baseFileName + ".stat.vdegree";
+      std::ofstream vDegFile(vDegName.c_str(), std::ios::out);
+      vDegFile << s.str();
+      vDegFile.close();
+    }    
   }
 
   //----------------------------------------------------------

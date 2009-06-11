@@ -1692,7 +1692,9 @@ int main(int argc, char* argv[])
   // print vertex degrees
   /******************************************************************/
   if (vm.count("print-degrees")) {
-    print_degrees(graph, nEdgeTypes);
+    print_degrees(graph, nEdgeTypes,
+                  (verbose > 0 || baseFileName.length() == 0),
+                  baseFileName);
   }
   
   /******************************************************************/
