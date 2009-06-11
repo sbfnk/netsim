@@ -1125,7 +1125,7 @@ int main(int argc, char* argv[])
       /******************************************************************/
 
       if (num_edges(graph) > 0) {
-        boost::copy_edges(graph, temp_graph, Edge(i));
+        boost::copy_edges(graph, temp_graph, Edge(edgeType[i]));
       } else {
         if (edgeTypes.size() == (2*nEdgeTypes-1) || i == (edgeTypes.size()-1)) {
           std::cerr << "ERROR: no edges to copy from, " << edgeTypes[i]
