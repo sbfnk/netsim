@@ -227,8 +227,10 @@ int main(int argc, char* argv[])
      "determine community structure")        
     ("modularity", 
      "determine modularity")        
-    ("components", 
+    ("component-dist", 
      "determine component distribution")        
+    ("components", 
+     "determine components")        
     ;
   
   po::options_description graph_options
@@ -1390,8 +1392,11 @@ int main(int argc, char* argv[])
     graph = saved_graph;
   }
 
+  if (vm.count("component-dist") && baseFileName.length() > 0) {
+    write_component_dist(graph, baseFileName+".stat.compdist");
+  }
   if (vm.count("components") && baseFileName.length() > 0) {
-    write_component_dist(graph, baseFileName+".stat.comp");
+    write_components(graph, baseFileName+".stat.comp");
   }
 
   if (vm.count("all-stats")) {

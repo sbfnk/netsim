@@ -227,7 +227,7 @@ namespace Simulators {
     if (vm.count("components")) {
       this->statRecorders.push_back
         (new StatRecorder<Graph>
-         (new write_components<Graph>(this->getGraph()),
+         (new write_comp<Graph>(this->getGraph()),
           vm["components"].as<double>()));
     }
     if (vm.count("modularity") || vm.count("community")) {

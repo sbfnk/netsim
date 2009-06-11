@@ -787,6 +787,43 @@ namespace boost {
     
     return largest_comp;
   }
+
+  template <typename Graph>
+  void write_components(const Graph& g, std::string fileName = "")
+  {
+    std::vector<int> component(num_vertices(g));
+    int num = boost::connected_components(g, &component[0]);
+    std::vector<std::vector<int> > components(num);
+    for (int i = 0; i < num; ++i) {
+      for (unsigned int j = 0; j < num_vertices(g); ++j) {
+        if (component[j] == i) {
+	  components[i].push_back(j);
+        }
+      }
+    }
+
+    if (fileName != "") {
+      std::ofstream compFile;
+      try {
+        compFile.open(fileName.c_str(), std::ios::out);
+      }
+      catch (std::exception &e) {
+        std::cerr << "... unable to open output file " 
+                  << fileName << " for writing the connected components."
+                  << std::endl;
+        std::cerr << "... Standard exception: " << e.what() << std::endl;      
+        return;
+      }
+      for (int i = 0; i < num; ++i) {
+	for (unsigned int j = 0; j < components[i].size(); ++j) {
+	  compFile << i << '\t';
+	  compFile << components[i][j];
+	  compFile << std::endl;
+	}
+      }
+      compFile.close();
+    }
+  }
 }
   
 //----------------------------------------------------------
