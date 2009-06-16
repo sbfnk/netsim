@@ -384,7 +384,8 @@ namespace Simulators {
           vertex_iterator vi, vi_end;
 	  for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
 	    if ((*vi != source_node) &&
-	        (tempVertices[*vi] == tempVertices[source_node])) {
+	        (tempVertices[*vi] == tempVertices[source_node]) &&
+                (edge(*vi, source_node, graph).second == false)) {
 	      sameState.push_back(*vi);
 	    }
 	  }
