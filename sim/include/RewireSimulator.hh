@@ -134,8 +134,7 @@ namespace Simulators {
 
     std::vector<edge_descriptor> tempEdges; // for faster access
     std::vector<unsigned int> tempVertices; // for faster access
-
-    std::vector<unsigned int> nMembers; // number of members in each group
+    std::map<unsigned int, std::set<unsigned int> > tempStates; // faster
 
     // the times at which groups are initiated 
     std::vector<double> groupInitiationTimes; 
@@ -302,7 +301,10 @@ namespace Simulators {
     // This will not change
     numEdges = num_edges(graph);
     numVertices = num_vertices(graph);
-    nMembers.push_back(numVertices);
+    tempStates.insert(std::make_pair(0, std::set<unsigned int>()));
+    for (unsigned int i = 0; i < numVertices; ++i) {
+      tempStates[0].insert(i);
+    }
     groupInitiationTimes.push_back(0.);
 
     for (tie(ei, ei_end) = edges(graph); ei != ei_end; ei++) {
@@ -379,22 +381,31 @@ namespace Simulators {
 	vertex_descriptor target_node = target(tempEdges[randEdge], graph);
 
 	if (tempVertices[source_node] > 0) {
-	  // collect nodes of same state
-	  std::vector<vertex_descriptor> sameState;
-          vertex_iterator vi, vi_end;
-	  for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-	    if ((*vi != source_node) &&
-	        (tempVertices[*vi] == tempVertices[source_node]) &&
-                (edge(*vi, source_node, graph).second == false)) {
-	      sameState.push_back(*vi);
+	  std::set<unsigned int> nonNbSameStates = 
+	    tempStates[tempVertices[source_node]];
+	  nonNbSameStates.erase(source_node);
+	  out_edge_iterator oi, oi_end;
+	  for (tie(oi, oi_end) = out_edges(source_node, graph);
+	       oi != oi_end; oi++) {
+	    if (tempVertices[target(*oi, graph)] == tempVertices[source_node]) {
+	      nonNbSameStates.erase(target(*oi, graph));
 	    }
 	  }
-	  if (sameState.size() > 0) {
+	  if (nonNbSameStates.size() > 1) {
 	    // reuse randEvent number to select target node
-	    vertex_descriptor newtarget =
-	      sameState[static_cast<unsigned int>
-			(randEvent / rates[REWIRING] * sameState.size())];
-	  
+
+	    unsigned int randomSameState =
+	      static_cast<unsigned int>
+	      (randEvent / rates[REWIRING] * 
+	       nonNbSameStates.size());
+	    std::set<unsigned int>::iterator it = 
+	      nonNbSameStates.begin();
+	    unsigned int i = 0;
+	    while (i++ < randomSameState) {
+	      it++;
+	    }
+	    vertex_descriptor newtarget = *it;
+	       
 	    boost::remove_edge(tempEdges[randEdge], graph);
 	    tempEdges[randEdge] =
               boost::add_edge(source_node, newtarget, graph).first;
@@ -437,9 +448,10 @@ namespace Simulators {
 	vertex_descriptor target_node = target(tempEdges[randEdge], graph);
 
 	if (tempVertices[source_node] > 0) {
-	  ++nMembers[tempVertices[source_node]];
-	  --nMembers[tempVertices[target_node]];
-	  if (groupLifeTimes && nMembers[tempVertices[target_node]] == 0) {
+	  tempStates[tempVertices[source_node]].erase(source_node);
+	  tempStates[tempVertices[target_node]].insert(target_node);
+	  if (groupLifeTimes && 
+	      tempStates[tempVertices[target_node]].size() == 0) {
 	    if (verbose >= 2) {
 	      std::cout << "time: " << this->getTime() << ", Group " 
 			<< tempVertices[target_node] << " dies out, lifetime "
@@ -451,6 +463,7 @@ namespace Simulators {
 		       tempVertices[target_node], 
 		       this->getTime() - 
 		       groupInitiationTimes[tempVertices[target_node]]);
+	    tempStates.erase(tempVertices[target_node]);
 	  }
 	  
 	  GroupFormState* myState =
@@ -488,8 +501,8 @@ namespace Simulators {
 	model->addState();
 	groupInitiationTimes.push_back(this->getTime());
 
-	--nMembers[tempVertices[v]];
-	if (groupLifeTimes && nMembers[tempVertices[v]] == 0) {
+	tempStates[tempVertices[v]].erase(v);
+	if (groupLifeTimes && tempStates[tempVertices[v]].size() == 0) {
 	  if (verbose >= 2) {
 	    std::cout << "time: " << this->getTime() << ", Group " 
 		      << tempVertices[v] << " dies out, lifetime "
@@ -500,6 +513,7 @@ namespace Simulators {
 	  write_data((this->getDir() + "/lifetimes.sim.dat"),
 		     tempVertices[v], 
 		     this->getTime() - groupInitiationTimes[tempVertices[v]]);
+	  tempStates.erase(tempVertices[v]);
 	}
 	  
 	GroupFormState* myState =
@@ -517,7 +531,8 @@ namespace Simulators {
 	}
 
         tempVertices[v] = newState;
-	nMembers.push_back(1);
+	tempStates.insert(std::make_pair(newState,std::set<unsigned int>()));
+	tempStates[newState].insert(v);
 	++randomiseCounter;
 
 	if (recordInitiator) {
