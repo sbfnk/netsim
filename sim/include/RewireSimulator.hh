@@ -80,7 +80,7 @@ namespace Simulators {
     bool stopCondition() const
     {
       bool ret = false;
-      if ((!burnWait) || (tempStates.at(0).size() == 0)) {
+      if ((burnWait == 0) || (tempStates.at(0).size() < burnWait)) {
 	ret = Simulator<Graph>::stopCondition();
 	unsigned int largest_component = stopComponent;
 	if (stopComponent > 0) {
@@ -113,7 +113,7 @@ namespace Simulators {
 
     unsigned int verbose;
     unsigned int stopComponent;
-    bool burnWait;
+    unsigned int burnWait;
 
     double rewireProb;
     double updateProb;
@@ -155,7 +155,7 @@ namespace Simulators {
   RewireSimulator(RandomGenerator& r, Graph& g,
 		     unsigned int v) :
     Simulator<Graph>(g, v), randGen(r, boost::uniform_real<> (0,1)),
-    active(), verbose(v), burnWait(false), recordInitiator(false), 
+    active(), verbose(v), burnWait(0), recordInitiator(false), 
     groupLifeTimes(false), recordEffectiveRates(0.), recordEffectiveTimer(0.), 
     rateSum(0.)
   {
@@ -192,7 +192,7 @@ namespace Simulators {
     this->stop_options.add_options()
       ("cmin", po::value<unsigned int>()->default_value(0),
        "limit to the size of the largest component (stop if drops to that value")
-      ("burn-wait", 
+      ("burn-wait", po::value<unsigned int>()->default_value(0),
        "wait for burn-in to finish (i.e. wait until noone is in null state")
       ;
     this->knownModels.push_back
@@ -291,7 +291,7 @@ namespace Simulators {
       groupLifeTimes = true;
     }
     if (vm.count("burn-wait")) {
-      burnWait = true;
+      burnWait = vm["burn-wait"].as<unsigned int>();
     }
     return ret;
   }
