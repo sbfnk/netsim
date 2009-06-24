@@ -72,31 +72,37 @@ namespace Simulators {
      std::vector<vertex_descriptor>* previous_nodes = 0,
      double distanceSum = 0.);
    
-   void print();
-
+    void print();
+    
     bool parse_options(const po::variables_map& vm);
-
+    
     //! Check if conditions to stop a run have been reached. 
     bool stopCondition() const
     {
-      bool ret = Simulator<Graph>::stopCondition();
-      unsigned int largest_component = stopComponent;
-      if (stopComponent > 0) {
-        // find component dist writer if available
-        bool found = false;
-        for (unsigned int i = 0;
-             ((!false) && i < (this->statRecorders.size())); ++i) {
-          const write_comp_dist<Graph>* w =
-            dynamic_cast<const write_comp_dist<Graph>*>
-            (this->statRecorders[i]->getStatFunc());
-          if (w) {
-            largest_component = w->getLargest();
-            found = true;
-          }
-        }
-        if (!found) largest_component = write_component_dist(this->getGraph());
+      bool ret = false;
+      if ((!burnWait) || (tempStates.at(0).size() == 0)) {
+	ret = Simulator<Graph>::stopCondition();
+	unsigned int largest_component = stopComponent;
+	if (stopComponent > 0) {
+	  // find component dist writer if available
+	  bool found = false;
+	  for (unsigned int i = 0;
+	       ((!false) && i < (this->statRecorders.size())); ++i) {
+	    const write_comp_dist<Graph>* w =
+	      dynamic_cast<const write_comp_dist<Graph>*>
+	      (this->statRecorders[i]->getStatFunc());
+	    if (w) {
+	      largest_component = w->getLargest();
+	      found = true;
+	    }
+	  }
+	  if (!found) {
+	    largest_component = write_component_dist(this->getGraph());
+	  }
+	  ret |= (largest_component < stopComponent); 
+	}
       }
-      return (ret || (largest_component < stopComponent));
+      return ret;
     }
 
   private:
@@ -107,6 +113,7 @@ namespace Simulators {
 
     unsigned int verbose;
     unsigned int stopComponent;
+    bool burnWait;
 
     double rewireProb;
     double updateProb;
@@ -148,8 +155,9 @@ namespace Simulators {
   RewireSimulator(RandomGenerator& r, Graph& g,
 		     unsigned int v) :
     Simulator<Graph>(g, v), randGen(r, boost::uniform_real<> (0,1)),
-    active(), verbose(v), recordInitiator(false), groupLifeTimes(false),
-    recordEffectiveRates(0.), recordEffectiveTimer(0.), rateSum(0.)
+    active(), verbose(v), burnWait(false), recordInitiator(false), 
+    groupLifeTimes(false), recordEffectiveRates(0.), recordEffectiveTimer(0.), 
+    rateSum(0.)
   {
     this->simulator_options.add_options()
       ("rewire-prob,p",po::value<double>()->default_value(0.),
@@ -184,6 +192,8 @@ namespace Simulators {
     this->stop_options.add_options()
       ("cmin", po::value<unsigned int>()->default_value(0),
        "limit to the size of the largest component (stop if drops to that value")
+      ("burn-wait", 
+       "wait for burn-in to finish (i.e. wait until noone is in null state")
       ;
     this->knownModels.push_back
       (std::make_pair("GroupForm",
@@ -279,6 +289,9 @@ namespace Simulators {
     }
     if (vm.count("group-lifetimes")) {
       groupLifeTimes = true;
+    }
+    if (vm.count("burn-wait")) {
+      burnWait = true;
     }
     return ret;
   }
