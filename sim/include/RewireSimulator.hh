@@ -461,8 +461,8 @@ namespace Simulators {
 	vertex_descriptor target_node = target(tempEdges[randEdge], graph);
 
 	if (tempVertices[source_node] > 0) {
-	  tempStates[tempVertices[source_node]].erase(source_node);
-	  tempStates[tempVertices[target_node]].insert(target_node);
+          tempStates[tempVertices[target_node]].erase(target_node);
+          tempStates[tempVertices[source_node]].insert(source_node);
 	  if (groupLifeTimes && 
 	      tempStates[tempVertices[target_node]].size() == 0) {
 	    if (verbose >= 2) {
