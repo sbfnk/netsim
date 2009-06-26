@@ -80,7 +80,8 @@ namespace Simulators {
     bool stopCondition() const
     {
       bool ret = false;
-      if ((burnWait == 0) || (tempStates.at(0).size() < burnWait)) {
+      if ((burnWait == 0) || (tempStates.find(0) == tempStates.end()) ||
+          (tempStates.at(0).size() < burnWait)) {
 	ret = Simulator<Graph>::stopCondition();
 	unsigned int largest_component = stopComponent;
 	if (stopComponent > 0) {
@@ -462,7 +463,7 @@ namespace Simulators {
 
 	if (tempVertices[source_node] > 0) {
           tempStates[tempVertices[target_node]].erase(target_node);
-          tempStates[tempVertices[source_node]].insert(source_node);
+          tempStates[tempVertices[source_node]].insert(target_node);
 	  if (groupLifeTimes && 
 	      tempStates[tempVertices[target_node]].size() == 0) {
 	    if (verbose >= 2) {
