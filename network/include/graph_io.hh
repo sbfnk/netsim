@@ -482,6 +482,7 @@ namespace boost {
           
           std::string::size_type lpos = line.find("--");
           std::string::size_type bpos = line.find("[");
+          while (line.substr(bpos-1,1) == " ") --bpos; //remove spaces
         
           // if edge
           if (lpos != std::string::npos) {
@@ -490,7 +491,7 @@ namespace boost {
             std::string s = line.substr(0, lpos);
           
             // extract target
-            std::string t = line.substr(lpos+2, bpos-lpos-3);
+            std::string t = line.substr(lpos+2, bpos-lpos-2);
 
             // set default if no edge type is given 
             unsigned int type = edgeType;
