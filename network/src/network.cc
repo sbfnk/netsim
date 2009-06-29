@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
   std::string topology;
 
-  unsigned int nEdgeTypes = 2;
+  unsigned int nEdgeTypes = 1;
   unsigned int N = 0;
   unsigned int verbose = 0;
 
