@@ -639,11 +639,14 @@ namespace boost {
     unsigned int rowSqSum = 0;
       
     for (int i = 0; i < num; ++i) {
+      std::cout << "Inner links, group " << i << ": " << community_matrix[i][i]
+                << std::endl;
       trace += community_matrix[i][i];
       std::size_t tempSum = 0;
       for (int j = 0; j < num; ++j) {
         tempSum += community_matrix[i][j];
       }
+      std::cout << "All links, group " << i << ": " << tempSum << std::endl;
       rowSqSum += (community_matrix[i][i] + tempSum) *
         (community_matrix[i][i] + tempSum);
     }
