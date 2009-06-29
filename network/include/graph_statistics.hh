@@ -633,6 +633,10 @@ namespace boost {
       ++community_matrix
         [component[source(e, g)]]
         [component[target(e, g)]];
+      if (component[source(e, g)] == component[target(e, g)]) {
+        std::cout << "Inner link: " << source(e, g) << "--"
+                  << target(e, g) << std::endl;
+      }
     }
 
     unsigned int trace = 0;
