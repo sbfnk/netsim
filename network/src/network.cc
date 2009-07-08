@@ -203,6 +203,8 @@ int main(int argc, char* argv[])
      "print all statistics")
     ("degree-dist",
      "compute degree distribution")
+    ("multi-degree-dist",
+     "compute multiple degree distribution")
     ("pairs",
      "count pairs")
     ("triples",
@@ -1478,6 +1480,57 @@ int main(int argc, char* argv[])
 
     boost::multi_array<unsigned int, 2> dd;
     unsigned int max_degree = degree_dist(graph, nEdgeTypes, dd);
+
+    std::stringstream s;
+    s << num_vertices(graph);
+    int len = std::max(6, static_cast<int>(s.str().length()));
+
+    output << "# " << "degree" << "\t";
+    if (nEdgeTypes > 1) {
+      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+        output << edgeLabels[i] << " only" << "\t";
+      }
+      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+        output << edgeLabels[i] << " all " << "\t";
+      }
+      output << "parall" << "\t" << " all  " << std::endl;
+    } else {
+      output << " nodes" << std::endl;
+    }
+    
+    for (unsigned int i = 0; i < max_degree+1; ++i) {
+
+      output << "  " << std::setw(len) << i << "\t";
+      if (nEdgeTypes > 1) {
+        for (unsigned int j = 0; j < nEdgeTypes*2+2; ++j) {
+          output << std::setw(len) << dd[j][i] << "\t";
+        }
+      } else {
+        output << std::setw(len) << dd[0][i];
+      }
+      output << std::endl;
+    }
+
+    if (baseFileName.length() == 0 || verbose) {
+      std::cout << "\nDegree distribution:" << std::endl;
+      std::cout << output.str();
+    }
+    if (baseFileName.length() > 0) {
+      std::string degreeFileName = baseFileName+".stat.degree";
+      std::ofstream degreeFile(degreeFileName.c_str(), std::ios::out);
+      degreeFile << output.str();
+      degreeFile.close();
+    }
+  }
+
+  /******************************************************************/
+  // calculate dual degree distribution
+  /******************************************************************/
+  if (vm.count("dual-degree-dist") || (allStats && nEdgeTypes > 1)) {
+    std::stringstream output;
+
+    boost::multi_array<double, 2> dd;
+    unsigned int max_degree = multi_degree_dist(graph, dd);
 
     std::stringstream s;
     s << num_vertices(graph);

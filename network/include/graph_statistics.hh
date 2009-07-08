@@ -614,16 +614,26 @@ namespace boost {
   \return the maximal degree
   \ingroup graph_statistics
   */
-  template <typename Graph>
-  unsigned int multi_degree_dist(const Graph& g, unsigned int nEdgeTypes
-           std::vector< std::pair<std::vector<unsigned int>, double> >& degreeDist);
+  template <typename Graph, std::size_t nEdgeTypes>
+  unsigned int multi_degree_dist(const Graph& g,
+		 boost::multi_array<double, nEdgeTypes> degreeDist)
 
   {
     typename boost::graph_traits<Graph>::vertex_iterator vi, vi_end;
     typename boost::graph_traits<Graph>::out_edge_iterator ei, ei_end;   
 
+    typedef typename boost::multi_array<unsigned int, nEdgeTypes> degree_array;
+    typedef typename degree_array::index degree_array_index;
+    typedef typename degree_array::iterator degree_array_iterator;
+
     unsigned int max_degree = 0;
-    
+    unsigned int count = 0;
+
+
+    boost::array<degree_array_index, nEdgeTypes> shape;
+    BOOST_FOREACH(degree_array_index& id, shape) { id = 1; }
+    degreeDist.resize(shape);
+
     // loop over all vertices
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
       
@@ -639,15 +649,25 @@ namespace boost {
       for (unsigned int i = 0; i < nEdgeTypes; ++i) {
         if (vertex_deg[i] > max_degree) {
           max_degree = vertex_deg[i];
-          degrees.resize(max_degree+1, std::vector<unsigned int>(nEdgeTypes, 0);
+	  BOOST_FOREACH(degree_array_index& id, shape) { id = max_degree+1; }
+	  degreeDist.resize(shape);
         }
       }
+      
+      
+      boost::array<degree_array_index, nEdgeTypes> degree_entry;
       // update global degree
       for (unsigned int i = 0; i < nEdgeTypes; i++) {
-        ++degrees[i][vertex_deg[i]];
+	degree_entry[i] = vertex_deg[i];
       }
+      ++degreeDist(degree_entry);
+      ++count;
     }
-           
+
+    for (degree_array_iterator it = degreeDist.begin();
+	 it < degreeDist.end(); it++) {
+      *it /= count;
+    }
     return max_degree;
   }
     
