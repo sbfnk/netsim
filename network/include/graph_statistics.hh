@@ -599,6 +599,59 @@ namespace boost {
   }
     
   //----------------------------------------------------------
+  /*! \brief Write multiple degree distribution to vector
+  
+  Loops over all vertices and records both total degree distribution and degree
+  distribution for each edge type. 
+
+  \param[in] g The graph to calculate the degree distribution for.
+  \param[in] nEdgeTypes The number of edge types.
+  \param[out] degrees 2D array of edgetypes and corresponding degree 
+  distributions, the first (nEdgeTypes) entries for the degree distribution of 
+  edges of that type only (non-parallel), the next (nEdgeTypes) entries for all
+  edges of that type (including parallel), the next for parallel and the last 
+  for all edges
+  \return the maximal degree
+  \ingroup graph_statistics
+  */
+  template <typename Graph>
+  unsigned int multi_degree_dist(const Graph& g, unsigned int nEdgeTypes
+           std::vector< std::pair<std::vector<unsigned int>, double> >& degreeDist);
+
+  {
+    typename boost::graph_traits<Graph>::vertex_iterator vi, vi_end;
+    typename boost::graph_traits<Graph>::out_edge_iterator ei, ei_end;   
+
+    unsigned int max_degree = 0;
+    
+    // loop over all vertices
+    for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+      
+      // tmp sums
+      std::vector<unsigned int> vertex_deg(nEdgeTypes, 0);
+      
+      // loop over the vertex out edges
+      for (tie(ei, ei_end) = out_edges(*vi, g); ei != ei_end; ei++) {
+        ++vertex_deg[nEdgeTypes];
+      }
+
+      // update max_degree
+      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+        if (vertex_deg[i] > max_degree) {
+          max_degree = vertex_deg[i];
+          degrees.resize(max_degree+1, std::vector<unsigned int>(nEdgeTypes, 0);
+        }
+      }
+      // update global degree
+      for (unsigned int i = 0; i < nEdgeTypes; i++) {
+        ++degrees[i][vertex_deg[i]];
+      }
+    }
+           
+    return max_degree;
+  }
+    
+  //----------------------------------------------------------
   /*! \brief Calculate the graph modularity
   
   Loops over all vertices and calculates the graph modularity
