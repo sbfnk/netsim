@@ -203,8 +203,8 @@ int main(int argc, char* argv[])
      "print all statistics")
     ("degree-dist",
      "compute degree distribution")
-    ("multi-degree-dist",
-     "compute multiple degree distribution")
+    ("dual-degree-dist",
+     "compute dual degree distribution")
     ("pairs",
      "count pairs")
     ("triples",
@@ -1529,39 +1529,34 @@ int main(int argc, char* argv[])
   if (vm.count("dual-degree-dist") || (allStats && nEdgeTypes > 1)) {
     std::stringstream output;
 
-    boost::multi_array<double, 2> dd;
+    boost::multi_array<unsigned int, 2> dd;
     unsigned int max_degree = multi_degree_dist(graph, dd);
 
     std::stringstream s;
     s << num_vertices(graph);
-    int len = std::max(6, static_cast<int>(s.str().length()));
-
-    output << "# " << "degree" << "\t";
-    if (nEdgeTypes > 1) {
-      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-        output << edgeLabels[i] << " only" << "\t";
-      }
-      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-        output << edgeLabels[i] << " all " << "\t";
-      }
-      output << "parall" << "\t" << " all  " << std::endl;
-    } else {
-      output << " nodes" << std::endl;
+    unsigned int len = std::max(6, static_cast<int>(s.str().length()));
+    s.str("");
+    for (unsigned int i = 0; i < len; ++i) {
+      s << " ";
     }
+
+    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+      output << s.str().substr(0, len-1) << edgeLabels[i];
+    }
+    output << std::endl << std::endl;
     
     for (unsigned int i = 0; i < max_degree+1; ++i) {
+      for (unsigned int j = 0; j < max_degree+1; ++j) {
 
-      output << "  " << std::setw(len) << i << "\t";
-      if (nEdgeTypes > 1) {
-        for (unsigned int j = 0; j < nEdgeTypes*2+2; ++j) {
-          output << std::setw(len) << dd[j][i] << "\t";
+        if (dd[i][j] > 0) {
+          output << std::setw(len) << i;
+          output << std::setw(len) << j;
+          output << "\t" << std::setw(len) << dd[i][j] << std::endl;
         }
-      } else {
-        output << std::setw(len) << dd[0][i];
-      }
-      output << std::endl;
-    }
 
+      }
+    }
+      
     if (baseFileName.length() == 0 || verbose) {
       std::cout << "\nDegree distribution:" << std::endl;
       std::cout << output.str();
