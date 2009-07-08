@@ -71,6 +71,8 @@ namespace Models {
     getStatRecorders(const po::variables_map& vm) const
     {;}
 
+    
+
   private:
 
     unsigned int gamma[2]; //!< Recovery rates.
@@ -99,17 +101,17 @@ Models::InfoSIRS<Graph>::InfoSIRS(unsigned int v)
   // define vertex classes
   /************************************/
   // susceptible uninformed
-  this->vertexStates.push_back(Label("S-","00;32", 0, "fillcolor=\"royalblue4\""));
+  this->vertexStates.push_back(Label("S-","00;32", 0, "fillcolor=\"royalblue4\""), Label::rgbColour(0,0,51));
   // infected uninformed
-  this->vertexStates.push_back(Label("I-","00;31", 1, "fillcolor=\"red4\""));
+  this->vertexStates.push_back(Label("I-","00;31", 1, "fillcolor=\"red4\""), Label::rgbColour(51,0,0));
   // recovered uninformed
-  this->vertexStates.push_back(Label("R-","00;34", 2, "fillcolor=\"green4\""));
+  this->vertexStates.push_back(Label("R-","00;34", 2, "fillcolor=\"green4\""), Label::rgbColour(0,51,0));
   // susceptible informed
-  this->vertexStates.push_back(Label("S+","01;32", 3, "fillcolor=\"royalblue\""));
+  this->vertexStates.push_back(Label("S+","01;32", 3, "fillcolor=\"royalblue\""), Label::rgbColour(0,0,255));
   // infected informed
-  this->vertexStates.push_back(Label("I+","01;31", 4, "fillcolor=\"red\""));
+  this->vertexStates.push_back(Label("I+","01;31", 4, "fillcolor=\"red\""), Label::rgbColour(255,0,0));
   // recovered informed
-  this->vertexStates.push_back(Label("R+","01;34", 5, "fillcolor=\"green\""));
+  this->vertexStates.push_back(Label("R+","01;34", 5, "fillcolor=\"green\""), Label::rgbColour(0,255,0));
 
   /*************************************/
   // define edge types
