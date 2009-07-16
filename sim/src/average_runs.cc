@@ -44,6 +44,7 @@ int main(int argc, char* argv[])
 
   float timeStep = 0.;
   float stopTime = 0.;
+  float maxTime = 0.;
 
   bool do_errors = false;
   unsigned int verbose = 0;
@@ -69,6 +70,8 @@ int main(int argc, char* argv[])
      "produce verbose output")    
     ("very-verbose,V",
      "produce very verbose output")    
+    ("max, m", po::value<float>(),
+     "maximum time")    
     ;
     
   po::options_description hidden_options;
@@ -124,6 +127,10 @@ int main(int argc, char* argv[])
     verbose = 2;
   }
 
+  if(vm.count("max")) {
+    maxTime = vm["max"].as<float>();
+  }
+
   std::vector< std::vector<float> > values;
   std::vector< std::vector<float> > squares;
   std::vector<unsigned int> no_files;
@@ -140,7 +147,7 @@ int main(int argc, char* argv[])
     }
     std::ifstream ifs((*it).c_str());
     std::ofstream ofs_steps;
-    if ("steps-file" ) {
+    if (vm.count("steps-file")) {
       ofs_steps.open((baseName + ".steps").c_str(), std::ios::out);
     }
 
@@ -157,7 +164,7 @@ int main(int argc, char* argv[])
       std::vector<float> previous_line_contents;
       std::vector<float> previous_line_squares;
 
-      while (!ifs.eof()) {
+      while (!ifs.eof() && (maxTime == 0 || currentStep*timeStep <= maxTime)) {
         
         lineCount++;
         line_contents.clear();
@@ -194,28 +201,45 @@ int main(int argc, char* argv[])
           // get time of next line
           currentTime = *(line_contents.begin());
           // need to write data?
-          while (firstLine || (currentTime) > (currentStep*timeStep)) {
-
+          while ((currentTime) >= (currentStep*timeStep) && (maxTime == 0 || currentStep*timeStep <= maxTime)) {
             if (verbose >= 2) {
               std::cout << "processing data: current " << currentTime
                         << " time step " << currentStep  
 			<< " stop time " << stopTime << std::endl;
             }
 
+            // interpolate values
+            std::vector<float> interpol(nColumns-1);
+            std::vector<float> interpol_sq(nColumns-1);
+            if (currentTime == currentStep * timeStep) {
+              interpol = std::vector<float>(line_contents.begin()+1,
+                                            line_contents.end());
+            } else {
+              for (unsigned int i = 0; i < nColumns-1; ++i) {
+                interpol[i] = previous_line_contents[i+1] +
+                  (line_contents[i+1] - previous_line_contents[i+1]) *
+                  (currentStep * timeStep - previous_line_contents[0]) /
+                  (currentTime - previous_line_contents[0]);
+              }
+            }
+            if (do_errors) {
+              for (unsigned int i = 0; i < nColumns-1; ++i) {
+                interpol_sq[i] = interpol[i] * interpol[i];
+              }
+            }
+            
             if ((firstFile) || (stopTime < currentStep*timeStep)) {
-              values.push_back(std::vector<float>(previous_line_contents.begin()+1,
-                                                  previous_line_contents.end()));
+              values.push_back(interpol);
               if (do_errors) {
-                squares.push_back(std::vector<float>(previous_line_squares.begin()+1,
-                                                     previous_line_squares.end()));
+                squares.push_back(interpol_sq);
               }
               no_files.push_back(1);
               stopTime = currentStep*timeStep;
             } else {
-              for (unsigned int i=1; i < nColumns; i++) {
-                values[currentStep][i-1] += previous_line_contents[i];
+              for (unsigned int i=0; i < nColumns-1; i++) {
+                values[currentStep][i] += interpol[i];
                 if (do_errors) {
-                  squares[currentStep][i-1] += previous_line_squares[i];
+                  squares[currentStep][i] += interpol_sq[i];
                 }
               }
               no_files[currentStep]++;
@@ -238,38 +262,6 @@ int main(int argc, char* argv[])
             previous_line_squares = std::vector<float>(line_squares);
           }
           std::getline(ifs, line);
-        }
-      }
-      while (currentTime >= currentStep * timeStep) {
-        if (firstFile || (stopTime < currentStep*timeStep)) {
-          values.push_back(std::vector<float>(previous_line_contents.begin()+1,
-                                              previous_line_contents.end()));
-									                  if (do_errors) {
-           squares.push_back(std::vector<float>(previous_line_squares.begin()+1,
-                                                previous_line_squares.end()));
-          }
-          no_files.push_back(1);
-          stopTime = currentStep*timeStep;
-        } else {
-          for (unsigned int i=1; i < nColumns; i++) {
-            values[currentStep][i-1] += previous_line_contents[i];
-            if (do_errors) {
-              squares[currentStep][i-1] += previous_line_squares[i];
-            }
-          }
-          no_files[currentStep]++;
-        }
-        if (verbose >= 2) {
-          std::cout << currentStep*timeStep;
-          for (unsigned int j = 1; j < nColumns ; j++) {
-            std::cout << " " << values[currentStep][j-1];
-          }
-          std::cout << " files: " << no_files[currentStep] << std::endl;
-        }
-        ++currentStep;
-        if (ofs_steps.is_open()) {
-          ofs_steps << previous_line_contents[0] << " " << currentStep - 1 
-	            << std::endl;
         }
       }
       if (values.size() > 0) {
