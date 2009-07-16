@@ -218,6 +218,9 @@ count_state_pairs(Graph& g, unsigned int nVertexStates,
     states[1] = g[target(*ei, g)].state->getState();
     std::sort(states.begin(), states.end());
     ++counts[g[*ei].type][states[0]][states[1]];
+    if (states[0] == states[1]) {
+      ++counts[g[*ei].type][states[0]][states[1]];
+    }
   }
 
   return counts;
@@ -256,6 +259,9 @@ count_parallel_edges(Graph& g, unsigned int nVertexStates)
       states[1] = g[target(*ei, g)].state->getState();
       std::sort(states.begin(), states.end());
       ++counts[states[0]][states[1]];
+      if (states[0] == states[1]) {
+        ++counts[states[0]][states[1]];
+      }
     }
   }
 
