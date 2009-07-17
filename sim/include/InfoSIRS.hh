@@ -35,6 +35,9 @@ namespace Models {
 
     virtual Model<Graph>* clone() const { return new InfoSIRS<Graph>(*this); }
 
+    virtual State* newState(unsigned int disease, unsigned int info) const
+    { State* s = new State(info*2+disease); return s; }
+
     void Init(const po::variables_map& vm,
               std::vector<StatRecorder<Graph>*>& rec);
   
@@ -44,28 +47,28 @@ namespace Models {
                          unsigned int edge, State* currentNbState, 
                          unsigned int nb) const;
 
-    bool isInfection(State before_state, State after_state) const
+    bool isInfection(State* before_state, State* after_state) const
     { return ((getDisease(before_state) == Susceptible) &&
               (getDisease(after_state) == Infected)); }
-    bool isRecovery(State before_state, State after_state) const
+    bool isRecovery(State* before_state, State* after_state) const
     { return ((getDisease(before_state) == Infected) &&
               (getDisease(after_state) != Infected)); }
-    bool isInformation(State before_state, State after_state) const
+    bool isInformation(State* before_state, State* after_state) const
     { return ((getInfo(before_state) == Uninformed) &&
               (getInfo(after_state) == Informed)); }
-    bool isForgetting(State  before_state, State after_state) const
+    bool isForgetting(State*  before_state, State* after_state) const
     { return ((getInfo(before_state) == Informed) &&
               (getInfo(after_state) == Uninformed)); }
 
     //! Get the disease part of a full vertex state.
-    unsigned int getDisease(State state) const
-    { return (state.getState() % 3); }
+    unsigned int getDisease(State* state) const
+    { return (state->getState() % 3); }
     //! Get the information part of a full vertex state.
-    unsigned int getInfo(State state) const
-    { return (state.getState() / 3); }
+    unsigned int getInfo(State* state) const
+    { return (state->getState() / 3); }
     //! Get the full vertex state from disease and information parts.
-    unsigned int getState(State dState, State iState) const
-    { return dState.getState()+iState.getState()*3; }
+    unsigned int getState(State* dState, State* iState) const
+    { return dState->getState()+iState->getState()*3; }
 
     std::vector<StatRecorder<Graph>*> 
     getStatRecorders(const po::variables_map& vm) const
@@ -195,12 +198,11 @@ unsigned int Models::InfoSIRS<Graph>::getNodeEvents(eventList& events,
    State* state = currentState;
    unsigned int rateSum(0);
 
-   if (getDisease(state->getState()) == Recovered) {
+   if (getDisease(state) == Recovered) {
      // loss of immunity
       Event immunityLoss;
-      immunityLoss.rate = delta[getInfo(state->getState())];
-      immunityLoss.newState = 
-	this->newState(State(getState(Susceptible, getInfo(state->getState()))));
+      immunityLoss.rate = delta[getInfo(state)];
+      immunityLoss.newState = this->newState(Susceptible, getInfo(state));
       immunityLoss.nb = nb;
       if (immunityLoss.rate > 0) {
         events.push_back(immunityLoss);
@@ -211,12 +213,11 @@ unsigned int Models::InfoSIRS<Graph>::getNodeEvents(eventList& events,
         }
       }
    } else
-   if (getDisease(state->getState()) == Infected) {
+   if (getDisease(state) == Infected) {
       // recovery
       Event recovery;
-      recovery.rate = gamma[getInfo(state->getState())];
-      recovery.newState = 
-	this->newState(State(getState(Recovered, getInfo(state->getState()))));
+      recovery.rate = gamma[getInfo(state)];
+      recovery.newState = this->newState(Recovered, getInfo(state));
       recovery.nb = nb;
       if (recovery.rate > 0) {
         events.push_back(recovery);
@@ -226,12 +227,11 @@ unsigned int Models::InfoSIRS<Graph>::getNodeEvents(eventList& events,
                     << std::endl;
         }
       }
-      if (getInfo(state->getState()) == Uninformed) {
+      if (getInfo(state) == Uninformed) {
         // local information generation
         Event localInfo;
         localInfo.rate = omega;
-        localInfo.newState = 
-	  this->newState(State(getState(getDisease(state->getState()), Informed)));
+        localInfo.newState = this->newState(getDisease(state), Informed);
         localInfo.nb = nb;
         if (localInfo.rate > 0) {
           events.push_back(localInfo);
@@ -244,11 +244,11 @@ unsigned int Models::InfoSIRS<Graph>::getNodeEvents(eventList& events,
       }
    }
    // information loss
-   if (getInfo(state->getState()) == Informed) {
+   if (getInfo(state) == Informed) {
       Event infoLoss;
       infoLoss.rate = lambda;
       infoLoss.newState = 
-        this->newState(State(getState(getDisease(state->getState()), Uninformed)));
+        this->newState(getDisease(state), Uninformed);
       infoLoss.nb = nb;
       if (infoLoss.rate > 0) {
         events.push_back(infoLoss);
@@ -278,11 +278,11 @@ unsigned int Models::InfoSIRS<Graph>::getEdgeEvents(eventList& events,
    unsigned int rateSum(0);
    if (edge == Disease) {
       // infection
-      if (getDisease(state->getState()) == Susceptible &&
-          getDisease(nbState->getState()) == Infected) {
+      if (getDisease(state) == Susceptible &&
+          getDisease(nbState) == Infected) {
          Event infection;
-         infection.rate = beta[getInfo(state->getState())][getInfo(nbState->getState())];
-         infection.newState = this->newState(State(getState(Infected, getInfo(state->getState()))));
+         infection.rate = beta[getInfo(state)][getInfo(nbState)];
+         infection.newState = this->newState(Infected, getInfo(state));
          infection.nb = nb;
          infection.et = edge;
          if (infection.rate > 0) {
@@ -296,12 +296,12 @@ unsigned int Models::InfoSIRS<Graph>::getEdgeEvents(eventList& events,
       }
    } else if (edge == Information) {
       // information transmission
-      if (getInfo(state->getState()) == Uninformed && 
-	  getInfo(nbState->getState()) == Informed) {
+      if (getInfo(state) == Uninformed && 
+	  getInfo(nbState) == Informed) {
          Event infoTransmission;
          infoTransmission.rate = alpha;
          infoTransmission.newState =
-           this->newState(State(getState(getDisease(state->getState()), Informed)));
+           this->newState(getDisease(state), Informed);
          infoTransmission.nb = nb;
          infoTransmission.et = edge;
          if (infoTransmission.rate > 0) {
@@ -314,12 +314,12 @@ unsigned int Models::InfoSIRS<Graph>::getEdgeEvents(eventList& events,
          }
       }
       // information generation
-      if (getInfo(state->getState()) == Uninformed && 
-	  getDisease(nbState->getState()) == Infected) {
+      if (getInfo(state) == Uninformed && 
+	  getDisease(nbState) == Infected) {
          Event infoGeneration;
          infoGeneration.rate = nu;
          infoGeneration.newState = 
-	   this->newState(State(getState(getDisease(state->getState()), Informed)));
+	   this->newState(getDisease(state), Informed);
          infoGeneration.et = edge;
          if (infoGeneration.rate > 0) {
            events.push_back(infoGeneration);
