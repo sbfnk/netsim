@@ -36,7 +36,7 @@ namespace Models {
     virtual Model<Graph>* clone() const { return new InfoSIRS<Graph>(*this); }
 
     virtual State* newState(unsigned int disease, unsigned int info) const
-    { State* s = new State(info*2+disease); return s; }
+    { State* s = new State(info*3+disease); return s; }
 
     void Init(const po::variables_map& vm,
               std::vector<StatRecorder<Graph>*>& rec);
@@ -59,6 +59,11 @@ namespace Models {
     bool isForgetting(State*  before_state, State* after_state) const
     { return ((getInfo(before_state) == Informed) &&
               (getInfo(after_state) == Uninformed)); }
+    bool isInfected(State* state) const
+    { return (getDisease(state) == Infected); }
+
+    bool isInformed(State* state) const
+    { return (getInfo(state) == Informed); }
 
     //! Get the disease part of a full vertex state.
     unsigned int getDisease(State* state) const
