@@ -40,6 +40,9 @@ public:
     statFunc(s), outputFreq(f), nextStep(f),
     seqNum(0), outputDir("")
   {;}
+
+  ~StatRecorder()
+  { delete statFunc; }
   
   void reset(std::string dir)
   {

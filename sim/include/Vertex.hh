@@ -60,7 +60,7 @@ public:
     rate(r), newState(s), nb(n), et(e)
   {;}
   
-  ~Event() { delete newState; }
+  ~Event() { if (newState) delete newState; }
   Event(const Event& e)
   {
     newState = e.newState->clone();
@@ -70,6 +70,7 @@ public:
   Event& operator=(const Event& e)
   {
     if (this == &e) return *this;
+    if (newState) delete newState;
     newState = e.newState->clone();
     rate = e.rate; nb = e.nb; et = e.et;
     return *this;
@@ -110,11 +111,12 @@ public:
   { state = v.state->clone(); }
 
   Vertex& operator=(const Vertex& v)
-  { if (&v != this) {this->state = v.state->clone();} return *this; }
+  { if (&v != this) { if (state) delete state; state = v.state->clone(); } return *this; }
     
   //! Destructor
   virtual ~Vertex() { if (state) delete state;}
 
+  void setStatePtr(State* newState) { if (state) delete state; state = newState; }
   State* state;
   
   //! The sum of rates of all events that can change the state of the vertex.

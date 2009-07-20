@@ -67,7 +67,13 @@ public:
   }
 
   //! Destructor.
-  virtual ~Simulator() { if (model) delete model;}
+  virtual ~Simulator() 
+  { 
+    if (model) delete model;
+    for (unsigned int i = 0; i < statRecorders.size(); ++i) {
+      delete statRecorders[i];
+    } 
+  }
 
   //! Initialise the simulation. Implemented by derived classes.
   virtual void initialise()
