@@ -330,7 +330,7 @@ int main(int argc, char* argv[])
       if (edgesRead > 0) {
 
         // update number of vertices
-        if (verbose) {
+        if (verbose > 1) {
           std::cout << "Read " << edgesRead << " edges from graph file "
                     << fileNames[i] << std::endl;
         }
@@ -380,7 +380,7 @@ int main(int argc, char* argv[])
 
   // mark parallel edges
   unsigned int parallel_edges = mark_parallel_edges(graph);
-  if (verbose && nEdgeTypes > 1) {
+  if (verbose > 1 && nEdgeTypes > 1) {
     std::cout << "No. of parallel edges is: " << parallel_edges
               << std::endl;
   }
@@ -433,7 +433,7 @@ int main(int argc, char* argv[])
       std::cerr << "ERROR: found only " << verticesRead << " vertex "
                 << "states in " << icFileName << std::endl;
       return 1;
-    } else if (verbose) {
+    } else if (verbose > 1) {
       std::cout << "Read " << verticesRead << " initial states from "
                 << icFileName << std::endl;
     }
@@ -524,7 +524,7 @@ int main(int argc, char* argv[])
       // set the initial state of all vertices to the base state
       boost::graph_traits<multitype_graph>::vertex_iterator vi, vi_end;
       for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-        graph[*vi].state = model->newState();
+        graph[*vi].setStatePtr(model->newState());
         graph[*vi].state->setState(baseState);
       }
 
