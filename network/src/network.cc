@@ -205,6 +205,8 @@ int main(int argc, char* argv[])
      "compute degree distribution")
     ("dual-degree-dist",
      "compute dual degree distribution")
+    ("co-degree-dist",
+     "compute degree co-distribution")
     ("pairs",
      "count pairs")
     ("triples",
@@ -1560,11 +1562,59 @@ int main(int argc, char* argv[])
     }
       
     if (baseFileName.length() == 0 || verbose) {
-      std::cout << "\nDegree distribution:" << std::endl;
+      std::cout << "\nDual degree distribution:" << std::endl;
       std::cout << output.str();
     }
     if (baseFileName.length() > 0) {
-      std::string degreeFileName = baseFileName+".stat.degree";
+      std::string degreeFileName = baseFileName+".stat.ddegree";
+      std::ofstream degreeFile(degreeFileName.c_str(), std::ios::out);
+      degreeFile << output.str();
+      degreeFile.close();
+    }
+  }
+
+  /******************************************************************/
+  // calculate degree codistributions
+  /******************************************************************/
+  if (vm.count("co-degree-dist") || (allStats && nEdgeTypes > 1)) {
+    std::stringstream output;
+
+    output << print_corr_matrices(graph);
+
+//     boost::multi_array<unsigned int, 2> dd;
+//     unsigned int max_degree = multi_degree_dist(graph, dd);
+
+//     std::stringstream s;
+//     s << num_vertices(graph);
+//     unsigned int len = std::max(6, static_cast<int>(s.str().length()));
+//     s.str("");
+//     for (unsigned int i = 0; i < len; ++i) {
+//       s << " ";
+//     }
+
+//     for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+//       output << s.str().substr(0, len-1) << edgeLabels[i];
+//     }
+//     output << std::endl << std::endl;
+    
+//     for (unsigned int i = 0; i < max_degree+1; ++i) {
+//       for (unsigned int j = 0; j < max_degree+1; ++j) {
+
+//         if (dd[i][j] > 0) {
+//           output << std::setw(len) << i;
+//           output << std::setw(len) << j;
+//           output << "\t" << std::setw(len) << dd[i][j] << std::endl;
+//         }
+
+//       }
+//     }
+      
+    if (baseFileName.length() == 0 || verbose) {
+      std::cout << "\nDegree codistribution:" << std::endl;
+      std::cout << output.str();
+    }
+    if (baseFileName.length() > 0) {
+      std::string degreeFileName = baseFileName+".stat.codegree";
       std::ofstream degreeFile(degreeFileName.c_str(), std::ios::out);
       degreeFile << output.str();
       degreeFile.close();

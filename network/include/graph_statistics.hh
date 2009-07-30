@@ -599,23 +599,88 @@ namespace boost {
   }
     
   //----------------------------------------------------------
-  /*! \brief Write multiple degree distribution to vector
+  /*! \brief Write multiple degree distribution to array
   
-  Loops over all vertices and records both total degree distribution and degree
-  distribution for each edge type. 
+  Loops over all vertices and records combined degree distributions for multiple edge types
 
   \param[in] g The graph to calculate the degree distribution for.
-  \param[in] nEdgeTypes The number of edge types.
-  \param[out] degrees 2D array of edgetypes and corresponding degree 
-  distributions, the first (nEdgeTypes) entries for the degree distribution of 
-  edges of that type only (non-parallel), the next (nEdgeTypes) entries for all
-  edges of that type (including parallel), the next for parallel and the last 
-  for all edges
+  \param[out] degreeDist Container for combined degree distribution
   \return the maximal degree
   \ingroup graph_statistics
   */
   template <typename Graph, std::size_t nEdgeTypes>
   unsigned int multi_degree_dist(const Graph& g,
+		 boost::multi_array<unsigned int, nEdgeTypes>& degreeDist)
+
+  {
+    typename boost::graph_traits<Graph>::vertex_iterator vi, vi_end;
+    typename boost::graph_traits<Graph>::out_edge_iterator ei, ei_end;   
+
+    typedef typename boost::multi_array<double, nEdgeTypes> degree_array;
+    typedef typename degree_array::index degree_array_index;
+    typedef typename degree_array::iterator degree_array_iterator;
+
+    unsigned int max_degree = 0;
+
+    boost::array<degree_array_index, nEdgeTypes> shape;
+    BOOST_FOREACH(degree_array_index& id, shape) { id = 1; }
+    degreeDist.resize(shape);
+
+    // loop over all vertices
+    for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+      
+      // tmp sums
+      std::vector<unsigned int> vertex_deg(nEdgeTypes, 0);
+      
+      // loop over the vertex out edges
+      for (tie(ei, ei_end) = out_edges(*vi, g); ei != ei_end; ei++) {
+        ++vertex_deg[g[*ei].type];
+      }
+
+      // update max_degree
+      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+        if (vertex_deg[i] > max_degree) {
+          max_degree = vertex_deg[i];
+	  BOOST_FOREACH(degree_array_index& id, shape) { id = max_degree+1; }
+	  degreeDist.resize(shape);
+        }
+      }
+      
+      
+      boost::array<degree_array_index, nEdgeTypes> degree_entry;
+      // update global degree
+      for (unsigned int i = 0; i < nEdgeTypes; i++) {
+	degree_entry[i] = vertex_deg[i];
+      }
+      ++degreeDist(degree_entry);
+    }
+
+//     // normalization
+//     double* startaddress = degreeDist.data();
+//     double* endaddress = startaddress + degreeDist.num_elements();
+//     for (double* it = startaddress; it < endaddress; it++) {
+//       (*it) /= num_vertices(g);
+//     }
+    return max_degree;
+  }
+    
+  //----------------------------------------------------------
+  /*! \brief Write degree codistribution to array
+  
+  Loops over all vertices and records the degree codistribution
+  (distribution of degrees of nodes which are neighbours on a
+  potentially different edge type)  distribution for each edge type. 
+
+  \param[in] g The graph to calculate the degree distribution for.
+  \param[in] dType1 The edge type to consider for the first degree
+  \param[in] nbType The edge type to consider for neighbours
+  \param[in] dType2 The edge type to consider for the second degree
+  \param[out] XXXXX
+  \return the maximal degree
+  \ingroup graph_statistics
+  */
+  template <typename Graph, std::size_t nEdgeTypes>
+  unsigned int degree_codist(const Graph& g,
 		 boost::multi_array<unsigned int, nEdgeTypes>& degreeDist)
 
   {
