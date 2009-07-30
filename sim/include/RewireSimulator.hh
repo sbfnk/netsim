@@ -122,6 +122,10 @@ namespace Simulators {
     double randomRewiring;
 
     unsigned int rewireCounter;
+    unsigned int rewirefcCounter;
+    unsigned int rewirefnCounter;
+    unsigned int rewiressCounter;
+    unsigned int rewiredsCounter;
     unsigned int updateCounter;
     unsigned int randomiseCounter;
     unsigned int randomRewireCounter;
@@ -279,6 +283,10 @@ namespace Simulators {
       recordEffectiveRates = vm["effective-rates"].as<double>();
       recordEffectiveTimer = 0;
       rewireCounter = 0;
+      rewirefcCounter = 0;
+      rewirefnCounter = 0;
+      rewiressCounter = 0;
+      rewiredsCounter = 0;
       updateCounter = 0;
       randomiseCounter = 0;
       randomRewireCounter = 0;
@@ -315,10 +323,7 @@ namespace Simulators {
     // This will not change
     numEdges = num_edges(graph);
     numVertices = num_vertices(graph);
-    tempStates.insert(std::make_pair(0, std::set<unsigned int>()));
-    for (unsigned int i = 0; i < numVertices; ++i) {
-      tempStates[0].insert(i);
-    }
+    //tempStates.insert(std::make_pair(0, std::set<unsigned int>()));
     groupInitiationTimes.push_back(0.);
 
     for (tie(ei, ei_end) = edges(graph); ei != ei_end; ei++) {
@@ -327,6 +332,7 @@ namespace Simulators {
 
     for (tie(vi, vi_end) = vertices(graph); vi != vi_end; vi++) {
       tempVertices.push_back(graph[*vi].state->getState());
+      tempStates[graph[*vi].state->getState()].insert(*vi);
     }
 
     // check if we need to add states to model
@@ -389,10 +395,27 @@ namespace Simulators {
 
 	// choose a random edge
         unsigned int randEdge = static_cast<unsigned int>
-          (randGen() * numEdges);
+          (randGen() * numEdges * 2);
         
-	vertex_descriptor source_node = source(tempEdges[randEdge], graph);
-	vertex_descriptor target_node = target(tempEdges[randEdge], graph);
+	vertex_descriptor source_node;
+	vertex_descriptor target_node;
+
+        if (randEdge < numEdges) {
+	  source_node = source(tempEdges[randEdge], graph);
+	  target_node = target(tempEdges[randEdge], graph);
+        } else {
+          randEdge -= numEdges;
+	  source_node = target(tempEdges[randEdge], graph);
+	  target_node = source(tempEdges[randEdge], graph);
+        }
+
+	if (verbose >= 2) {
+	  std::cout << "Chose random edge: " << source_node << " (" 
+                    << model->printState(graph[source_node].state) 
+                    << ") -- " << target_node << " (" 
+                    << model->printState(graph[target_node].state) 
+                    << ") " << std::endl;
+	}
 
 	if (tempVertices[source_node] > 0) {
 	  std::set<unsigned int> nonNbSameStates = 
@@ -402,10 +425,17 @@ namespace Simulators {
 	  for (tie(oi, oi_end) = out_edges(source_node, graph);
 	       oi != oi_end; oi++) {
 	    if (tempVertices[target(*oi, graph)] == tempVertices[source_node]) {
+              if (verbose >= 2) {
+                std::cout << "Connected same state node: " << target(*oi, graph) << std::endl;
+              }
 	      nonNbSameStates.erase(target(*oi, graph));
 	    }
 	  }
-	  if (nonNbSameStates.size() > 1) {
+          if (verbose >= 2) {
+            std::cout << source_node << " has " << nonNbSameStates.size()
+                      << " non nb same state nodes" << std::endl;
+          }
+	  if (nonNbSameStates.size() > 0) {
 	    // reuse randEvent number to select target node
 
 	    unsigned int randomSameState =
@@ -425,7 +455,7 @@ namespace Simulators {
               boost::add_edge(source_node, newtarget, graph).first;
 
 	    if (verbose >=2) {
-	      std::cout << "Rewiring edge " << source_node << " (" 
+	      std::cout << "EVENT: Rewiring edge " << source_node << " (" 
 			<< model->printState(graph[source_node].state) 
 			<< ") -- " << target_node << " (" 
 			<< model->printState(graph[target_node].state) 
@@ -437,9 +467,19 @@ namespace Simulators {
 			<< std::endl;
 	    }
 
+            if (graph[source_node].state->getState() ==
+                graph[target_node].state->getState()) {
+              ++rewiressCounter;
+            } else {
+              ++rewiredsCounter;
+            }
 	    ++rewireCounter;
-	  }
-	}
+	  } else {
+            ++rewirefcCounter;
+          }
+	} else {
+          ++rewirefnCounter;
+        }
       }
 
       break;
@@ -458,8 +498,17 @@ namespace Simulators {
         unsigned int randEdge = static_cast<unsigned int>
           (randGen() * numEdges);
         
-	vertex_descriptor source_node = source(tempEdges[randEdge], graph);
-	vertex_descriptor target_node = target(tempEdges[randEdge], graph);
+	vertex_descriptor source_node;
+	vertex_descriptor target_node;
+
+        if (randEdge < numEdges) {
+	  source_node = source(tempEdges[randEdge], graph);
+	  target_node = target(tempEdges[randEdge], graph);
+        } else {
+          randEdge -= numEdges;
+	  source_node = target(tempEdges[randEdge], graph);
+	  target_node = source(tempEdges[randEdge], graph);
+        }
 
 	if (tempVertices[source_node] > 0) {
           tempStates[tempVertices[target_node]].erase(target_node);
@@ -480,15 +529,18 @@ namespace Simulators {
 	    tempStates.erase(tempVertices[target_node]);
 	  }
 	  
+	  if (verbose >=2) {
+	    std::cout << "EVENT: Spreading state " 
+		      << model->printState(graph[source_node].state)
+		      << " from node " << source_node << " (" 
+                      << model->printState(graph[source_node].state) 
+                      << ") to node " << target_node << " (" 
+                      << model->printState(graph[target_node].state) 
+                      << ")" << std::endl;
+	  }
 	  GroupFormState* myState =
 	    dynamic_cast<GroupFormState*>(graph[target_node].state);
 	  myState->setState(tempVertices[source_node]);
-	  if (verbose >=2) {
-	    std::cout << "Spreading state " 
-		      << model->printState(graph[target_node].state)
-		      << " from node " << source_node << " to node " 
-		      << target_node << std::endl;
-	  }
           tempVertices[target_node] = tempVertices[source_node];
 	  ++updateCounter;
 	}
@@ -530,19 +582,20 @@ namespace Simulators {
 	  tempStates.erase(tempVertices[v]);
 	}
 	  
-	GroupFormState* myState =
-          dynamic_cast<GroupFormState*>(graph[v].state);
-	myState->setState(newState);
-
 	if (verbose >=2) {
-	  std::cout << "Assigning randomly picked vertex " << v 
+	  std::cout << "EVENT: Assigning randomly picked vertex " << v << " ("
+                    << model->printState(graph[v].state) << ")"
 		    << " new state " 
-		    << model->getVertexState(newState);
+		    << model->printState(new GroupFormState(newState)) << std::endl;
 	  if (groupLifeTimes) {
 	    std::cout << " at time " << this->getTime();
 	  }
 	  std::cout << std::endl;
 	}
+
+	GroupFormState* myState =
+          dynamic_cast<GroupFormState*>(graph[v].state);
+	myState->setState(newState);
 
         tempVertices[v] = newState;
 	tempStates.insert(std::make_pair(newState,std::set<unsigned int>()));
@@ -586,8 +639,17 @@ namespace Simulators {
         unsigned int randEdge = static_cast<unsigned int>
           (randGen() * numEdges);
         
-	vertex_descriptor source_node = source(tempEdges[randEdge], graph);
-	vertex_descriptor target_node = target(tempEdges[randEdge], graph);
+	vertex_descriptor source_node;
+	vertex_descriptor target_node;
+
+        if (randEdge < numEdges) {
+	  source_node = source(tempEdges[randEdge], graph);
+	  target_node = target(tempEdges[randEdge], graph);
+        } else {
+          randEdge -= numEdges;
+	  source_node = target(tempEdges[randEdge], graph);
+	  target_node = source(tempEdges[randEdge], graph);
+        }
 
 	boost::remove_edge(tempEdges[randEdge], graph);
 	
@@ -613,12 +675,11 @@ namespace Simulators {
           boost::add_edge(source_node, newtarget, graph).first;
 
 	if (verbose >=2) {
-	  std::cout << "Rewiring edge " << source_node << " (" 
+	  std::cout << "EVENT: Randomly rewiring edge " << source_node << " (" 
 		    << model->printState(graph[source_node].state) 
 		    << ") -- " << target_node << " (" 
 		    << model->printState(graph[target_node].state) 
-		    << ") "
-		    << " to new edge " << source_node << " ("
+		    << ")" << " to new edge " << source_node << " ("
 		    << model->printState(graph[source_node].state) 
 		    << ") -- " << newtarget << " (" 
 		    << model->printState(graph[newtarget].state) << ")"
@@ -648,6 +709,14 @@ namespace Simulators {
 						   numVertices));
       effectiveRates.push_back(randomRewireCounter / (recordEffectiveTimer *
 						      numEdges));
+      effectiveRates.push_back(rewirefnCounter / (recordEffectiveTimer *
+                                                  numEdges));
+      effectiveRates.push_back(rewirefcCounter / (recordEffectiveTimer *
+                                                  numEdges));
+      effectiveRates.push_back(rewiressCounter / (recordEffectiveTimer *
+                                                  numEdges));
+      effectiveRates.push_back(rewiredsCounter / (recordEffectiveTimer *
+                                                  numEdges));
 
       write_data(this->getDir() + "/rates.sim.dat", this->getTime(), 
 		 effectiveRates);
@@ -657,6 +726,10 @@ namespace Simulators {
       updateCounter = 0;
       randomiseCounter = 0;
       randomRewireCounter = 0;
+      rewirefcCounter = 0;
+      rewirefnCounter = 0;
+      rewiressCounter = 0;
+      rewiredsCounter = 0;
     }
   
     return true;
