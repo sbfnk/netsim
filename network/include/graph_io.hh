@@ -444,7 +444,11 @@ namespace boost {
     catch (std::exception &e) {
       return -1;
     }
-  
+
+    if (!file.is_open()) {
+      return -2;
+    }
+
     boost::iostreams::filtering_istream in;
     if (compressed) {
       in.push(boost::iostreams::gzip_decompressor());
@@ -471,7 +475,7 @@ namespace boost {
     std::string line = "";
   
     int edgeCount = 0;
-  
+
     if (in.is_complete()) {
       while(!in.eof()) {
         //read line

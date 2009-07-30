@@ -1176,6 +1176,8 @@ int main(int argc, char* argv[])
       } else if (read_result == 0) {
         std::cerr << "WARNING: no " << edgeLabels[i] << "-edges in "
                   << opt.fileName << std::endl;
+      } else if (read_result == -2) {
+        std::cerr << "Failed to open " << opt.fileName << std::endl;
       } else {
         std::cerr << "ERROR: something wrong in reading "
 	          << edgeLabels[i] << "-graph from "
