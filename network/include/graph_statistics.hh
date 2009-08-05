@@ -728,6 +728,7 @@ namespace boost {
 
 //     double* startaddress = degreeDist.data();
 //     double* endaddress = startaddress + degreeDist.num_elements();
+
 //     for (double* it = startaddress; it < endaddress; it++) {
 //       (*it) /= num_vertices(g);
 //     }

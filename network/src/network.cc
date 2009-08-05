@@ -1581,33 +1581,33 @@ int main(int argc, char* argv[])
 
     output << print_corr_matrices(graph);
 
-//     boost::multi_array<unsigned int, 2> dd;
-//     unsigned int max_degree = multi_degree_dist(graph, dd);
+    boost::multi_array<unsigned int, 2> dd;
+    unsigned int max_degree = degree_codist(graph, dd);
 
-//     std::stringstream s;
-//     s << num_vertices(graph);
-//     unsigned int len = std::max(6, static_cast<int>(s.str().length()));
-//     s.str("");
-//     for (unsigned int i = 0; i < len; ++i) {
-//       s << " ";
-//     }
+    std::stringstream s;
+    s << num_vertices(graph);
+    unsigned int len = std::max(6, static_cast<int>(s.str().length()));
+    s.str("");
+    for (unsigned int i = 0; i < len; ++i) {
+      s << " ";
+    }
 
-//     for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-//       output << s.str().substr(0, len-1) << edgeLabels[i];
-//     }
-//     output << std::endl << std::endl;
+    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+      output << s.str().substr(0, len-1) << edgeLabels[i];
+    }
+    output << std::endl << std::endl;
     
-//     for (unsigned int i = 0; i < max_degree+1; ++i) {
-//       for (unsigned int j = 0; j < max_degree+1; ++j) {
+    for (unsigned int i = 0; i < max_degree+1; ++i) {
+      for (unsigned int j = 0; j < max_degree+1; ++j) {
 
-//         if (dd[i][j] > 0) {
-//           output << std::setw(len) << i;
-//           output << std::setw(len) << j;
-//           output << "\t" << std::setw(len) << dd[i][j] << std::endl;
-//         }
+        if (dd[i][j] > 0) {
+          output << std::setw(len) << i;
+          output << std::setw(len) << j;
+          output << "\t" << std::setw(len) << dd[i][j] << std::endl;
+        }
 
-//       }
-//     }
+      }
+    }
       
     if (baseFileName.length() == 0 || verbose) {
       std::cout << "\nDegree codistribution:" << std::endl;
