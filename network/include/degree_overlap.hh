@@ -101,7 +101,7 @@ namespace boost {
                 << current_degree_overlap << std::endl;
     }
     
-    double J = (ol > current_degree_overlap) ? 1 : 0;
+    double J = (ol > current_degree_overlap) ? 1 : -1;
     
     double H = overlap_hamiltonian(g, J, deg_type1, deg_type2);
 
