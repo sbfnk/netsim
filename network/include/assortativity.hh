@@ -104,7 +104,7 @@ namespace boost {
                 << current_assortativity << std::endl;
     }
 
-    double J = (ass > current_assortativity) ? 1 : 0;
+    double J = (ass > current_assortativity) ? 1 : -1;
     
     double H = assortativity_hamiltonian(g, J, et, deg_type1, deg_type2);
 
