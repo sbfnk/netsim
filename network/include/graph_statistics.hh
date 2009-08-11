@@ -693,45 +693,33 @@ namespace boost {
 
     unsigned int max_degree = 0;
 
+    // collect all degrees for faster access
+    std::vector<std::vector<unsigned int> > vertex_deg
+      (num_vertices(g), std::vector<unsigned int>(nEdgeTypes, 0));
+    
+    // loop over the vertex out edges
+    for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+      for (tie(ei, ei_end) = out_edges(*vi, g); ei != ei_end; ei++) {
+        ++vertex_deg[*vi][g[*ei].type];
+        if (vertex_deg[*vi][g[*ei].type] > max_degree) max_degree = vertex_deg[*vi][g[*ei].type];
+      }
+    }
+  
     boost::array<degree_array_index, nEdgeTypes> shape;
-    BOOST_FOREACH(degree_array_index& id, shape) { id = 1; }
+    BOOST_FOREACH(degree_array_index& id, shape) { id = max_degree + 1; }
     degreeDist.resize(shape);
 
     // loop over all vertices
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
       
-      // tmp sums
-      std::vector<unsigned int> vertex_deg(nEdgeTypes, 0);
-      
-      // loop over the vertex out edges
+      // update global degree
       for (tie(ei, ei_end) = out_edges(*vi, g); ei != ei_end; ei++) {
-        ++vertex_deg[g[*ei].type];
-      }
-
-      // update max_degree
-      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-        if (vertex_deg[i] > max_degree) {
-          max_degree = vertex_deg[i];
-	  BOOST_FOREACH(degree_array_index& id, shape) { id = max_degree+1; }
-	  degreeDist.resize(shape);
+        if (g[*ei].type == 0) {
+          ++degreeDist[vertex_deg[*vi][0]][vertex_deg[target(*ei, g)][1]];
         }
       }
-      
-      
-      boost::array<degree_array_index, nEdgeTypes> degree_entry;
-      // update global degree
-      for (unsigned int i = 0; i < nEdgeTypes; i++) {
-	degree_entry[i] = vertex_deg[i];
-      }
-      ++degreeDist(degree_entry);
     }
 
-//     double* startaddress = degreeDist.data();
-//     double* endaddress = startaddress + degreeDist.num_elements();
-
-//     for (double* it = startaddress; it < endaddress; it++) {
-//       (*it) /= num_vertices(g);
-//     }
     return max_degree;
   }
     
