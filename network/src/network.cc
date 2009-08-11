@@ -382,6 +382,7 @@ int main(int argc, char* argv[])
     rrgo->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
        "degree of the joint core of two random regular graphs. If not given, the overlapping is random.");
+    s.str("");
     s << prefix.str() << "iterations";
     rrgo->add_options()
       (s.str().c_str(), po::value<unsigned int>(),
@@ -1345,7 +1346,7 @@ int main(int argc, char* argv[])
         write_graph(split_graph, outputGraphName, false,
                     vertexOptions);
       }
-    } else if (!readAll) {
+    } else if (vm.count("output-file") || !readAll) {
       // write whole graph in one file
       std::string outputGraphName =
         baseFileName+".graph";
@@ -1579,8 +1580,6 @@ int main(int argc, char* argv[])
   if (vm.count("co-degree-dist") || (allStats && nEdgeTypes > 1)) {
     std::stringstream output;
 
-    output << print_corr_matrices(graph);
-
     boost::multi_array<unsigned int, 2> dd;
     unsigned int max_degree = degree_codist(graph, dd);
 
@@ -1592,11 +1591,6 @@ int main(int argc, char* argv[])
       s << " ";
     }
 
-    for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-      output << s.str().substr(0, len-1) << edgeLabels[i];
-    }
-    output << std::endl << std::endl;
-    
     for (unsigned int i = 0; i < max_degree+1; ++i) {
       for (unsigned int j = 0; j < max_degree+1; ++j) {
 
@@ -1611,6 +1605,11 @@ int main(int argc, char* argv[])
       
     if (baseFileName.length() == 0 || verbose) {
       std::cout << "\nDegree codistribution:" << std::endl;
+      for (unsigned int i = 0; i < nEdgeTypes; ++i) {
+        std::cout << s.str().substr(0, len-1) << edgeLabels[i];
+      }
+      std::cout << std::endl << std::endl;
+    
       std::cout << output.str();
     }
     if (baseFileName.length() > 0) {
