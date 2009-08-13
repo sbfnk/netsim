@@ -19,6 +19,7 @@
 #include "VaccinationSIRS.hh"
 #include "ProtectiveSIRS.hh"
 #include "SingleSIRS.hh"
+#include "SIRInfo.hh"
 
 #include <boost/random/uniform_real.hpp>
 #include <boost/random/variate_generator.hpp>
@@ -104,6 +105,8 @@ namespace Simulators {
       (std::make_pair("ProtectiveSIRS", new Models::ProtectiveSIRS<Graph>(this->getVerbose())));
     this->knownModels.push_back
       (std::make_pair("SingleSIRS", new Models::SingleSIRS<Graph>(this->getVerbose())));
+    this->knownModels.push_back
+      (std::make_pair("SIRInfo", new Models::SIRInfo<Graph>(this->getVerbose())));
   }
   
   //----------------------------------------------------------
