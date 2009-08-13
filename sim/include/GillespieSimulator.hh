@@ -6,6 +6,7 @@
 #define GILLESPIESIMULATOR_HH
 
 #include <math.h>
+#include <errno.h>
 #include <iomanip>
 
 #include "Tree.hh"
@@ -203,8 +204,12 @@ namespace Simulators {
     }
          
     // draw a random number from [0,1) for the timestep advance
-    double randTime = (randGen)();
-    this->updateTime(-log(randTime)*1e+4/tree.getTopBin()->getRateSum());
+    double timeStep = 0;
+    do { 
+      errno = 0;
+      timeStep = -log(randGen())*1e+4/tree.getTopBin()->getRateSum();
+    } while (errno > 0);
+    this->updateTime(timeStep);
          
     // draw another random number from [0,rateSum) for picking the event
     unsigned int randEvent =

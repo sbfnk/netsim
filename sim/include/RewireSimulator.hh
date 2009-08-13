@@ -6,6 +6,7 @@
 #define REWIRESIMULATOR_HH
 
 #include <math.h>
+#include <errno.h>
 #include <algorithm>
 
 #include "Simulator.hh"
@@ -370,8 +371,20 @@ namespace Simulators {
     Models::GroupFormModel<Graph>* model =
       dynamic_cast<Models::GroupFormModel<Graph>*>(this->getModel());
 
-    // draw a random number from [0,1) for the timestep advance
-    double timeStep = -log(randGen())/rateSum;
+    if (rateSum < 1e-8) {
+      if (verbose >=2) {
+        std::cout << "Nothing can happen. Stopping run. " << std::endl;
+      }
+      this->updateStats(true);
+      return false;
+    }
+
+    // draw a random number from (0,1) for the timestep advance
+    double timeStep = 0;
+    do { 
+      errno = 0;
+      timeStep = -log(randGen())/rateSum;
+    } while (errno > 0);
     this->updateTime(timeStep);
     recordEffectiveTimer += timeStep;
          
