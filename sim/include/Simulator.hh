@@ -76,13 +76,14 @@ public:
   }
 
   //! Initialise the simulation. Implemented by derived classes.
-  virtual void initialise()
+  virtual bool initialise()
   {
     time = 0.;
     for (unsigned int i = 0; i < statRecorders.size(); ++i) {
       statRecorders[i]->reset(dir);
       statRecorders[i]->update(graph, time, true);
     }
+    return true;
   }
   
   //! Perform an update. Implemented by derived classes.

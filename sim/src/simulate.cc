@@ -618,7 +618,10 @@ int main(int argc, char* argv[])
     /******************************************************************/
     // initialise Simulator
     /******************************************************************/
-    sim->initialise();
+    if (!sim->initialise()) {
+      std::cerr << "ERROR: Could not intialise simulator" << std::endl;
+      return 1;
+    }
 
     /******************************************************************/
     // run simulation

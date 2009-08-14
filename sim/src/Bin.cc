@@ -104,7 +104,7 @@ namespace Tree {
     }
     // update own rate sum
     rateSum += rate;
-    if (rate > 0 && rateSum < rate) {
+    if (rate > 0 && static_cast<int>(rateSum) < rate) {
       result = false;
     }
 

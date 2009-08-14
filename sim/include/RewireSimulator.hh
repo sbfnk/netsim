@@ -65,7 +65,7 @@ namespace Simulators {
                        unsigned int v = 0);
     ~RewireSimulator() {;}
       
-    void initialise();
+    bool initialise();
     bool updateState();
   
     vertex_descriptor* random_state_walk
@@ -313,7 +313,7 @@ namespace Simulators {
   the Tree using these rates.
   */
   template <typename RandomGenerator, typename Graph>
-  void RewireSimulator<RandomGenerator, Graph>::initialise()
+  bool RewireSimulator<RandomGenerator, Graph>::initialise()
   {
     Graph& graph = this->getGraph();
     Models::GroupFormModel<Graph>* model =
@@ -355,7 +355,7 @@ namespace Simulators {
     rates.push_back(numEdges * randomRewiring / rateSum);
 
     //initialise simulator
-    Simulator<Graph>::initialise();
+    return Simulator<Graph>::initialise();
   }
   
   //----------------------------------------------------------

@@ -69,7 +69,7 @@ namespace Simulators {
                        unsigned int v = 0);
     virtual ~GillespieSimulator() {;}
       
-    void initialise();
+    bool initialise();
     bool updateState();
     void changeVertexState(vertex_descriptor v, vertex_descriptor nb,
                            State* before, State* after);
@@ -116,9 +116,11 @@ namespace Simulators {
   the Tree using these rates.
   */
   template <typename RandomGenerator, typename Graph>
-  void GillespieSimulator<RandomGenerator, Graph>::initialise()
+  bool GillespieSimulator<RandomGenerator, Graph>::initialise()
   {
-    Simulator<Graph>::initialise();
+    bool result = true;
+    
+    result &= Simulator<Graph>::initialise();
 
     // get simulation variables
     Graph& graph = this->getGraph();
@@ -132,9 +134,12 @@ namespace Simulators {
     }
 
     // generate the tree holding rate sums corresponding to vertices
-    generateTree(tree,graph,
-                 get(&vertex_property_type::rateSum,graph),
-                 get(boost::vertex_index,graph));
+    if (!generateTree(tree,graph,
+                      get(&vertex_property_type::rateSum,graph),
+                      get(boost::vertex_index,graph))) {
+      result = false;
+    }
+    return result;
   }
 
   
@@ -243,7 +248,10 @@ namespace Simulators {
             
       // update sum of rates for the vertex
       vertex_index_type index = get(boost::vertex_index, graph);
-      tree.getLeaves()[index[v]]->updateRateSum(rateDiff);
+      if (!tree.getLeaves()[index[v]]->updateRateSum(rateDiff)) {
+        std::cerr << "Overflow in rate sum, choose smaller rates" << std::endl;
+        return false;
+      }
             
       //update neighbours
       out_edge_iterator oi, oi_end;;
@@ -251,7 +259,10 @@ namespace Simulators {
       for (tie(oi, oi_end) = boost::out_edges(v, graph);
            oi != oi_end; ++oi) {
         rateDiff = updateEventList(graph, *oi, *model, verbose);
-        tree.getLeaves()[index[target(*oi, graph)]]->updateRateSum(rateDiff);
+        if (!tree.getLeaves()[index[target(*oi, graph)]]->updateRateSum(rateDiff)) {
+          std::cerr << "Overflow in rate sum, choose smaller rates" << std::endl;
+          return false;
+        }
       }
       return true;
     } else {

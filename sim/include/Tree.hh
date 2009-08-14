@@ -160,7 +160,7 @@ namespace Tree {
    */
   template <class T, class Graph, class ratesPropertyMap,
             class indexPropertyMap>
-  void generateTree(Tree<T>& t, const Graph& g,
+  bool generateTree(Tree<T>& t, const Graph& g,
                     ratesPropertyMap rates, indexPropertyMap indices)
   {
     typedef typename boost::graph_traits<Graph>::vertex_iterator
@@ -174,8 +174,13 @@ namespace Tree {
       // add item to tree
       t.addLeaf(get(rates, *vi), get(indices, *vi));
       // update rate sum
-      t.getLeaves().back()->updateRateSum(get(rates, *vi));
+      if (!t.getLeaves().back()->updateRateSum(get(rates, *vi))) {
+        std::cerr << "Overflow in rate sum, choose smaller rates" << std::endl;
+        return false;
+      }        
     }
+
+    return true;
   }
 
 }

@@ -42,7 +42,7 @@ namespace Simulators {
     EpiSimulator(RandomGenerator& r, Graph& g, unsigned int v = 0);
     virtual ~EpiSimulator() {;}
 
-    virtual void initialise();
+    virtual bool initialise();
 
     //! Accessor for the numInfections variable.
     unsigned int getNumInfections() const { return numInfections; }
@@ -100,10 +100,12 @@ namespace Simulators {
   }
 
   template <typename RandomGenerator, typename Graph>
-  void EpiSimulator<RandomGenerator, Graph>::
+  bool EpiSimulator<RandomGenerator, Graph>::
   initialise()
   {
-    GillespieSimulator<RandomGenerator, Graph>::initialise();
+    bool result = true;
+
+    result &= GillespieSimulator<RandomGenerator, Graph>::initialise();
 
     const EpiModel_base<Graph>* model =
       dynamic_cast<const EpiModel_base<Graph>*>(this->getModel());
@@ -126,6 +128,8 @@ namespace Simulators {
         if (generations.size() > 0) generations[0].push_back(*vi);
       }
     }
+
+    return result;
   }
   
   template <typename RandomGenerator, typename Graph>
