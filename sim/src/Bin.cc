@@ -93,7 +93,7 @@ namespace Tree {
 
     \param[in] rate The difference between old and new rate sum
   */
-  bool Bin::updateRateSum(rate)
+  bool Bin::updateRateSum(int rate)
   {
 
     bool result = true;
