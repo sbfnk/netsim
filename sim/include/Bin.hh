@@ -53,10 +53,9 @@ namespace Tree{
   
     short addChild(Bin& newChild);
     
-    void updateRateSum(unsigned int rate);
+    bool updateRateSum(int rate);
   
     Bin* pickChild(unsigned int& randNo);
-    void setRateSum(unsigned int rate);
   
   private:
   

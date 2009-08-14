@@ -239,7 +239,7 @@ namespace Simulators {
       changeVertexState(v, it->nb, graph[v].state, it->newState);
 
       // update vertex event list
-      unsigned int rateDiff = generateEventList(graph, v, *model, verbose);
+      int rateDiff = generateEventList(graph, v, *model, verbose);
             
       // update sum of rates for the vertex
       vertex_index_type index = get(boost::vertex_index, graph);
@@ -381,7 +381,7 @@ are deleted and a new list of these events is generated
 \ingroup gillespie_simulator
 */
 template <class Graph, class Model>
-unsigned int updateEventList(Graph& graph,
+int updateEventList(Graph& graph,
                              typename boost::graph_traits<Graph>::edge_descriptor e,
                              const Model& model,
                              unsigned int verbose = 0)
@@ -394,7 +394,7 @@ unsigned int updateEventList(Graph& graph,
    
   // temporary sum for the new sum of rates of all events
   // that can affect the vertex v
-  unsigned int tempSum = 0;
+  int tempSum = 0;
 
   if (verbose >= 2) {
     std::cout << "Updating events list for vertex #" << v << " ("

@@ -93,14 +93,22 @@ namespace Tree {
 
     \param[in] rate The difference between old and new rate sum
   */
-  void Bin::updateRateSum(unsigned int rate)
+  bool Bin::updateRateSum(rate)
   {
+
+    bool result = true;
+    
     if (parent) {
       // we are not the top level bin, so we update the higher level bin
-      parent->updateRateSum(rate);
+      result &= parent->updateRateSum(rate);
     }
     // update own rate sum
     rateSum += rate;
+    if (rate > 0 && rateSum < rate) {
+      result = false;
+    }
+
+    return result;
   }
       
   //----------------------------------------------------------
@@ -139,25 +147,6 @@ namespace Tree {
       // we are at the lowest level and should be a leaf
       return this;
     }
-  }
-
-  //----------------------------------------------------------
-  /*!
-    \brief Set the rate sum.
-
-    This sets the rate sum of the Bin to a new value and updates the rate sum of
-    the parent accordingly.
-
-    \param[in] rate The new rate sum.
-  */
-  void Bin::setRateSum(unsigned int rate)
-  {
-    if (parent) {
-      // we are not the top level bin, so we update the higher level bin
-      parent->updateRateSum(rate - rateSum);
-    }
-    // set own rate sum
-    rateSum = rate;
   }
 
 }
