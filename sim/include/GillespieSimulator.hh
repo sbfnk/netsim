@@ -249,7 +249,7 @@ namespace Simulators {
       // update sum of rates for the vertex
       vertex_index_type index = get(boost::vertex_index, graph);
       if (!tree.getLeaves()[index[v]]->updateRateSum(rateDiff)) {
-        std::cerr << "Overflow in rate sum, choose smaller rates" << std::endl;
+        std::cerr << "ERROR: Overflow in rate sum, choose smaller rates" << std::endl;
         return false;
       }
             
@@ -260,7 +260,7 @@ namespace Simulators {
            oi != oi_end; ++oi) {
         rateDiff = updateEventList(graph, *oi, *model, verbose);
         if (!tree.getLeaves()[index[target(*oi, graph)]]->updateRateSum(rateDiff)) {
-          std::cerr << "Overflow in rate sum, choose smaller rates" << std::endl;
+          std::cerr << "ERROR: Overflow in rate sum, choose smaller rates" << std::endl;
           return false;
         }
       }
