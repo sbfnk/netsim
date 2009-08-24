@@ -488,9 +488,11 @@ namespace Simulators {
             }
 	    ++rewireCounter;
 	  } else {
+            // no node of the same state unconnected
             ++rewirefcCounter;
           }
 	} else {
+          // no other node of the same state
           ++rewirefnCounter;
         }
       }
