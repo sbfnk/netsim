@@ -346,7 +346,7 @@ int main(int argc, char* argv[])
     if (nEdgeTypes > 1) {
       prefix << edgeLabels[i] << "-";
     }
-    s << prefix.str() << "-random graph options";
+    s << prefix.str() << "random graph options";
     po::options_description* ro
       = new po::options_description(s.str().c_str());
     s.str("");
@@ -531,7 +531,7 @@ int main(int argc, char* argv[])
 
   // rewiring options
   po::options_description rewiring_options("Rewiring options");
-  
+
   for (unsigned int i = 0; i < nEdgeTypes; ++i) {
     std::stringstream s, prefix;
     if (nEdgeTypes > 1) {
@@ -1195,17 +1195,16 @@ int main(int argc, char* argv[])
       return 1;
     }
 
+    unsigned int E = num_edges(temp_graph);
     // do graph modifications if desired
-    if (num_edges(temp_graph) > 0 &&
-        vm.count(currentEdgeLabel+"remove")) {
+    if (E > 0 && vm.count(currentEdgeLabel+"remove")) {
       double removeFraction =
         vm[currentEdgeLabel+"remove"].as<double>();
       if (removeFraction > 0) {
-        boost::removeEdges(temp_graph, gen, removeFraction);
+        boost::removeEdges(temp_graph, gen, removeFraction*E, verbose);
       }
     }
-    if (num_edges(temp_graph) > 0 &&
-        vm.count(currentEdgeLabel+"rewire")) {
+    if (E > 0 && vm.count(currentEdgeLabel+"rewire")) {
       double rewireFraction =
         vm[currentEdgeLabel+"rewire"].as<double>();
       if (rewireFraction > 0) {
@@ -1215,7 +1214,7 @@ int main(int argc, char* argv[])
         while (rewire_result < 0) {
           rewire_graph = temp_graph;
           rewire_result = boost::rewireEdges(rewire_graph, gen,
-                                             rewireFraction, verbose);
+                                             rewireFraction*E, verbose);
           ++count;
         }
         temp_graph = rewire_graph;
@@ -1224,33 +1223,30 @@ int main(int argc, char* argv[])
         }
       }
     }
-    if (num_edges(temp_graph) > 0 &&
-        vm.count(currentEdgeLabel+"rewire-clustered")) {
+    if (E > 0 && vm.count(currentEdgeLabel+"rewire-clustered")) {
       double clusteredRewireFraction =
         vm[currentEdgeLabel+"rewire-clustered"].as<double>();
       if (clusteredRewireFraction > 0) {
-//        onetype_graph rewire_graph = temp_graph;
         boost::rewireClustered(temp_graph, temp_graph, gen,
-                               clusteredRewireFraction, verbose);
-//        temp_graph = rewire_graph;
+                               clusteredRewireFraction*E, verbose);
         if (verbose) {
           std::cout << "graph rewired\n";
         }
       }
     }
-    if (num_edges(temp_graph) > 0 && vm.count(currentEdgeLabel+"add")) {
+    if (E > 0 && vm.count(currentEdgeLabel+"add")) {
       double addFraction = vm[currentEdgeLabel+"add"].as<double>();
-      boost::addEdges(temp_graph, gen, addFraction);
+      boost::addEdges(temp_graph, gen, addFraction*E, i, verbose);
     }
     
     if (vm.count(currentEdgeLabel+"randomise")) {
       double randFraction = vm[currentEdgeLabel+"randomise"].as<double>();
-      randomise_vertices(temp_graph, gen, randFraction);
+      randomise_vertices(temp_graph, gen, randFraction*N);
     }
 
     // copy edges to main graph
     boost::copy_edges(temp_graph, graph);
-  }
+    }
 
   // checking graph  
   if (num_vertices(graph) == 0) {
@@ -1430,14 +1426,19 @@ int main(int argc, char* argv[])
         output << "\nPair count:" << std::endl;
       }
       std::vector<unsigned int> pairs = count_pairs(graph, nEdgeTypes);
+      std::vector<double > dev = degree_dev(graph, nEdgeTypes);
       for (unsigned int i = 0; i < nEdgeTypes; ++i) {
         std::string prefix;
         if (nEdgeTypes > 1) {
           prefix = std::string(1,edgeLabels[i]) + "-";
         }
+        std::streamsize prec = output.precision();
+        output << std::setprecision(2);
         output << "  " << prefix << "pairs: " << pairs[i]
                << " (avg degree: " << pairs[i]*2./num_vertices(graph)
+               << ", stdev " << dev[i]
 	       << ")" << std::endl;
+        output << std::setprecision(prec);
       }
       if (nEdgeTypes > 1) {
         output << " " << "parallel: " << parallel_edges << std::endl;

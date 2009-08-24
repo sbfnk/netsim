@@ -707,7 +707,7 @@ namespace boost {
   
   \param[in, out] g The graph to rewiwre the edges in.
   \param[in] r The random generator to use for selecting the edges to rewire.
-  \param[in] rewireFraction The fraction of edges to rewire.
+  \param[in] num_rewire The number of edges to rewire.
   \param[in] verbose Whether to be verbose.
   \return 0 if successful, -1 if rewiring fails because one is left without
   connectable edges according to the given degree distribution before rewiring
@@ -715,7 +715,7 @@ namespace boost {
   \ingroup graph_structure
   */
   template <typename Graph, typename RandomGenerator>
-  int rewireEdges(Graph& g, RandomGenerator& r, double rewireFraction, 
+  int rewireEdges(Graph& g, RandomGenerator& r, unsigned int num_rewire, 
                   unsigned int verbose)
   {
     typedef typename graph_traits<Graph>::edge_descriptor
@@ -741,14 +741,10 @@ namespace boost {
       seen_edges[target(*ei, g)][source(*ei, g)] = true;
     }
     
-    unsigned int N = num_edges(g);
-    
-    if (rewireFraction > 0. && rewireFraction <= 1.) {
+    if (num_rewire > 0 && num_rewire <= num_edges(g)) {
       uniform_real<> uni_dist(0, 1);
       variate_generator<RandomGenerator&, uniform_real<> > uni_gen(r, uni_dist);
       // calculate number of links to rewire
-      unsigned int num_rewire =
-        static_cast<unsigned int>(rewireFraction * N);
       if (verbose >=1) {
         std::cout << "Randomly rewiring " << num_rewire << " edges" << std::endl;
       }
@@ -806,13 +802,13 @@ namespace boost {
   //----------------------------------------------------------
   /*! \brief Randomly rewire edges in a graph, clustering them in another graph.
     
-  Removes a given fraction of edges from a graph and randomly rewires them,
+  Removes a given number of edges from a graph and randomly rewires them,
   preserving the degree distribution and clustering them in another graph.
   
   \param[out] cg The graph to cluster.
   \param[in, out] g The graph to rewire the edges in.
   \param[in] r The random generator to use for selecting the edges to rewire.
-  \param[in] rewireFraction The fraction of edges to rewire.
+  \param[in] num_rewire The number of edges to rewire.
   \param[in] verbose Whether to be verbose.
   \return 0 if successful, -1 if rewiring fails because one is left without
   connectable edges according to the given degree distribution before rewiring
@@ -821,7 +817,7 @@ namespace boost {
   */
   template <typename ClusterGraph, typename Graph, typename RandomGenerator>
   int rewireClustered(const ClusterGraph& cg, Graph& g, RandomGenerator& r,
-                      double rewireFraction, unsigned int verbose)
+                      unsigned int num_rewire, unsigned int verbose)
   {
     typedef typename graph_traits<Graph>::edge_iterator
       g_edge_iterator;
@@ -866,12 +862,10 @@ namespace boost {
       std::cout << temp_edges.size() << " edges can be rewired" << std::endl;
     }
 
-    if (rewireFraction > 0. && rewireFraction <= 1.) {
+    if (num_rewire > 0 && num_rewire <= num_edges(g)) {
       uniform_real<> uni_dist(0, 1);
       variate_generator<RandomGenerator&, uniform_real<> > uni_gen(r, uni_dist);
       // calculate number of links to rewire
-      unsigned int num_rewire =
-        static_cast<unsigned int>(rewireFraction * num_edges(g));
       if (verbose >=1) {
         std::cout << "Randomly rewiring " << num_rewire << " edges, clustering "
                   << "them in the remaining graph." << std::endl;
@@ -1007,21 +1001,17 @@ namespace boost {
     
   \param[in, out] g The graph to remove the edges from.
   \param[in] r The random generator to use for selecting the edges to remove.
-  \param[in] removeFraction The fraction of edges to remove.
+  \param[in] num_remove The number of edges to remove.
   \ingroup graph_structure
   */
   template <typename Graph, typename RandomGenerator>
-  void removeEdges(Graph& g, RandomGenerator& r, double removeFraction)
+  void removeEdges(Graph& g, RandomGenerator& r, unsigned int num_remove,
+                   unsigned int verbose = 0)
   {
     typedef typename graph_traits<Graph>::edge_descriptor
       edge_descriptor;
 
-    unsigned int N = num_edges(g);
-    
-    if (removeFraction > 0. && removeFraction < 1.) {
-      unsigned int num_remove =
-        static_cast<unsigned int>(removeFraction * N);
-      
+    if (num_remove > 0 && num_remove <= num_edges(g)) {
       while (num_remove > 0) {
         // select random edge for removal
         edge_descriptor e = random_edge(g, r);
@@ -1039,12 +1029,12 @@ namespace boost {
     
   \param[in, out] g The graph to remove the edges from.
   \param[in] r The random generator to use for selecting the edges to remove.
-  \param[in] addFraction The number of edges to add as a fraction of existing
-  edges.
+  \param[in] num_add The number of edges to add.
   \ingroup graph_structure
   */
   template <typename Graph, typename RandomGenerator>
-  void addEdges(Graph& g, RandomGenerator& r, double addFraction)
+  void addEdges(Graph& g, RandomGenerator& r, unsigned int num_add,
+                unsigned int et, unsigned int verbose = 0)
   {
     typedef typename graph_traits<Graph>::vertex_descriptor
       vertex_descriptor;
@@ -1058,31 +1048,22 @@ namespace boost {
     edge_iterator ei, ei_end;
     tie(ei, ei_end) = edges(g);
 
-    // initialize edge type from the first edge in the graph
-    unsigned int et = g[*ei].type;
-    unsigned int N = num_edges(g);
-    
-    if (addFraction > 0.) {
-      unsigned int num_add =
-        static_cast<unsigned int>(addFraction * N);
-      
-      while (num_add > 0) {
-        // select random edge for adding
-        bool found = false;
-        vertex_descriptor v1;
-        vertex_descriptor v2;
-        // find a random pair of yet unconnected vertices
-        while (!found) {
-          v1 = random_vertex(g, r);
-          do {
-            v2 = random_vertex(g, r);
-          } while (v2 == v1);
-          found = !(edge(v1,v2,g).second);
-        }
-        // add edge between the chosen vertices
-        add_edge(v1,v2,edge_property_type(et),g);
-        --num_add;
+    while (num_add > 0) {
+      // select random edge for adding
+      bool found = false;
+      vertex_descriptor v1;
+      vertex_descriptor v2;
+      // find a random pair of yet unconnected vertices
+      while (!found) {
+        v1 = random_vertex(g, r);
+        do {
+          v2 = random_vertex(g, r);
+        } while (v2 == v1);
+        found = !(edge(v1,v2,g).second);
       }
+      // add edge between the chosen vertices
+      add_edge(v1,v2,edge_property_type(et),g);
+      --num_add;
     }
   }
 
@@ -1147,11 +1128,12 @@ namespace boost {
     
   \param[in, out] g The graph to randomise the vertices in.
   \param[in] r The random generator to use.
-  \param[in] fraction The fraction of vertices to randomise.
+  \param[in] num_randomise The number of vertices to randomise.
   \ingroup graph_structure
   */
   template <typename Graph, typename RandomGenerator>
-  void randomise_vertices(Graph& g, RandomGenerator& r, double fraction = 1.)
+  void randomise_vertices(Graph& g, RandomGenerator& r,
+                          unsigned int num_randomise)
   {
     typedef typename graph_traits<Graph>::vertex_descriptor
       vertex_descriptor;
@@ -1176,7 +1158,7 @@ namespace boost {
       original_vertices.push_back(*vi);
     }
     std::vector<bool> randomise_flag(num_vertices(g), false);
-    for (unsigned int i = 0; i < fraction*num_vertices(g); ++i) {
+    for (unsigned int i = 0; i < num_randomise; ++i) {
       vertex_descriptor rand_no =
         static_cast<unsigned int>(uni_gen() * original_vertices.size());
       randomise_flag[original_vertices[rand_no]] = true;
