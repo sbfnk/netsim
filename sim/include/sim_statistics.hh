@@ -531,14 +531,14 @@ public:
         if (generations[i].size() > 0) {
           r0File << i << " "
                  << genInf[i]/static_cast<double>(generations[i].size());
-          if (i > 1) {
+          if (i > 0) {
             r0File << " " << genInf[i-1];
           }
           r0File << std::endl;
           if (verbose) {
             std::cout << "R0 generation " << i << " "
                       << genInf[i]/static_cast<double>(generations[i].size());
-            if (i > 1) {
+            if (i > 0) {
               std::cout << " " << genInf[i-1];
             }
             std::cout << std::endl;
