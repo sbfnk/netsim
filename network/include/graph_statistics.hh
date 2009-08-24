@@ -447,7 +447,46 @@ namespace boost {
     return counts;
   }
 
+  //----------------------------------------------------------
+  /*! \brief Calculate the degree standard deviation from the mean.
 
+  \param[in] g The graph containing the vertices and edges
+  \param[in] nEdgeTypes The number of edge types in the graph.
+  \return A vector of the standard deviation from the mean of each edge type
+  \ingroup graph_statistics
+  */
+  template <typename Graph>
+  std::vector<double>
+  degree_dev(Graph& g, unsigned int nEdgeTypes)
+  {
+    typedef typename boost::graph_traits<Graph>::vertex_iterator
+      vertex_iterator;
+    typedef typename boost::graph_traits<Graph>::out_edge_iterator
+      out_edge_iterator;
+
+    std::vector<unsigned int> counts(nEdgeTypes, 0);
+    std::vector<unsigned int> counts_sq(nEdgeTypes, 0);
+    std::vector<double> stdev(nEdgeTypes, 0.);
+    
+    // count all edges of type et, including parallel
+    vertex_iterator vi, vi_end;
+    for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+      for (unsigned i = 0; i < nEdgeTypes; ++i) {
+        unsigned int deg = out_degree_type(*vi, g, i);
+        counts[i] += deg;
+        counts_sq[i] += deg*deg;
+      }
+    }
+
+    for (unsigned i = 0; i < nEdgeTypes; ++i) {
+      double avg_deg = counts[i] / static_cast<double>(num_vertices(g));
+      double avg_sq_deg = counts_sq[i] / static_cast<double>(num_vertices(g));
+      stdev[i] = sqrt(avg_sq_deg - avg_deg*avg_deg);
+    }
+    
+    return stdev;
+  }
+    
   //----------------------------------------------------------
   /*! \brief Print degrees
 
