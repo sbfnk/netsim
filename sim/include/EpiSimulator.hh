@@ -60,6 +60,7 @@ namespace Simulators {
     unsigned int numInformations; //!< A counter for the number of informations.
 
     unsigned int numInfected;
+    unsigned int numGenInfected;
     unsigned int numInformed;
 
     unsigned int stopInfections;
@@ -67,6 +68,7 @@ namespace Simulators {
     unsigned int infLimit;
 
     bool stopOutbreak;
+    bool stopR0;
     bool stopInfoOutbreak;
 
     std::vector<std::vector<unsigned int> > generations;
@@ -86,6 +88,8 @@ namespace Simulators {
        "number of informations after which to stop (if >0)")
       ("stop-disease", 
        "stop when outbreak has ended")
+      ("stop-r0", 
+       "stop when r0 measurement is complete")
       ("stop-info", 
        "stop when info outbreak has ended")
       ("limit", po::value<unsigned int>(),
@@ -110,7 +114,7 @@ namespace Simulators {
     const EpiModel_base<Graph>* model =
       dynamic_cast<const EpiModel_base<Graph>*>(this->getModel());
 
-    numInfections = numInformations = numInformed = numInfected = 0;
+    numInfections = numInformations = numInformed = numInfected = numGenInfected = 0;
 
     for (std::vector<std::vector<unsigned int> >::iterator it = generations.begin();
          it != generations.end(); it++) {
@@ -128,6 +132,7 @@ namespace Simulators {
         if (generations.size() > 0) generations[0].push_back(*vi);
       }
     }
+    numGenInfected = numInfected;
 
     return result;
   }
@@ -167,6 +172,7 @@ namespace Simulators {
       infLimit = 0;
     }
     stopOutbreak = vm.count("stop-disease");
+    stopR0 = vm.count("stop-r0");
     stopInfoOutbreak = vm.count("stop-info");
     return ret;
   }
@@ -183,6 +189,7 @@ namespace Simulators {
     if (model) {
       if (model->isInfection(before, after)) {
         ++numInfections;
+        ++numInfected;
         if (generations.size() > 0) {
           // see if originator is already in a generation
           unsigned int i = 0;
@@ -201,14 +208,14 @@ namespace Simulators {
                 std::cout << "R0: vertex " << v << " recorded as an infected"
                           << " of generation " << i+1 << std::endl;
               }
-              ++numInfected;
+              ++numGenInfected;
             } // else this->getGraph()[nb].state->setState(2);
             ++genInf[i];
           } // else {
 //	    this->getGraph()[nb].state->setState(2);
 //	  }
         } else {
-          ++numInfected;
+          ++numGenInfected;
         }
       }
       if (model->isInformation(before, after)) {
@@ -216,6 +223,7 @@ namespace Simulators {
         ++numInformed;
       }
       if (model->isRecovery(before, after)) {
+        --numInfected;
         if (generations.size() > 0) {
           unsigned int i = 0;
           std::vector<unsigned int>::iterator res =
@@ -226,9 +234,11 @@ namespace Simulators {
               res = std::find(generations[i].begin(), generations[i].end(), nb);
             }
           }
-          if (i < generations.size()) --numInfected;
+          if (i < generations.size()) {
+            --numGenInfected;
+          }
         } else {
-          --numInfected;
+          --numGenInfected;
         }
       }
       if (model->isForgetting(before, after)) --numInformed;
@@ -243,9 +253,19 @@ namespace Simulators {
 
     bool ret = GillespieSimulator<RandomGenerator, Graph>::stopCondition();
 
+//     std::cout << "Gillespie StopCondition: " << ret << std::endl;
+//     std::cout << "Epi StopCondition: "
+//               << ((stopInfections > 0) && (numInfections+1 > stopInfections)) << " "
+//               << ((stopOutbreak) && (numInfected == 0)) << " "
+//               << ((stopR0) && (numGenInfected == 0)) << " "
+//               << ((stopInformations > 0) && (numInformed+1 > stopInformations)) << " "
+//               << ((stopInfoOutbreak) && (numInformed == 0)) << " "
+//               << ((infLimit > 0) && (numInformed+1 > infLimit)) << std::endl;
+
     return (ret ||
             ((stopInfections > 0) && (numInfections+1 > stopInfections)) ||
             ((stopOutbreak) && (numInfected == 0)) ||
+            ((stopR0) && (numGenInfected == 0)) ||
             ((stopInformations > 0) && (numInformed+1 > stopInformations)) ||
             ((stopInfoOutbreak) && (numInformed == 0)) || 
             ((infLimit > 0) && (numInformed+1 > infLimit)));
