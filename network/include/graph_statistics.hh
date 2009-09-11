@@ -77,15 +77,21 @@ namespace boost {
     \ingroup helper_functions
   */
   template <typename Graph, typename VertexDescriptor, typename EdgeType>
-  unsigned int out_degree_type(VertexDescriptor v, Graph& g, EdgeType et)
+  std::pair<unsigned int, unsigned int> out_degree_type(VertexDescriptor v, Graph& g, EdgeType et)
   {
     unsigned int deg = 0;
+    unsigned int par = 0;
     
     typename graph_traits<Graph>::out_edge_iterator oi, oi_end;
     for (tie(oi, oi_end) = out_edges(v, g); oi != oi_end; oi++) {
-      if (g[*oi].type == et) ++deg;
+      if (g[*oi].type == et) {
+        ++deg;
+        if (g[*oi].parallel) {
+          ++par;
+        }
+      }
     }
-    return deg;
+    return std::make_pair(deg, par);
   }
   
   //----------------------------------------------------------
@@ -472,7 +478,7 @@ namespace boost {
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
       for (unsigned i = 0; i < nEdgeTypes; ++i) {
-        unsigned int deg = out_degree_type(*vi, g, i);
+        unsigned int deg = out_degree_type(*vi, g, i).first;
         counts[i] += deg;
         counts_sq[i] += deg*deg;
       }
@@ -522,7 +528,7 @@ namespace boost {
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
       for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-        unsigned int deg = out_degree_type(*vi, g, i);
+        unsigned int deg = out_degree_type(*vi, g, i).first;
         degrees[*vi].push_back(deg);
         if (deg > maxDegree) {
 	  maxDegree = deg;

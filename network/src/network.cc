@@ -296,6 +296,10 @@ int main(int argc, char* argv[])
           std::string(1,edgeLabels[j]) + "-edges").c_str());
     }
   }
+  assortativity_options.add_options()
+    ("keep-parallel",
+     "keep parallel edges when rewiring")
+    ;
 
   // generate topology-specific options for each type of graph
   
@@ -1285,8 +1289,10 @@ int main(int argc, char* argv[])
       std::string s = std::string(1,edgeLabels[i]) +
         std::string(1,edgeLabels[j]) + "-degree-overlap";
       if (vm.count(s.c_str())) {
+        if (vm.count("keep-parallel")) mark_parallel_edges(graph);
         double deg_overlap = (vm[s.c_str()].as<double>());
-        rewire_degree_overlap(graph, gen, deg_overlap, i, j, verbose);
+        rewire_degree_overlap(graph, gen, deg_overlap, i, j,
+                              vm.count("keep-parallel"), verbose);
       }
     }
   }
