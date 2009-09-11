@@ -192,12 +192,14 @@ void Models::SIRInfo<Graph>::Init(const po::variables_map& vm,
 {
   Model<Graph>::Init(vm, rec);
   if (vm.count("sigma")) {
-    // if sigma is defined, beta+- and beta++ are overwritten
+    // if sigma is defined, beta+- and beta++ and beta-+ are overwritten
     beta[1][0]=static_cast<unsigned int>(sigma * beta[0][0] + .5);
-    beta[1][1]=static_cast<unsigned int>(sigma * beta[0][1] + .5);
+    beta[1][1]=static_cast<unsigned int>(sigma * beta[0][0] + .5);
+    beta[0][1]=static_cast<unsigned int>(sigma * beta[0][0] + .5);
     if (this->getVerbose() >= 1) {
       std::cout << "sigma given, setting beta+-=" << beta[1][0]/1e+4
-                << " and beta++=" << beta[1][1]/1e+4 << std::endl;
+                << " and beta++=" << beta[1][1]/1e+4 << " and beta-+="
+                << beta[0][1]/1e+4 << std::endl;
     }
   }
 }
