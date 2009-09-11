@@ -407,7 +407,7 @@ int main(int argc, char* argv[])
   }
 
   // check if baseState known
-  if (baseState == model->getVertexStates().size()) {
+  if (baseState >= model->getVertexStates().size()) {
     std::cerr << "WARNING: unknown base state: " << baseString << std::endl;
     std::cerr << "Setting base state to "
               << model->getVertexStates()[0].getText() << std::endl;
