@@ -205,12 +205,17 @@ namespace Simulators {
             if (i < (generations.size() - 1)) {
               generations[i+1].push_back(v);
               if (this->getVerbose() >= 2) {
-                std::cout << "R0: vertex " << v << " recorded as an infected"
+                std::cout << "R0: vertex " << v << " (" 
+                          << model->printState(this->getGraph()[v].state) 
+                          << ") recorded as an infected"
                           << " of generation " << i+1 << std::endl;
               }
               ++numGenInfected;
             } // else this->getGraph()[nb].state->setState(2);
             ++genInf[i];
+            std::cout << "R0: infection originated in vertex " << nb << " ("
+                      << model->printState(this->getGraph()[nb].state) 
+                      << ") of generation " << i << std::endl;
           } // else {
 //	    this->getGraph()[nb].state->setState(2);
 //	  }
