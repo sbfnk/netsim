@@ -331,7 +331,13 @@ namespace Simulators {
       tempEdges.push_back(*ei);
     }
 
+//    unsigned int max_state = num_vertices(graph)/10;
+//    for (unsigned int i = 0; i < max_state; ++i) {
+//      groupInitiationTimes.push_back(0.);
+//    }
     for (tie(vi, vi_end) = vertices(graph); vi != vi_end; vi++) {
+//      unsigned int random_state = static_cast<unsigned int>(randGen() * (max_state - 1)) + 1;
+//      graph[*vi].state->setState(random_state);
       tempVertices.push_back(graph[*vi].state->getState());
       tempStates[graph[*vi].state->getState()].insert(*vi);
     }
