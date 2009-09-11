@@ -167,7 +167,7 @@ public:
     return true;
   }
 
-  void InitModel(const po::variables_map& vm)
+  virtual void InitModel(const po::variables_map& vm)
   {
     if (model) {
       model->Init(vm, statRecorders);
