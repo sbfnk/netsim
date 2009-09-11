@@ -1089,7 +1089,7 @@ public:
       std::cout << num << " components:" << std::endl;;
     }
     
-    double fraction;
+    double fraction = 0.;
     unsigned int nonZeroVertices = 0;
     // loop over components and calculate state fractions
     for (int i = 0; i < num; ++i) {
