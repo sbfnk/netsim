@@ -51,10 +51,10 @@ namespace boost {
       // we want the correlation of deg_type1 and deg_type2 degrees, but at
       // the two ends of an et link, so we check here if type is et
       if (g[*ei].type == et) {
-        ham += out_degree_type(source(*ei, g), g, deg_type1)*
-          out_degree_type(target(*ei, g), g, deg_type2) +
-          out_degree_type(target(*ei, g), g, deg_type1) *
-          out_degree_type(source(*ei, g), g, deg_type2);
+        ham += out_degree_type(source(*ei, g), g, deg_type1).first*
+          out_degree_type(target(*ei, g), g, deg_type2).first +
+          out_degree_type(target(*ei, g), g, deg_type1).first *
+          out_degree_type(source(*ei, g), g, deg_type2).first;
       }
     }
     // multiply with desired assortivity factor
@@ -181,14 +181,14 @@ namespace boost {
       } while (!valid_swap);
       
       // calculated hamiltonian as it would be after rewiring
-      double s1_d1 = out_degree_type(source1, g, deg_type1);
-      double s1_d2 = out_degree_type(source1, g, deg_type2);
-      double t1_d1 = out_degree_type(target1, g, deg_type1);
-      double t1_d2 = out_degree_type(target1, g, deg_type2);
-      double s2_d1 = out_degree_type(source2, g, deg_type1);
-      double s2_d2 = out_degree_type(source2, g, deg_type2);
-      double t2_d1 = out_degree_type(target2, g, deg_type1);
-      double t2_d2 = out_degree_type(target2, g, deg_type2);
+      double s1_d1 = out_degree_type(source1, g, deg_type1).first;
+      double s1_d2 = out_degree_type(source1, g, deg_type2).first;
+      double t1_d1 = out_degree_type(target1, g, deg_type1).first;
+      double t1_d2 = out_degree_type(target1, g, deg_type2).first;
+      double s2_d1 = out_degree_type(source2, g, deg_type1).first;
+      double s2_d2 = out_degree_type(source2, g, deg_type2).first;
+      double t2_d1 = out_degree_type(target2, g, deg_type1).first;
+      double t2_d2 = out_degree_type(target2, g, deg_type2).first;
 
       double sum = s1_d1*t2_d2 + t2_d1*s1_d2 + s2_d1*t1_d2 + t1_d1*s2_d2 -
         s1_d1*t1_d2 - t1_d1*s1_d2 - s2_d1*t2_d2 - t2_d1*s2_d2;
@@ -284,18 +284,18 @@ namespace boost {
         // we actually add two contributions, according to both directions of
         // the edge
         count += 2;
-        corr_sum += out_degree_type(source(*ei, g), g, deg_type1)*
-          out_degree_type(target(*ei, g), g, deg_type2) +
-          out_degree_type(target(*ei, g), g, deg_type1) *
-          out_degree_type(source(*ei, g), g, deg_type2);
-        deg_sum_1 += out_degree_type(source(*ei, g), g, deg_type1) +
-          out_degree_type(target(*ei, g), g, deg_type1);
-        deg_sum_2 += out_degree_type(source(*ei, g), g, deg_type2) +
-          out_degree_type(target(*ei, g), g, deg_type2);
-        deg_sq_sum_1 += pow(out_degree_type(source(*ei, g), g, deg_type1), 2) +
-          pow(out_degree_type(target(*ei, g), g, deg_type1), 2);
-        deg_sq_sum_2 += pow(out_degree_type(source(*ei, g), g, deg_type2), 2) +
-          pow(out_degree_type(target(*ei, g), g, deg_type2), 2);
+        corr_sum += out_degree_type(source(*ei, g), g, deg_type1).first*
+          out_degree_type(target(*ei, g), g, deg_type2).first +
+          out_degree_type(target(*ei, g), g, deg_type1).first *
+          out_degree_type(source(*ei, g), g, deg_type2).first;
+        deg_sum_1 += out_degree_type(source(*ei, g), g, deg_type1).first +
+          out_degree_type(target(*ei, g), g, deg_type1).first;
+        deg_sum_2 += out_degree_type(source(*ei, g), g, deg_type2).first +
+          out_degree_type(target(*ei, g), g, deg_type2).first;
+        deg_sq_sum_1 += pow(out_degree_type(source(*ei, g), g, deg_type1).first, 2)+
+          pow(out_degree_type(target(*ei, g), g, deg_type1).first, 2);
+        deg_sq_sum_2 += pow(out_degree_type(source(*ei, g), g, deg_type2).first, 2)+
+          pow(out_degree_type(target(*ei, g), g, deg_type2).first, 2);
       }
     }
 
@@ -334,8 +334,8 @@ namespace boost {
       std::vector<unsigned int> target_degree(nEdgeTypes);
       
       for (unsigned int i = 0; i < nEdgeTypes; ++i) {
-        source_degree[i] = out_degree_type(source(*ei, g), g, i);
-        target_degree[i] = out_degree_type(target(*ei, g), g, i);
+        source_degree[i] = out_degree_type(source(*ei, g), g, i).first;
+        target_degree[i] = out_degree_type(target(*ei, g), g, i).first;
 	unsigned int maxdeg = std::max(source_degree[i], target_degree[i]);
 	if (maxdeg + 1 >  d.shape()[2]) {
 	  d.resize(boost::extents[nEdgeTypes][nEdgeTypes][maxdeg + 1]);

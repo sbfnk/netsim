@@ -45,8 +45,8 @@ namespace boost {
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
       // we want the correlation of deg_type1 and deg_type2 degrees
-      ham += out_degree_type(*vi, g, deg_type1)*
-        out_degree_type(*vi, g, deg_type2);
+      ham += out_degree_type(*vi, g, deg_type1).first*
+        out_degree_type(*vi, g, deg_type2).first;
     }
     // multiply with desired assortivity factor
     ham *= -J;
@@ -54,10 +54,10 @@ namespace boost {
   }
 
   //----------------------------------------------------------
-  /*! \brief Rewire edges according to degree overlap.
+  /*! \brief Swap vertices according to degree overlap.
 
-  Randomly swaps links of type deg_type2 to create degree overlap between the
-  deg_type1 and deg_type2 degrees of vertices --
+  Randomly swaps vertices on the deg_type2 network to create degree overlap
+  between the   deg_type1 and deg_type2 degrees of vertices --
   rewiring is controlled by parameter J: positive J leads to
   correlation between degrees, negative J to anticorrelation,
   J=0 to no correlation
@@ -67,12 +67,14 @@ namespace boost {
   \param[in] ol The desired degree overlap.
   \param[in] deg_type1 The first edge type to consider.
   \param[in] deg_type2 The second edge type to consider.
+  \param[in] keepParallel Whether to preserve parallel edges.
   \param[in] verbose Whether to be verbose.
   \ingroup graph_structure
   */
   template <typename RandomGenerator, typename Graph, typename EdgeType>
   void rewire_degree_overlap(Graph& g, RandomGenerator& r, double ol,
                              EdgeType deg_type1, EdgeType deg_type2,
+                             bool keepParallel = false,
                              unsigned int verbose = 0)
   {
     typedef typename boost::graph_traits<Graph>::edge_descriptor
@@ -108,27 +110,57 @@ namespace boost {
     bool converged = (fabs(current_degree_overlap - ol) < 0.01);
     bool converging = true;
     
+    Graph save_graph = g;
     for (unsigned int i = 0; !converged; i++) {
       // choose two vertices for considering swapping links of deg_type2
       vertex_descriptor vertex1, vertex2;
 
-      // choose first random vertex for swapping
-      vertex1 = random_vertex(g, r);
+      std::pair<unsigned int, unsigned int> v1d1;
+      std::pair<unsigned int, unsigned int> v1d2;
+      std::pair<unsigned int, unsigned int> v2d1;
+      std::pair<unsigned int, unsigned int> v2d2;
+
+      int swap1to2;
+      int swap2to1;
 
       // choose second random vertex for swapping
+      bool possible;
       do {
+        // choose first random vertex for swapping
+        vertex1 = random_vertex(g, r);
+        v1d1 = out_degree_type(vertex1, g, deg_type1);
+        v1d2 = out_degree_type(vertex1, g, deg_type2);
         vertex2 = random_vertex(g, r);
-      } while (vertex1 == vertex2);
-      
+        v2d1  = out_degree_type(vertex2, g, deg_type1);
+        v2d2 = out_degree_type(vertex2, g, deg_type2);
+        if (keepParallel) {
+          swap1to2 = std::min(v1d2.first - v1d2.second, v1d2.first - v2d2.second);
+          swap2to1 = v2d2.first - v1d2.first + swap1to2;
+        } else {
+          swap1to2 = v1d2.first;
+          swap2to1 = v2d2.first;
+        }
+        
+        possible = (vertex1 != vertex2) &&
+          !(edge(vertex1, vertex2, g).second) &&
+          !(swap2to1 < 0) &&
+          !(keepParallel && ((static_cast<unsigned int>(swap1to2) >
+                              (v1d2.first - v1d2.second)) ||
+                             (static_cast<unsigned int>(swap2to1) >
+                              (v2d2.first - v2d2.second))));
+          ;
+        if (verbose >=2) {
+          std::cout << "swap1to2 " << swap1to2 << ", swap2to1 " << swap2to1 << ", v1d2.f " << v1d1.first
+                    << ", v1d2.s " << v1d2.second << ", v2d2.f " << v2d2.first << ", v2d2.s "
+                    << v2d2.second << ", possible " << possible << std::endl;
+        }
+      } while (!possible);
+
       // calculated hamiltonian as it would be after rewiring
-      double s1 = out_degree_type(vertex1, g, deg_type1) *
-        out_degree_type(vertex2, g, deg_type2);
-      double s2 = out_degree_type(vertex2, g, deg_type1) *
-        out_degree_type(vertex1, g, deg_type2);
-      double s3 = out_degree_type(vertex1, g, deg_type1) *
-        out_degree_type(vertex1, g, deg_type2);
-      double s4 = out_degree_type(vertex2, g, deg_type1) *
-        out_degree_type(vertex2, g, deg_type2);
+      double s1 = v1d1.first * v2d2.first;
+      double s2 = v2d1.first * v1d2.first;
+      double s3 = v1d1.first * v1d2.first;
+      double s4 = v2d1.first * v2d2.first;
 
       double sum = s1 + s2 - s3 - s4;
 
@@ -152,18 +184,32 @@ namespace boost {
       
       if (accept) {
         H = temp_H;
-        // swap all edges of type deg_type2 between vertex1 and vertex2
+        // swap edges of type deg_type2 between vertex1 and vertex2
         edge_vector edges1, edges2;
         out_edge_iterator oi, oi_end;
 
         // store existing edges
         for (tie(oi, oi_end) = out_edges(vertex1, g); oi != oi_end; oi++) {
-          if (g[*oi].type == deg_type2 && target(*oi, g) != vertex2) edges1.push_back(*oi);
+          if (g[*oi].type == deg_type2 && target(*oi, g) != vertex2 &&
+              !(keepParallel && g[*oi].parallel)) edges1.push_back(*oi);
         }
         for (tie(oi, oi_end) = out_edges(vertex2, g); oi != oi_end; oi++) {
-          if (g[*oi].type == deg_type2 && target(*oi, g) != vertex1) edges2.push_back(*oi);
+          if (g[*oi].type == deg_type2 && target(*oi, g) != vertex1 &&
+              !(keepParallel && g[*oi].parallel)) edges2.push_back(*oi);
         }
-
+        
+        if (static_cast<unsigned int>(swap1to2) == v1d2.first &&
+            static_cast<unsigned int>(swap2to1) == v2d2.first) {
+          // not all edges are swapped, so remove some from the vectors
+          for (unsigned int i = 0; i < v1d2.first - swap1to2; ++i) {
+            int rand = static_cast<int>(edges1.size());
+            edges1.erase(edges1.begin() + rand);
+          }
+          for (unsigned int i = 0; i < v2d2.first - swap2to1; ++i) {
+            int rand = static_cast<int>(edges2.size());
+            edges2.erase(edges2.begin() + rand);
+          }
+        }
         // swap edges
         for (edge_vector_iterator it = edges1.begin();
              it != edges1.end(); it++) {
@@ -187,16 +233,28 @@ namespace boost {
         // times in a row
         bool now_converging =
           (fabs(ol-new_degree_overlap) < fabs(ol-current_degree_overlap));
-        converged = !now_converging && !converging;
+        converged = (!now_converging && !converging) ||
+          (fabs(ol-new_degree_overlap) < 1e-2); 
+                     
         converging = now_converging;
 
-        current_degree_overlap = new_degree_overlap;
+        if (converged) {
+          if (fabs(current_degree_overlap - ol) > fabs(new_degree_overlap - ol)) {
+            current_degree_overlap = new_degree_overlap;
+          } else {
+            g = save_graph;
+          }
+        } else {
+          current_degree_overlap = new_degree_overlap;
+        }
+
+        J = (ol > current_degree_overlap) ? 1 : -1;
+        save_graph = g;
 
         if (verbose >= 1) {
           std::cout << "degree overlap " << new_degree_overlap << " step " << steps
                     << std::endl;
         }
-        
       }
     }
 
@@ -230,12 +288,12 @@ namespace boost {
 
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
-      corr_sum += out_degree_type(*vi, g, deg_type1)*
-        out_degree_type(*vi, g, deg_type2);
-      deg_sum_1 += out_degree_type(*vi, g, deg_type1);
-      deg_sum_2 += out_degree_type(*vi, g, deg_type2);
-      deg_sq_sum_1 += pow(out_degree_type(*vi, g, deg_type1), 2);
-      deg_sq_sum_2 += pow(out_degree_type(*vi, g, deg_type2), 2);
+      corr_sum += out_degree_type(*vi, g, deg_type1).first*
+        out_degree_type(*vi, g, deg_type2).first;
+      deg_sum_1 += out_degree_type(*vi, g, deg_type1).first;
+      deg_sum_2 += out_degree_type(*vi, g, deg_type2).first;
+      deg_sq_sum_1 += pow(out_degree_type(*vi, g, deg_type1).first, 2);
+      deg_sq_sum_2 += pow(out_degree_type(*vi, g, deg_type2).first, 2);
     }
 
     double correlation =
@@ -245,7 +303,7 @@ namespace boost {
     
     return correlation;
   }
-  
+
 } // namespace boost
 
 //----------------------------------------------------------
