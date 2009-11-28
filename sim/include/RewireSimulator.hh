@@ -82,21 +82,24 @@ namespace Simulators {
     {
       bool ret = false;
       if ((burnWait == 0) || (tempStates.find(0) == tempStates.end()) ||
-          (tempStates.at(0).size() < burnWait)) {
+          (static_cast<int>(tempStates.at(0).size()) < burnWait) ||
+          ((burnWait < 0) && (this->getTime() < burnTime))) {
 	ret = Simulator<Graph>::stopCondition();
 	unsigned int largest_component = stopComponent;
 	if (stopComponent > 0) {
 	  // find component dist writer if available
 	  bool found = false;
 	  for (unsigned int i = 0;
-	       ((!false) && i < (this->statRecorders.size())); ++i) {
-	    const write_comp_dist<Graph>* w =
-	      dynamic_cast<const write_comp_dist<Graph>*>
-	      (this->statRecorders[i]->getStatFunc());
-	    if (w) {
-	      largest_component = w->getLargest();
-	      found = true;
-	    }
+	       ((!found) && i < (this->statRecorders.size())); ++i) {
+            if (this->statRecorders[i]->getName() == "component-dist") {
+              const write_comp_dist<Graph>* w =
+                dynamic_cast<const write_comp_dist<Graph>*>
+ 	      (this->statRecorders[i]->getStatFunc());
+              if (w) {
+                largest_component = w->getLargest();
+                found = true;
+              }
+            }
 	  }
 	  if (!found) {
 	    largest_component = write_component_dist(this->getGraph());
@@ -115,7 +118,8 @@ namespace Simulators {
 
     unsigned int verbose;
     unsigned int stopComponent;
-    unsigned int burnWait;
+    int burnWait;
+    double burnTime;
 
     double rewireProb;
     double updateProb;
@@ -136,6 +140,7 @@ namespace Simulators {
     unsigned int numVertices;
 
     bool recordInitiator;
+    bool saveInitiator;
     bool groupLifeTimes;
 
     double recordEffectiveRates;
@@ -161,7 +166,8 @@ namespace Simulators {
   RewireSimulator(RandomGenerator& r, Graph& g,
 		     unsigned int v) :
     Simulator<Graph>(g, v), randGen(r, boost::uniform_real<> (0,1)),
-    active(), verbose(v), burnWait(0), recordInitiator(false), 
+    active(), verbose(v), burnWait(0), burnTime(0.),
+    recordInitiator(false), saveInitiator(false),
     groupLifeTimes(false), recordEffectiveRates(0.), recordEffectiveTimer(0.), 
     rateSum(0.)
   {
@@ -194,11 +200,13 @@ namespace Simulators {
        "record initiators in Initiator directory")
       ("group-lifetimes",
        "save group lifetimes to lifetimes.sim.dat")
+      ("save-initiations",
+       "save data at group initiations")
       ;
     this->stop_options.add_options()
       ("cmin", po::value<unsigned int>()->default_value(0),
        "limit to the size of the largest component (stop if drops to that value")
-      ("burn-wait", po::value<unsigned int>()->default_value(0),
+      ("burn-wait", po::value<int>()->default_value(0),
        "wait for burn-in to finish (i.e. wait until noone is in null state")
       ;
     this->knownModels.push_back
@@ -237,13 +245,13 @@ namespace Simulators {
       this->statRecorders.push_back
         (new StatRecorder<Graph>
          (new write_comp_dist<Graph>(this->getGraph()),
-          vm["component-dist"].as<double>()));
+          vm["component-dist"].as<double>(), "component-dist"));
     }
     if (vm.count("components")) {
       this->statRecorders.push_back
         (new StatRecorder<Graph>
          (new write_comp<Graph>(this->getGraph()),
-          vm["components"].as<double>()));
+          vm["components"].as<double>(), "components"));
     }
     if (vm.count("modularity") || vm.count("community")) {
       double rate = -1;
@@ -265,20 +273,20 @@ namespace Simulators {
          (new write_community_structure<Graph, Model<Graph> >
           (this->getGraph(), *(this->getModel()),
            vm.count("community"), vm.count("modularity"), verbose),
-          rate));
+          rate, "community"));
     }
     if (vm.count("group-modularity")) {
       this->statRecorders.push_back
         (new StatRecorder<Graph>
          (new write_group_modularity<Graph, Model<Graph> >
 	  (this->getGraph(), *(this->getModel()), verbose),
-          vm["group-modularity"].as<double>()));
+          vm["group-modularity"].as<double>(), "group-modularity"));
     }
     if (vm.count("same-state")) {
       this->statRecorders.push_back
         (new StatRecorder<Graph>
          (new write_same_state_components<Graph>(this->getGraph(), verbose),
-          vm["same-state"].as<double>()));
+          vm["same-state"].as<double>(), "same-state"));
     }
     if (vm.count("effective-rates")) {
       recordEffectiveRates = vm["effective-rates"].as<double>();
@@ -297,11 +305,14 @@ namespace Simulators {
     if (vm.count("record-initiators")) {
       recordInitiator = true;
     }
+    if (vm.count("save-initiators")) {
+      saveInitiator = true;
+    }
     if (vm.count("group-lifetimes")) {
       groupLifeTimes = true;
     }
     if (vm.count("burn-wait")) {
-      burnWait = vm["burn-wait"].as<unsigned int>();
+      burnWait = vm["burn-wait"].as<int>();
     }
     return ret;
   }
@@ -641,6 +652,21 @@ namespace Simulators {
 	  write_graph(this->getGraph(), fileName, *(this->getModel()), 
 		      this->getTime());
 	}
+        if (saveInitiator) {
+	  // find data writer if available
+	  bool found = false;
+	  for (unsigned int i = 0;
+	       ((!found) && i < (this->statRecorders.size())); ++i) {
+// 	    const write_comp_dist<Graph>* w =
+// 	      dynamic_cast<const write_comp_dist<Graph>*>
+// 	      (this->statRecorders[i]->getStatFunc());
+// 	    if (w) {
+            if (this->statRecorders[i]->getName() == "data") {
+              this->statRecorders[i]->update(this->getGraph(),
+                                             this->getTime(), true);
+	    }
+	  }
+        }
 
       }
       
@@ -753,6 +779,14 @@ namespace Simulators {
       rewiredsCounter = 0;
     }
   
+    if (burnWait == -1) {
+      if (tempStates.at(0).size() == 0) {
+        burnWait = -2;
+        burnTime = 2* this->getTime();
+      } else {
+        burnTime = this->getTime();
+      }
+    }
     return true;
   }
 

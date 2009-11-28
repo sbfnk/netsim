@@ -146,7 +146,7 @@ namespace Simulators {
       this->statRecorders.push_back
         (new StatRecorder<Graph>
          (new write_epi_stats<Graph, EpiSimulator<RandomGenerator, Graph> >
-          (*this, this->getVerbose()), 0.));
+          (*this, this->getVerbose()), 0., "stats"));
     }
     if (vm.count("r0")) {
       generations.resize(vm["r0"].as<unsigned int>());
@@ -154,7 +154,7 @@ namespace Simulators {
       this->statRecorders.push_back
         (new StatRecorder<Graph>
          (new write_r0<Graph, EpiSimulator<RandomGenerator, Graph> >
-          (generations, genInf, this->getVerbose()), 0.));
+          (generations, genInf, this->getVerbose()), 0., "r0"));
     }
     if (vm.count("imax")) {
       stopInfections = vm["imax"].as<unsigned int>();

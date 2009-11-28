@@ -36,9 +36,9 @@ class StatRecorder
 {
 public:
   
-  StatRecorder(Funct<Graph>* s, double f) :
+  StatRecorder(Funct<Graph>* s, double f, std::string name = "") :
     statFunc(s), outputFreq(f), nextStep(f),
-    seqNum(0), outputDir("")
+    seqNum(0), outputDir(""), name(name)
   {;}
 
   ~StatRecorder()
@@ -60,6 +60,8 @@ public:
     }
   }
 
+  std::string getName() const {return name;}
+
   const Funct<Graph>* getStatFunc() const {return statFunc;}
   
 private:
@@ -70,6 +72,7 @@ private:
   unsigned int seqNum;
 
   std::string outputDir;
+  std::string name;
 };
 
 #endif

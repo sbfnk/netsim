@@ -138,17 +138,17 @@ public:
         statRecorders.push_back(new StatRecorder<Graph>
                                 (new write_sim_data<Graph, Model<Graph> >
                                  (*model, pairs, triples),
-                                 vm["data"].as<double>()));
+                                 vm["data"].as<double>(), "data"));
       }
       if (vm.count("graphviz")) {
         statRecorders.push_back(new StatRecorder<Graph>
                                 (new write_sim_graph<Graph, Model<Graph> >(*model),
-                                 vm["graphviz"].as<double>()));
+                                 vm["graphviz"].as<double>(), "graphviz"));
       }
       if (vm.count("lattice")) {
         statRecorders.push_back(new StatRecorder<Graph>
                                 (new write_sim_lattice<Graph, Model<Graph> >(*model),
-                                 vm["lattice"].as<double>()));
+                                 vm["lattice"].as<double>(), "lattice"));
       }
       if (verbose>=1) {
         double freq;
