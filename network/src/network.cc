@@ -1538,7 +1538,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // calculate dual degree distribution
   /******************************************************************/
-  if (vm.count("dual-degree-dist") || (allStats && nEdgeTypes > 1)) {
+  if (vm.count("dual-degree-dist")) {
     std::stringstream output;
 
     boost::multi_array<unsigned int, 2> dd;
@@ -1584,7 +1584,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
   // calculate degree codistributions
   /******************************************************************/
-  if (vm.count("co-degree-dist") || (allStats && nEdgeTypes > 1)) {
+  if (vm.count("co-degree-dist")) {
     std::stringstream output;
 
     boost::multi_array<unsigned int, 2> dd;
