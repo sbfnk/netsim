@@ -1192,8 +1192,10 @@ public:
 	  interCount += pairCount[edgeType][j][k];
 	}
       }
+//      modularity += (intraCount / static_cast<double>(num_edges(g)))
+//	- pow((2*intraCount + interCount) / (2*num_edges(g)), 2);
       modularity += (intraCount / static_cast<double>(num_edges(g)))
-	- pow((2*intraCount + interCount) / (2*num_edges(g)), 2);
+	- pow((intraCount + interCount) / (2*num_edges(g)), 2);
     }
     
     write_data((dir + "/groupmod.sim.dat"), time, modularity);
