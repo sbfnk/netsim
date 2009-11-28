@@ -647,6 +647,25 @@ namespace Simulators {
 	tempStates[newState].insert(v);
 	++randomiseCounter;
 
+        if (recordInitiator) {
+          if (!fs::exists(this->getDir()+"/Initiators")) {
+            try {
+              mkdir((this->getDir()+"/Initiators").c_str(), 0755);
+            } 
+            catch (std::exception &e) {
+              std::cerr << "... unable to create directory "
+                        << this->getDir() << "/Initiators" << std::endl;
+              std::cerr << "unsetting record-initiators" << std::endl;
+              recordInitiator = false;
+            }
+          }
+          std::string fileName = 
+            generateFileName(this->getDir() + "/Initiators/group", 
+                             highestState, "graph");
+          write_graph(this->getGraph(), fileName, *(this->getModel()), 
+                      this->getTime());
+        }
+
         if (saveInitiator) {
 	  // find data writer if available
 	  bool found = false;
