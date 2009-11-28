@@ -80,32 +80,34 @@ namespace Simulators {
     //! Check if conditions to stop a run have been reached. 
     bool stopCondition() const
     {
-      bool ret = false;
-      if ((burnWait == 0) || (tempStates.find(0) == tempStates.end()) ||
-          (static_cast<int>(tempStates.at(0).size()) < burnWait) ||
-          ((burnWait < 0) && (this->getTime() < burnTime))) {
-	ret = Simulator<Graph>::stopCondition();
-	unsigned int largest_component = stopComponent;
-	if (stopComponent > 0) {
-	  // find component dist writer if available
-	  bool found = false;
-	  for (unsigned int i = 0;
-	       ((!found) && i < (this->statRecorders.size())); ++i) {
-            if (this->statRecorders[i]->getName() == "component-dist") {
-              const write_comp_dist<Graph>* w =
-                dynamic_cast<const write_comp_dist<Graph>*>
- 	      (this->statRecorders[i]->getStatFunc());
-              if (w) {
-                largest_component = w->getLargest();
-                found = true;
+      bool ret = Simulator<Graph>::stopCondition();
+      if (ret == true) {
+        ret &= ((burnWait == 0) || (tempStates.find(0) == tempStates.end()) ||
+                (static_cast<int>(tempStates.at(0).size()) < burnWait) ||
+                ((burnWait < 0) && (this->getTime() < burnTime)));
+        if (ret == true) {
+          if (stopComponent > 0) {
+            unsigned int largest_component = stopComponent;
+            // find component dist writer if available
+            bool found = false;
+            for (unsigned int i = 0;
+                 ((!found) && i < (this->statRecorders.size())); ++i) {
+              if (this->statRecorders[i]->getName() == "component-dist") {
+                const write_comp_dist<Graph>* w =
+                  dynamic_cast<const write_comp_dist<Graph>*>
+                  (this->statRecorders[i]->getStatFunc());
+                if (w) {
+                  largest_component = w->getLargest();
+                  found = true;
+                }
               }
             }
-	  }
-	  if (!found) {
-	    largest_component = write_component_dist(this->getGraph());
-	  }
-	  ret |= (largest_component < stopComponent); 
-	}
+            if (!found) {
+              largest_component = write_component_dist(this->getGraph());
+            }
+            ret &= (largest_component < stopComponent); 
+          }
+        }
       }
       return ret;
     }
@@ -305,7 +307,7 @@ namespace Simulators {
     if (vm.count("record-initiators")) {
       recordInitiator = true;
     }
-    if (vm.count("save-initiators")) {
+    if (vm.count("save-initiations")) {
       saveInitiator = true;
     }
     if (vm.count("group-lifetimes")) {
