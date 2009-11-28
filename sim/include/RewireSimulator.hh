@@ -157,7 +157,9 @@ namespace Simulators {
     std::map<unsigned int, std::set<unsigned int> > tempStates; // faster
 
     // the times at which groups are initiated 
-    std::vector<double> groupInitiationTimes; 
+    std::vector<double> groupInitiationTimes;
+    // the groups which nodes belong to when initiating new groups
+    std::vector<unsigned int> groupInitiationPrevious; 
 
     double rateSum;
   
@@ -339,6 +341,7 @@ namespace Simulators {
     numVertices = num_vertices(graph);
     //tempStates.insert(std::make_pair(0, std::set<unsigned int>()));
     groupInitiationTimes.push_back(0.);
+    groupInitiationPrevious.push_back(0);
 
     for (tie(ei, ei_end) = edges(graph); ei != ei_end; ei++) {
       tempEdges.push_back(*ei);
@@ -556,10 +559,13 @@ namespace Simulators {
 			    groupInitiationTimes[tempVertices[target_node]])
 			<< std::endl;
 	    }
+            std::stringstream s;
+            s << groupInitiationPrevious[tempVertices[target_node]]
+              << "\t"
+              << (this->getTime() -
+                  groupInitiationTimes[tempVertices[target_node]]);
 	    write_data((this->getDir() + "/lifetimes.sim.dat"),
-		       tempVertices[target_node], 
-		       this->getTime() - 
-		       groupInitiationTimes[tempVertices[target_node]]);
+		       tempVertices[target_node], s.str());
 	    tempStates.erase(tempVertices[target_node]);
 	  }
 	  
@@ -600,6 +606,7 @@ namespace Simulators {
 	newState = ++highestState;
 	model->addState();
 	groupInitiationTimes.push_back(this->getTime());
+	groupInitiationPrevious.push_back(tempVertices[v]);
 
 	tempStates[tempVertices[v]].erase(v);
 	if (groupLifeTimes && tempStates[tempVertices[v]].size() == 0) {
@@ -610,9 +617,13 @@ namespace Simulators {
 			  groupInitiationTimes[tempVertices[v]])
 		      << std::endl;
 	  }
+          std::stringstream s;
+          s << groupInitiationPrevious[tempVertices[v]]
+            << "\t"
+            << (this->getTime() -
+                groupInitiationTimes[tempVertices[v]]);
 	  write_data((this->getDir() + "/lifetimes.sim.dat"),
-		     tempVertices[v], 
-		     this->getTime() - groupInitiationTimes[tempVertices[v]]);
+		     tempVertices[v], s.str());
 	  tempStates.erase(tempVertices[v]);
 	}
 	  
@@ -636,24 +647,6 @@ namespace Simulators {
 	tempStates[newState].insert(v);
 	++randomiseCounter;
 
-	if (recordInitiator) {
-	  if (!fs::exists(this->getDir()+"/Initiators")) {
-	    try {
-	      mkdir((this->getDir()+"/Initiators").c_str(), 0755);
-	    } 
-	    catch (std::exception &e) {
-	      std::cerr << "... unable to create directory "
-			<< this->getDir() << "/Initiators" << std::endl;
-	      std::cerr << "unsetting record-initiators" << std::endl;
-	      recordInitiator = false;
-	    }
-	  }
-	  std::string fileName = 
-	    generateFileName(this->getDir() + "/Initiators/group", 
-			     highestState, "graph");
-	  write_graph(this->getGraph(), fileName, *(this->getModel()), 
-		      this->getTime());
-	}
         if (saveInitiator) {
 	  // find data writer if available
 	  bool found = false;
@@ -784,7 +777,7 @@ namespace Simulators {
     if (burnWait == -1) {
       if (tempStates.find(0) == tempStates.end()) {
         burnWait = -2;
-        burnTime = 2* this->getTime();
+        burnTime = 2 * this->getTime();
       } else {
         burnTime = this->getTime();
       }
