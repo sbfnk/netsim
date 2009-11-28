@@ -78,17 +78,18 @@ namespace boost {
        EdgeType e,
        ColorMap color,
        BFSVisitor vis,
-       const bgl_named_params<P, T, R>& params)
+       const bgl_named_params<P, T, R>& params,
+       BOOST_GRAPH_ENABLE_IF_MODELS(VertexListGraph, vertex_list_graph_tag,
+                                    void)* = 0)
     {
       typedef graph_traits<VertexListGraph> Traits;
       // Buffer default
       typedef typename Traits::vertex_descriptor Vertex;
       typedef boost::queue<Vertex> queue_t;
       queue_t Q;
-      detail::wrap_ref<queue_t> Qref(Q);
       breadth_first_search
         (g, s, e,
-         choose_param(get_param(params, buffer_param_t()), Qref).ref,
+         choose_param(get_param(params, buffer_param_t()), boost::ref(Q)).get(),
          vis, color);
     }
 
@@ -184,11 +185,10 @@ namespace boost {
     typedef typename Traits::vertex_descriptor vertex_descriptor;
     typedef boost::queue<vertex_descriptor> queue_t;
     queue_t Q;
-    detail::wrap_ref<queue_t> Qref(Q);
 
     breadth_first_visit
       (ng, s, e,
-       choose_param(get_param(params, buffer_param_t()), Qref).ref,
+       choose_param(get_param(params, buffer_param_t()), boost::ref(Q)).get(),
        choose_param(get_param(params, graph_visitor),
                     make_bfs_visitor(null_visitor())),
        choose_pmap(get_param(params, vertex_color), ng, vertex_color)
