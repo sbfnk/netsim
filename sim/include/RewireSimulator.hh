@@ -82,9 +82,9 @@ namespace Simulators {
     {
       bool ret = Simulator<Graph>::stopCondition();
       if (ret == true) {
-        ret = ((burnWait == 0) ||
-               ((tempStates.find(0) == tempStates.end()) && (static_cast<int>(tempStates.at(0).size()) < burnWait)) ||
-               ((burnWait < 0) && (this->getTime() < burnTime)));
+        ret &= ((burnWait == 0) || (tempStates.find(0) == tempStates.end()) ||
+                (static_cast<int>(tempStates.at(0).size()) < burnWait) ||
+                ((burnWait < 0) && (this->getTime() < burnTime)));
         if (ret == true) {
           if (stopComponent > 0) {
             unsigned int largest_component = stopComponent;
@@ -105,7 +105,7 @@ namespace Simulators {
             if (!found) {
               largest_component = write_component_dist(this->getGraph());
             }
-            ret = (largest_component < stopComponent); 
+            ret &= (largest_component < stopComponent); 
           }
         }
       }
@@ -782,7 +782,7 @@ namespace Simulators {
     }
   
     if (burnWait == -1) {
-      if (tempStates.at(0).size() == 0) {
+      if (tempStates.find(0) == tempStates.end()) {
         burnWait = -2;
         burnTime = 2* this->getTime();
       } else {
