@@ -79,6 +79,10 @@ namespace Models {
   GroupFormModel<Graph>::GroupFormModel(unsigned int)
   {
     this->edgeTypes.push_back(Label("x", "", 0, "style=\"solid\""));
+    this->model_options.add_options()
+      ("nstates", po::value<unsigned int>()->default_value(1),
+       "number of initial states")
+      ;
   }
 
   template <class Graph>
@@ -90,6 +94,10 @@ namespace Models {
     // ungrouped state
     this->vertexStates.push_back
       (Label("0", "01;37", 0, "", Label::rgbColour(0,0,0)));
+    
+    for (unsigned int i = 1; i < vm["nstates"].as<unsigned int>(); ++i) {
+      addState();
+    }
   }
 
   template <class Graph>
