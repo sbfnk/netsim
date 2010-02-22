@@ -128,6 +128,8 @@ namespace Simulators {
     double randomiseProb;
     double randomRewiring;
 
+    double switchOff;
+
     unsigned int rewireCounter;
     unsigned int rewirefcCounter;
     unsigned int rewirefnCounter;
@@ -206,6 +208,8 @@ namespace Simulators {
        "save group lifetimes to lifetimes.sim.dat")
       ("save-initiations",
        "save data at group initiations")
+      ("switchoff", po::value<double>()->default_value(0.),
+       "time at which to switch of network processes (0 for never)")
       ;
     this->stop_options.add_options()
       ("cmin", po::value<unsigned int>()->default_value(0),
@@ -245,6 +249,9 @@ namespace Simulators {
     if (randomRewiring == 0.) {
       std::cerr << "WARNING: random rewiring fraction 0" << std::endl;
     }
+
+    switchOff = vm["switchoff"].as<double>();
+    
     if (vm.count("component-dist")) {
       this->statRecorders.push_back
         (new StatRecorder<Graph>
@@ -408,6 +415,12 @@ namespace Simulators {
       timeStep = -log(randGen())/rateSum;
     } while (errno > 0);
     this->updateTime(timeStep);
+
+    if (switchOff > 0 && switchOff < this->getTime()) {
+      rewireProb = 0;
+      randomRewiring = 0;
+    }
+    
     recordEffectiveTimer += timeStep;
          
     double randEvent = randGen();
