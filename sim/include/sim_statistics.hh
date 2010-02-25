@@ -1192,6 +1192,8 @@ public:
 	  interCount += pairCount[edgeType][j][k];
 	}
       }
+      intraCount /= 2.;
+      interCount /= 2.;
 //      modularity += (intraCount / static_cast<double>(num_edges(g)))
 //	- pow((2*intraCount + interCount) / (2*num_edges(g)), 2);
       modularity += (intraCount / static_cast<double>(num_edges(g)))
