@@ -179,51 +179,6 @@ int main(int argc, char* argv[])
   po::notify(vm);
   sim->parse_options(vm);
 
-  std::string baseString = vm["base"].as<std::string>();
-  unsigned int baseState = 0;
-
-  // assign baseState
-  while (baseState < model->getVertexStates().size() &&
-         (model->getVertexStates()[baseState].getText() != baseString)) {
-    baseState++;
-  }
-
-  // check if baseState known
-  if (baseState >= model->getVertexStates().size()) {
-    std::cerr << "WARNING: unknown base state: " << baseString << std::endl;
-    std::cerr << "Setting base state to "
-              << model->getVertexStates()[0].getText() << std::endl;
-    baseState = 0;
-  }
-
-  if (vm.count("init")) { // read initial state from file
-
-    std::string icFileName = vm["init"].as<std::string>();
-    int verticesRead;
-    if (vm.count("init-lattice")) {
-      verticesRead = read_initial_lattice(graph, icFileName, *model);
-    } else {
-      verticesRead = read_initial_graph(graph, icFileName, *model, baseState,
-                                        verbose);
-    }
-    if (verticesRead < 0) {
-      std::cerr << "ERROR: could not read from file " << icFileName
-                << std::endl;
-      return 1;
-    } else if (static_cast<unsigned int>(verticesRead) <
-               num_vertices(graph)) {
-      std::cerr << "ERROR: found only " << verticesRead << " vertex "
-                << "states in " << icFileName << std::endl;
-      return 1;
-    } else if (verbose > 1) {
-      std::cout << "Read " << verticesRead << " initial states from "
-                << icFileName << std::endl;
-    }
-    generateIC = false;
-  } else if (vm.count("same-ic")) {
-    keepIC = true;
-  }
-
   model = sim->getModel();
   if (model == 0) {
     std::cerr << "ERROR: no model" << std::endl;
@@ -440,6 +395,51 @@ int main(int argc, char* argv[])
     ext << numSims;
     extLength = ext.str().length();
     std::cout << "Running " << numSims << " simulations" << std::endl;
+  }
+
+  std::string baseString = vm["base"].as<std::string>();
+  unsigned int baseState = 0;
+
+  // assign baseState
+  while (baseState < model->getVertexStates().size() &&
+         (model->getVertexStates()[baseState].getText() != baseString)) {
+    baseState++;
+  }
+
+  // check if baseState known
+  if (baseState >= model->getVertexStates().size()) {
+    std::cerr << "WARNING: unknown base state: " << baseString << std::endl;
+    std::cerr << "Setting base state to "
+              << model->getVertexStates()[0].getText() << std::endl;
+    baseState = 0;
+  }
+
+  if (vm.count("init")) { // read initial state from file
+
+    std::string icFileName = vm["init"].as<std::string>();
+    int verticesRead;
+    if (vm.count("init-lattice")) {
+      verticesRead = read_initial_lattice(graph, icFileName, *model);
+    } else {
+      verticesRead = read_initial_graph(graph, icFileName, *model, baseState,
+                                        verbose);
+    }
+    if (verticesRead < 0) {
+      std::cerr << "ERROR: could not read from file " << icFileName
+                << std::endl;
+      return 1;
+    } else if (static_cast<unsigned int>(verticesRead) <
+               num_vertices(graph)) {
+      std::cerr << "ERROR: found only " << verticesRead << " vertex "
+                << "states in " << icFileName << std::endl;
+      return 1;
+    } else if (verbose > 1) {
+      std::cout << "Read " << verticesRead << " initial states from "
+                << icFileName << std::endl;
+    }
+    generateIC = false;
+  } else if (vm.count("same-ic")) {
+    keepIC = true;
   }
 
   if (vm.count("output-dir")) {

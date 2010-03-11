@@ -79,10 +79,6 @@ namespace Models {
   GroupFormModel<Graph>::GroupFormModel(unsigned int)
   {
     this->edgeTypes.push_back(Label("x", "", 0, "style=\"solid\""));
-//     model_options(po::options_description("\nModel options ("+name+")"));
-    this->model_options.add_options()
-      ("state-dist", po::value<std::string>()->default_value("none"),
-       "distribution of states to apply (none, flat, poisson, exp, pl)");
     this->model_options.add_options()
       ("nstates", po::value<unsigned int>()->default_value(1),
        "number of initial states")
