@@ -36,7 +36,7 @@ public:
   \param[in] v verbose intialiser
   */
   Simulator(Graph& g, unsigned int v = 0) :
-    graph(g), model(0), verbose(v), time(0.)
+    graph(g), model(0), verbose(v), time(0.), extraFlag(false)
   {
     po::options_description new_options1("\nSimulator options");
     new_options1.add_options()
@@ -55,11 +55,15 @@ public:
        "create graphviz output in the images directory at arg timesteps")
       ("lattice,l", po::value<double>(),
        "create pixelised lattice output at arg timesteps")
+      ("only-extra",
+       "only record in extra time")
       ;
     po::options_description new_options3("\nStop condition options");
     new_options3.add_options()
     ("tmax", po::value<double>()->default_value(0.),
      "time after which to stop\n(use tmax=0 to run until extinction)")
+    ("extra-time", po::value<double>()->default_value(0.),
+     "time to add after stop time)")
       ;
     simulator_options.add(new_options1);
     recorder_options.add(new_options2);
@@ -81,7 +85,9 @@ public:
     time = 0.;
     for (unsigned int i = 0; i < statRecorders.size(); ++i) {
       statRecorders[i]->reset(dir);
-      statRecorders[i]->update(graph, time, true);
+      if (!onlyExtra) {
+        statRecorders[i]->update(graph, time, true);
+      }
     }
     return true;
   }
@@ -105,6 +111,24 @@ public:
   //! Check if conditions to stop a run have been reached. 
   virtual bool stopCondition() const
   { return (((stopTime > 0 && getTime() >= stopTime)) || stopTime < 0); }
+
+  //! Check if conditions to stop a run have been reached (including extra time).
+  bool extraStopCondition()
+  {
+    if (!extraFlag) { extraFlag = this->stopCondition(); }
+    if (extraFlag) {
+      if (extraTime > 0) {
+        if (!extraFlag) {
+          stopTime = getTime();
+        } else {
+          return (getTime() >= stopTime + extraTime);
+        }
+      } else {
+        return true;
+      }
+    }
+    return false;
+  }
 
   virtual bool parse_options(const po::variables_map& vm)
   {
@@ -131,6 +155,8 @@ public:
     }
 
     stopTime = vm["tmax"].as<double>();
+    extraTime = vm["extra-time"].as<double>();
+    onlyExtra = (vm.count("only-extra"));
     bool pairs = (vm.count("pairs"));
     bool triples = (vm.count("triples"));
     if (model) {
@@ -177,9 +203,11 @@ public:
 
   void updateStats(bool forceUpdate = false)
   {
-    bool force = forceUpdate || stopCondition();
-    for (unsigned int i = 0; i < statRecorders.size(); ++i) {
-      statRecorders[i]->update(graph, time, force);
+    if (!onlyExtra || extraFlag) {
+      bool force = forceUpdate || stopCondition();
+      for (unsigned int i = 0; i < statRecorders.size(); ++i) {
+        statRecorders[i]->update(graph, time, force);
+      }
     }
   }
 
@@ -228,6 +256,10 @@ private:
   unsigned int verbose; //!< The verbosity level.
   double time; //!< The current time of the simulation.
   double stopTime; //!< The time to stop the simulation
+  double extraTime; //!< The time to add after stop
+
+  bool extraFlag; //!< Indicator if we are in extra time
+  bool onlyExtra; //!< Only record in extra time
 
   std::string dir;
 

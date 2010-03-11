@@ -626,7 +626,7 @@ int main(int argc, char* argv[])
     /******************************************************************/
     // run simulation
     /******************************************************************/
-    while ((sim->stopCondition() == false) && sim->updateState()) {
+    while ((sim->extraStopCondition() == false) && sim->updateState()) {
       sim->updateStats();
     }
 
