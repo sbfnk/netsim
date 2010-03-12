@@ -1243,10 +1243,10 @@ public:
     boost::multi_array<unsigned int, 3> pairCount =
       count_state_pairs_indiscriminately(g, nVertexStates, nEdgeTypes);
     // count pairs
-    for (unsigned int j = 0; j < nVertexStates; j++) {
+    for (unsigned int j = 0; j < pairCount.shape()[1]; j++) {
       unsigned int intraCount = 0;
       unsigned int interCount = 0;
-      for (unsigned int k = 0; k < nVertexStates; k++) {
+      for (unsigned int k = 0; k < pairCount.shape()[2]; k++) {
 	if (j == k) {
 	  intraCount += pairCount[edgeType][j][k];
 	} else {
