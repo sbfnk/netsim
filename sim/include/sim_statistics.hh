@@ -227,6 +227,67 @@ count_state_pairs(Graph& g, unsigned int nVertexStates,
 }
 
 //----------------------------------------------------------
+/*! \brief Count state pairs indiscriminately.
+  
+Counts the number of pairs of states in a graph, without accounting for the
+exact states.
+
+\param[in] g The graph containing the vertices and edges
+\param[in] nVertexStates The number of vertex states.
+\param[in] nEdgeTypes The number of edge types.
+\return A 3d array of pairs, the first index of which denounces edge type and
+the other two vertex states
+\ingroup sim_statistics
+*/
+template <typename Graph>
+boost::multi_array<unsigned int, 3>
+count_state_pairs_indiscriminately(Graph& g, unsigned int nVertexStates,
+                                   unsigned int nEdgeTypes)
+{
+  typedef typename boost::graph_traits<Graph>::edge_iterator
+    edge_iterator;
+  typedef typename boost::graph_traits<Graph>::vertex_iterator
+    vertex_iterator;
+  typedef boost::multi_array<unsigned int, 3> array_type;
+
+  // count real number of states to prevent memory leaks
+  std::set<unsigned int> stateSet;
+
+  vertex_iterator vi, vi_end;
+  for (boost::tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+    stateSet.insert(g[*vi].state->getState());
+  }
+  unsigned int nStates = stateSet.size();
+  std::map<unsigned int, unsigned int> reverseMap;
+  unsigned int index = 0;
+  for (std::set<unsigned int>::iterator it = stateSet.begin();
+       it != stateSet.end(); it++) {
+    reverseMap.insert(std::make_pair<unsigned int, unsigned int>(*it, index));
+    ++index;
+  }
+  
+  array_type counts(boost::extents
+                    [nEdgeTypes]
+                    [nStates]
+                    [nStates]);
+    
+  // count all edges of type et, including parallel
+  edge_iterator ei, ei_end;
+  for (boost::tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
+    std::vector<unsigned int> states(2);
+    states[0] = reverseMap[g[source(*ei, g)].state->getState()];
+    states[1] = reverseMap[g[target(*ei, g)].state->getState()];
+    std::sort(states.begin(), states.end());
+    ++counts[g[*ei].type][states[0]][states[1]];
+    if (states[0] == states[1]) {
+      ++counts[g[*ei].type][states[0]][states[1]];
+    }
+  }
+
+  return counts;
+}
+
+//----------------------------------------------------------
 /*! \brief Count parallel edges.
   
 Loops over all edges and counts for which edges there is another edge
@@ -1180,7 +1241,7 @@ public:
     double modularity = 0.;
 
     boost::multi_array<unsigned int, 3> pairCount =
-      count_state_pairs(g, nVertexStates, nEdgeTypes);
+      count_state_pairs_indiscriminately(g, nVertexStates, nEdgeTypes);
     // count pairs
     for (unsigned int j = 0; j < nVertexStates; j++) {
       unsigned int intraCount = 0;
