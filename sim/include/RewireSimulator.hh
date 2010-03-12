@@ -546,7 +546,7 @@ namespace Simulators {
 	//choose a random edge
 
         unsigned int randEdge = static_cast<unsigned int>
-          (randGen() * numEdges);
+          (randGen() * numEdges * 2);
         
 	vertex_descriptor source_node;
 	vertex_descriptor target_node;

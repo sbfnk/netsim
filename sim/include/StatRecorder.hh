@@ -51,6 +51,14 @@ public:
     seqNum = 0;  
   }
 
+  void resetNextStep(double time)
+  {
+    while (time > nextStep) {
+      nextStep += outputFreq;
+      ++seqNum;
+    }
+  }
+
   void update(const Graph& g, double time, bool force = false) 
   {
     if (force || (nextStep > 0. && time > nextStep) || (nextStep < 0.)) {

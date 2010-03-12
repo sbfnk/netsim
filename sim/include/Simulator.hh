@@ -115,19 +115,20 @@ public:
   //! Check if conditions to stop a run have been reached (including extra time).
   bool extraStopCondition()
   {
-    if (!extraFlag) { extraFlag = this->stopCondition(); }
-    if (extraFlag) {
-      if (extraTime > 0) {
-        if (!extraFlag) {
-          stopTime = getTime();
-        } else {
-          return (getTime() >= stopTime + extraTime);
+    if (!extraFlag) {
+      extraFlag = this->stopCondition();
+      if (extraFlag) {
+        stopTime = getTime();
+        for (unsigned int i = 0; i < statRecorders.size(); ++i) {
+          statRecorders[i]->resetNextStep(stopTime);
         }
-      } else {
-        return true;
       }
     }
-    return false;
+    if (extraFlag) {
+      return (getTime() >= stopTime + extraTime);
+    } else {
+      return false;
+    }
   }
 
   virtual bool parse_options(const po::variables_map& vm)
@@ -204,7 +205,7 @@ public:
   void updateStats(bool forceUpdate = false)
   {
     if (!onlyExtra || extraFlag) {
-      bool force = forceUpdate || stopCondition();
+      bool force = forceUpdate || extraStopCondition();
       for (unsigned int i = 0; i < statRecorders.size(); ++i) {
         statRecorders[i]->update(graph, time, force);
       }
