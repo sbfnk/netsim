@@ -146,6 +146,7 @@ namespace Simulators {
     bool recordInitiator;
     bool saveInitiator;
     bool groupLifeTimes;
+    bool stateLifeTimes;
 
     double recordEffectiveRates;
     double recordEffectiveTimer;
@@ -157,6 +158,7 @@ namespace Simulators {
     std::vector<edge_descriptor> tempEdges; // for faster access
     std::vector<unsigned int> tempVertices; // for faster access
     std::map<unsigned int, std::set<unsigned int> > tempStates; // faster
+    std::vector<double> lastChange;
 
     // the times at which groups are initiated 
     std::vector<double> groupInitiationTimes;
@@ -174,7 +176,8 @@ namespace Simulators {
     Simulator<Graph>(g, v), randGen(r, boost::uniform_real<> (0,1)),
     active(), verbose(v), burnWait(0), burnTime(0.),
     recordInitiator(false), saveInitiator(false),
-    groupLifeTimes(false), recordEffectiveRates(0.), recordEffectiveTimer(0.), 
+    groupLifeTimes(false), stateLifeTimes(false),
+    recordEffectiveRates(0.), recordEffectiveTimer(0.), 
     rateSum(0.)
   {
     this->simulator_options.add_options()
@@ -322,6 +325,9 @@ namespace Simulators {
     if (vm.count("group-lifetimes")) {
       groupLifeTimes = true;
     }
+    if (vm.count("state-lifetimes")) {
+      stateLifeTimes = true;
+    }
     if (vm.count("burn-wait")) {
       burnWait = vm["burn-wait"].as<int>();
     }
@@ -363,6 +369,7 @@ namespace Simulators {
 //      graph[*vi].state->setState(random_state);
       tempVertices.push_back(graph[*vi].state->getState());
       tempStates[graph[*vi].state->getState()].insert(*vi);
+      lastChange.push_back(0.);
     }
 
     // check if we need to add states to model
@@ -577,7 +584,7 @@ namespace Simulators {
               << "\t"
               << (this->getTime() -
                   groupInitiationTimes[tempVertices[target_node]]);
-	    write_data((this->getDir() + "/lifetimes.sim.dat"),
+	    write_data((this->getDir() + "/group_lifetimes.sim.dat"),
 		       tempVertices[target_node], s.str());
 	    tempStates.erase(tempVertices[target_node]);
 	  }
@@ -594,8 +601,18 @@ namespace Simulators {
 	  GroupFormState* myState =
 	    dynamic_cast<GroupFormState*>(graph[target_node].state);
 	  myState->setState(tempVertices[source_node]);
+	  if (tempVertices[target_node] !=
+              tempVertices[source_node]) {
+            if (stateLifeTimes) {
+              std::stringstream s;
+              s << this->getTime() - lastChange[target_node];
+              write_data((this->getDir() + "/state_lifetimes.sim.dat"),
+                         target_node, s.str());
+            }
+            ++updateCounter;
+            lastChange[target_node] = this->getTime();
+	  }
           tempVertices[target_node] = tempVertices[source_node];
-	  ++updateCounter;
 	}
       }
 
@@ -635,7 +652,7 @@ namespace Simulators {
             << "\t"
             << (this->getTime() -
                 groupInitiationTimes[tempVertices[v]]);
-	  write_data((this->getDir() + "/lifetimes.sim.dat"),
+	  write_data((this->getDir() + "/group_lifetimes.sim.dat"),
 		     tempVertices[v], s.str());
 	  tempStates.erase(tempVertices[v]);
 	}
@@ -655,6 +672,14 @@ namespace Simulators {
           dynamic_cast<GroupFormState*>(graph[v].state);
 	myState->setState(newState);
 
+        if (stateLifeTimes) {
+          std::stringstream s;
+          s << this->getTime() - lastChange[v];
+          write_data((this->getDir() + "/state_lifetimes.sim.dat"),
+                     v, s.str());
+        }
+        lastChange[v] = this->getTime();
+        
         tempVertices[v] = newState;
 	tempStates.insert(std::make_pair(newState,std::set<unsigned int>()));
 	tempStates[newState].insert(v);
