@@ -604,7 +604,8 @@ namespace Simulators {
 	    dynamic_cast<GroupFormState*>(graph[target_node].state);
 	  myState->setState(tempVertices[source_node]);
 	  if (tempVertices[target_node] !=
-              tempVertices[source_node]) {
+              tempVertices[source_node] &&
+              tempVertices[target_node] > 0) {
             if (stateLifeTimes) {
               std::stringstream s;
               s << this->getTime() - lastChange[target_node];
@@ -674,7 +675,7 @@ namespace Simulators {
           dynamic_cast<GroupFormState*>(graph[v].state);
 	myState->setState(newState);
 
-        if (stateLifeTimes) {
+        if (stateLifeTimes && tempVertices[v] > 0) {
           std::stringstream s;
           s << this->getTime() - lastChange[v];
           write_data((this->getDir() + "/state_lifetimes.sim.dat"),
