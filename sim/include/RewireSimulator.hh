@@ -208,7 +208,9 @@ namespace Simulators {
       ("record-initiators",
        "record initiators in Initiator directory")
       ("group-lifetimes",
-       "save group lifetimes to lifetimes.sim.dat")
+       "save group lifetimes to group_lifetimes.sim.dat")
+      ("state-lifetimes",
+       "save state lifetimes to state_lifetimes.sim.dat")
       ("save-initiations",
        "save data at group initiations")
       ("switchoff", po::value<double>()->default_value(0.),
