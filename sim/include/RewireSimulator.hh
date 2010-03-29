@@ -604,9 +604,8 @@ namespace Simulators {
 	    dynamic_cast<GroupFormState*>(graph[target_node].state);
 	  myState->setState(tempVertices[source_node]);
 	  if (tempVertices[target_node] !=
-              tempVertices[source_node] &&
-              tempVertices[target_node] > 0) {
-            if (stateLifeTimes) {
+              tempVertices[source_node]) {
+            if (tempVertices[target_node] > 0 && stateLifeTimes) {
               std::stringstream s;
               s << this->getTime() - lastChange[target_node];
               write_data((this->getDir() + "/state_lifetimes.sim.dat"),
@@ -681,11 +680,12 @@ namespace Simulators {
           write_data((this->getDir() + "/state_lifetimes.sim.dat"),
                      v, s.str());
         }
-        lastChange[v] = this->getTime();
         
         tempVertices[v] = newState;
 	tempStates.insert(std::make_pair(newState,std::set<unsigned int>()));
 	tempStates[newState].insert(v);
+
+        lastChange[v] = this->getTime();
 	++randomiseCounter;
 
         if (recordInitiator) {
