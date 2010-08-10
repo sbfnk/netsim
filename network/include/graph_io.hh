@@ -499,11 +499,15 @@ namespace boost {
 
             // set default if no edge type is given 
             unsigned int type = edgeType;
+            double weight = 1.;
             if (line.find("style") != std::string::npos) {
               type = style2type[extractDrawOption("style", line)];
             } else if (line.find("type") != std::string::npos) {
               type = cast_stream<unsigned int>(extractDrawOption("type", line));
-            } 
+            } else if (line.find("weight") != std::string::npos) {
+              weight = 
+                cast_stream<unsigned int>(extractDrawOption("weight", line));
+            }
           
             // typecasting string to int
             unsigned int src = cast_stream<unsigned int>(s);
@@ -515,7 +519,7 @@ namespace boost {
                 trg < num_vertices(g)) {
                 
               // add edge using Edge constructor
-              add_edge(src, trg, Edge(type), g);
+              add_edge(src, trg, Edge(type, weight), g);
             
               // count
               ++edgeCount;

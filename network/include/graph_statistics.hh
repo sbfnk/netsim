@@ -800,10 +800,13 @@ namespace boost {
     }
 
     BOOST_FOREACH(edge_descriptor e, edges(g)) {
-      ++community_matrix
+      community_matrix
         [component[source(e, g)]]
-        [component[target(e, g)]];
-      if (component[source(e, g)] == component[target(e, g)]) {
+        [component[target(e, g)]] += g[e].weight;
+      if (component[source(e, g)] != component[target(e, g)]) {
+        community_matrix
+          [component[target(e, g)]]
+          [component[source(e, g)]] += g[e].weight;
       }
     }
 

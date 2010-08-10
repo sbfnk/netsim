@@ -24,7 +24,8 @@ public:
     \param[in] eType type initialiser.
     \param[in] p parallel initialiser.
   */
-  Edge(int eType, bool p): type(eType), parallel(false) {;}
+  Edge(int eType, bool p): type(eType), parallel(p), weight(1.) {;}
+  Edge(int eType, double w): type(eType), parallel(false), weight(w) {;}
       
   //! A number corresponding to an edge type, to be defined by the used Model.
   unsigned int type; 
