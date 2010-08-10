@@ -8,14 +8,61 @@
 #include <boost/graph/bc_clustering.hpp>
 #include "Edge.hh"
 
-#include "Edge.hh"
-
 //! \addtogroup graph_statistics Graph statistics
 //! \addtogroup helper_functions Helper functions
 
 //----------------------------------------------------------
 namespace boost {
 
+
+  template<typename MutableGraph, typename Done, typename EdgeCentralityMap,
+           typename VertexIndexMap, typename WeightedMap>
+  void 
+  weighted_betweenness_centrality_clustering(MutableGraph& g, Done done,
+                                             EdgeCentralityMap edge_centrality,
+                                             VertexIndexMap vertex_index,
+                                             WeightedMap edge_weights)
+  {
+    typedef typename property_traits<EdgeCentralityMap>::value_type
+      centrality_type;
+    typedef typename graph_traits<MutableGraph>::edge_iterator edge_iterator;
+    typedef typename graph_traits<MutableGraph>::edge_descriptor edge_descriptor;
+    typedef typename graph_traits<MutableGraph>::vertices_size_type
+      vertices_size_type;
+
+    if (has_no_edges(g)) return;
+
+    // Function object that compares the centrality of edges
+    indirect_cmp<EdgeCentralityMap, std::less<centrality_type> > 
+       cmp(edge_centrality);
+
+    bool is_done;
+    do {
+      brandes_betweenness_centrality(g, 
+                                     edge_centrality_map(edge_centrality)
+                                     .vertex_index_map(vertex_index)
+                                     .weight_map(edge_weights));
+      std::pair<edge_iterator, edge_iterator> edges_iters = edges(g);
+      edge_descriptor e = *max_element(edges_iters.first, edges_iters.second, cmp);
+      is_done = done(get(edge_centrality, e), e, g);
+      if (!is_done) remove_edge(e, g);
+    } while (!is_done && !has_no_edges(g));
+  }
+
+  /**
+   * \overload
+   */ 
+  template<typename MutableGraph, typename Done, typename EdgeCentralityMap,
+           typename WeightedMap>
+  void 
+  weighted_betweenness_centrality_clustering(MutableGraph& g, Done done,
+                                    EdgeCentralityMap edge_centrality,
+                                    WeightedMap edge_weights)
+  {
+    weighted_betweenness_centrality_clustering(g, done, edge_centrality,
+                                      get(vertex_index, g), edge_weights);
+  }
+  
   template<typename Graph>
   class clustering_threshold
     : public bc_clustering_threshold<double>
@@ -82,6 +129,8 @@ namespace boost {
     typedef typename clustering_threshold<Graph>::centrality_type
       centrality_type;
     std::vector<centrality_type> edge_centrality(num_edges(g));
+    typename boost::property_map<Graph, double Edge::*>::type 
+      weight_pmap = get(&Edge::weight, g);
 
     Graph temp_graph;
 
@@ -93,14 +142,17 @@ namespace boost {
       workGraph = &temp_graph;
     }
 
+    
     double mod = 0.;
-    betweenness_centrality_clustering
+    weighted_betweenness_centrality_clustering
       (*workGraph,
        clustering_threshold<Graph>(threshold, *workGraph, false,
                                    verbose, calcModularity, &og,
                                    saveBest, &mod),
        make_iterator_property_map(edge_centrality.begin(),
-                                  get(&Edge::index, g)));
+                                  get(&Edge::index, g)),
+       weight_pmap
+       );
     return mod; 
   }
   

@@ -788,7 +788,7 @@ namespace boost {
 
     std::vector<int> component(num_vertices(cg));
     int num = boost::connected_components(cg, &component[0]);
-    std::size_t nEdges = num_edges(g);
+    double nEdges = 0;
 
     boost::multi_array<std::size_t, 2> community_matrix
       (boost::extents[num][num]);
@@ -800,6 +800,7 @@ namespace boost {
     }
 
     BOOST_FOREACH(edge_descriptor e, edges(g)) {
+      nEdges += g[e].weight;
       community_matrix
         [component[source(e, g)]]
         [component[target(e, g)]] += g[e].weight;

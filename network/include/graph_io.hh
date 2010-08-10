@@ -480,7 +480,7 @@ namespace boost {
       while(!in.eof()) {
         //read line
         getline(in, line);
-        
+
         // if edge or vertex
         if (line.find("];") != std::string::npos) { // found ];
           
@@ -506,7 +506,7 @@ namespace boost {
               type = cast_stream<unsigned int>(extractDrawOption("type", line));
             } else if (line.find("weight") != std::string::npos) {
               weight = 
-                cast_stream<unsigned int>(extractDrawOption("weight", line));
+                cast_stream<double>(extractDrawOption("weight", line));
             }
           
             // typecasting string to int
