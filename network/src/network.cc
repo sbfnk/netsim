@@ -229,7 +229,7 @@ int main(int argc, char* argv[])
      "write adjacency matrices to files  baseName.Jd/i")        
     ("community",
      "determine community structure")        
-    ("rw-community", po::value<unsigned int>()->default_value(0),
+    ("rw-community",
      "determine community structure using random walks")        
     ("modularity", 
      "determine modularity")        
