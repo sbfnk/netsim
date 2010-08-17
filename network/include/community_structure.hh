@@ -195,11 +195,14 @@ namespace boost {
     vertex_iterator vi, vi_end;
     vertex_descriptor current_vertex;
     out_edge_iterator oi, oi_end;
-    std::set<vertex_descriptor> C;
 
     // assign similarities
+    if (verbose >= 2) {
+      std::cout << "Assigning similarities " << std::endl;
+    }
     
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+      std::set<unsigned int> C;
       current_vertex = *vi;
       for (unsigned int i = 0; i < numSteps; ++i) {
         double weightSum = 0.;
@@ -225,7 +228,7 @@ namespace boost {
       for (std::set<unsigned int>::iterator it = C.begin();
            it != C.end(); it++) {
         for (std::set<unsigned int>::iterator it2 = C.begin();
-             it2 != C.end(); it++) {
+             it2 != C.end(); it2++) {
           if ((*it2) > (*it)) {
             similarity[*it][*it2]++;
           }
@@ -235,6 +238,9 @@ namespace boost {
 
     // identify communities
 
+    if (verbose >= 2) {
+      std::cout << "Identifying communities" << std::endl;
+    }
     std::vector<std::set<unsigned int> > communities;
     for (unsigned int i = 0; i < num_vertices(og); ++i) {
       std::set<unsigned int> temp;
@@ -258,14 +264,20 @@ namespace boost {
 
     while (max > 0) {
       
-      for (int i = 0; i < num_vertices(og); ++i) {
-        if (i != max_i && similarity[max_i][i] > -1) {
+      if (verbose >= 2) {
+        std::cout << "max = " << max << " " << max_i << " " << max_j << std::endl;
+      }
+
+      for (unsigned int i = 0; i < num_vertices(og); ++i) {
+        if (i != static_cast<unsigned int>(max_i) && 
+            similarity[max_i][i] > -1) {
           similarity[max_i][i] =
             (similarity[max_i][i] + similarity[max_j][i])/2;
           similarity[max_j][i] = -1;
           similarity[i][max_j] = -1;
         }
       }
+      similarity[max_i][max_j] = -1;
 
       for (std::set<unsigned int>::iterator it = communities[max_j].begin();
              it != communities[max_j].end(); it++) {
@@ -274,6 +286,7 @@ namespace boost {
 
       communities[max_j].clear();
 
+      max = 0;
       for (unsigned int i = 0; i < num_vertices(og); ++i) {
         if (similarity[i][0] > -1) {
           for (unsigned int j = i; j < num_vertices(og); ++j) {
@@ -287,8 +300,20 @@ namespace boost {
       }
     }
 
-    std::cout << "Number of communities: " << communities.size() << std::endl;
-        
+    if (verbose >= 1) {
+      unsigned int num_communities = 0;
+      for (unsigned int i = 0; i < num_vertices(og); ++i) {
+        if (communities[i].size() > 0) num_communities++;
+      }
+      std::cout << "Number of communities: " << num_communities << std::endl;
+    }
+
+    for (unsigned int i = 0; i < num_vertices(og); ++i) {
+      for (std::set<unsigned int>::iterator it = communities[i].begin();
+             it != communities[i].end(); it++) {
+        std::cerr << *it << " " << i << std::endl;
+      }
+    }
     return mod; 
   }
     
