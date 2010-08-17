@@ -5,7 +5,11 @@
 #ifndef COMMUNITY_STRUCTURE_HH
 #define COMMUNITY_STRUCTURE_HH
 
+#include <set>
 #include <boost/graph/bc_clustering.hpp>
+#include <boost/random.hpp>
+#include <boost/random/uniform_real.hpp>
+#include <boost/random/variate_generator.hpp>
 #include "Edge.hh"
 
 //! \addtogroup graph_statistics Graph statistics
@@ -56,11 +60,11 @@ namespace boost {
            typename WeightedMap>
   void 
   weighted_betweenness_centrality_clustering(MutableGraph& g, Done done,
-                                    EdgeCentralityMap edge_centrality,
-                                    WeightedMap edge_weights)
+                                             EdgeCentralityMap edge_centrality,
+                                             WeightedMap edge_weights)
   {
     weighted_betweenness_centrality_clustering(g, done, edge_centrality,
-                                      get(vertex_index, g), edge_weights);
+                                               get(vertex_index, g), edge_weights);
   }
   
   template<typename Graph>
@@ -126,14 +130,16 @@ namespace boost {
                              bool saveGraph = false,
                              bool calcModularity = false)
   {
+    double mod = 0.;
+
     typedef typename clustering_threshold<Graph>::centrality_type
       centrality_type;
     std::vector<centrality_type> edge_centrality(num_edges(g));
     typename boost::property_map<Graph, double Edge::*>::type 
       weight_pmap = get(&Edge::weight, g);
-
+    
     Graph temp_graph;
-
+    
     Graph* saveBest = 0;
     Graph* workGraph = &g;
     if (saveGraph) {
@@ -141,9 +147,8 @@ namespace boost {
       temp_graph = g;
       workGraph = &temp_graph;
     }
-
     
-    double mod = 0.;
+    
     weighted_betweenness_centrality_clustering
       (*workGraph,
        clustering_threshold<Graph>(threshold, *workGraph, false,
@@ -153,12 +158,144 @@ namespace boost {
                                   get(&Edge::index, g)),
        weight_pmap
        );
+
+    return mod; 
+
+  }
+    
+  template <class Graph, class RandomGenerator>
+  double community_structure_rw(const Graph& og, Graph& g,
+                                RandomGenerator& r,
+                                unsigned int verbose = 0,
+                                bool saveGraph = false,
+                                bool calcModularity = false,
+                                unsigned int numSteps = 0)
+  {
+
+    double mod = 0.;
+
+    uniform_real<> uni_dist(0, 1);
+    variate_generator<RandomGenerator&, uniform_real<> > uni_gen(r, uni_dist);
+
+    if (numSteps == 0) {
+      numSteps = num_vertices(og);
+    }
+    
+    typedef typename boost::graph_traits<Graph>::vertex_iterator
+      vertex_iterator;
+    typedef typename graph_traits<Graph>::vertex_descriptor
+      vertex_descriptor;
+    typedef typename graph_traits<Graph>::out_edge_iterator
+      out_edge_iterator;
+    
+    boost::multi_array<int, 2> 
+      similarity(boost::extents[num_vertices(og)][num_vertices(og)]);
+    std::fill(similarity.origin(), similarity.origin()+similarity.size(), 0);
+    
+    vertex_iterator vi, vi_end;
+    vertex_descriptor current_vertex;
+    out_edge_iterator oi, oi_end;
+    std::set<vertex_descriptor> C;
+
+    // assign similarities
+    
+    for (tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
+      current_vertex = *vi;
+      for (unsigned int i = 0; i < numSteps; ++i) {
+        double weightSum = 0.;
+        for (tie(oi, oi_end) = out_edges(current_vertex, og);
+             oi != oi_end; oi++) {
+          weightSum += g[*oi].weight;
+        }
+        double chosenEdge = uni_gen() * weightSum;
+        weightSum = 0.;
+        bool found = false;
+        for (tie(oi, oi_end) = out_edges(current_vertex, og);
+             oi != oi_end && !found; oi++) {
+          weightSum += g[*oi].weight;
+          if (weightSum >= chosenEdge) {
+            found = true;
+          }
+        }
+        oi--;
+        current_vertex = target(*oi, g);
+        C.insert(current_vertex);
+      }
+
+      for (std::set<unsigned int>::iterator it = C.begin();
+           it != C.end(); it++) {
+        for (std::set<unsigned int>::iterator it2 = C.begin();
+             it2 != C.end(); it++) {
+          if ((*it2) > (*it)) {
+            similarity[*it][*it2]++;
+          }
+        }
+      }
+    }
+
+    // identify communities
+
+    std::vector<std::set<unsigned int> > communities;
+    for (unsigned int i = 0; i < num_vertices(og); ++i) {
+      std::set<unsigned int> temp;
+      temp.insert(i);
+      communities.push_back(temp);
+    }
+
+    int max = 0;
+    int max_i = -1, max_j = -1;
+    for (unsigned int i = 0; i < num_vertices(og); ++i) {
+      if (similarity[i][0] > -1) {
+        for (unsigned int j = i; j < num_vertices(og); ++j) {
+          if (similarity[i][j] > max) {
+            max = similarity[i][j];
+            max_i = i;
+            max_j = j;
+          }
+        }
+      }
+    }
+
+    while (max > 0) {
+      
+      for (int i = 0; i < num_vertices(og); ++i) {
+        if (i != max_i && similarity[max_i][i] > -1) {
+          similarity[max_i][i] =
+            (similarity[max_i][i] + similarity[max_j][i])/2;
+          similarity[max_j][i] = -1;
+          similarity[i][max_j] = -1;
+        }
+      }
+
+      for (std::set<unsigned int>::iterator it = communities[max_j].begin();
+             it != communities[max_j].end(); it++) {
+        communities[max_i].insert(*it);
+      }
+
+      communities[max_j].clear();
+
+      for (unsigned int i = 0; i < num_vertices(og); ++i) {
+        if (similarity[i][0] > -1) {
+          for (unsigned int j = i; j < num_vertices(og); ++j) {
+            if (similarity[i][j] > max) {
+              max = similarity[i][j];
+              max_i = i;
+              max_j = j;
+            }
+          }
+        }
+      }
+    }
+
+    std::cout << "Number of communities: " << communities.size() << std::endl;
+        
     return mod; 
   }
-  
+    
 } // namespace boost
-
+  
 //----------------------------------------------------------
   
 
 #endif
+

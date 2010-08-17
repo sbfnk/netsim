@@ -229,6 +229,8 @@ int main(int argc, char* argv[])
      "write adjacency matrices to files  baseName.Jd/i")        
     ("community",
      "determine community structure")        
+    ("rw-community", po::value<unsigned int>()->default_value(0),
+     "determine community structure using random walks")        
     ("modularity", 
      "determine modularity")        
     ("component-dist", 
@@ -1376,10 +1378,19 @@ int main(int argc, char* argv[])
   // calculate community structure
   if (vm.count("community") || vm.count("modularity")) {
     multitype_graph saved_graph = graph;
-    double mod =
-      boost::community_structure(saved_graph, graph, 1., verbose,
-                                 vm.count("community"),
-                                 vm.count("modularity") || verbose); 
+    double mod = 0.;
+    if (vm.count("rw-community")) {
+      mod = 
+        boost::community_structure_rw(saved_graph, graph, gen, verbose,
+                                      vm.count("community"),
+                                      vm.count("modularity") || verbose,
+                                      vm["rw-community"].as<unsigned int>());
+    } else {
+      mod =
+        boost::community_structure(saved_graph, graph, 1., verbose,
+                                   vm.count("community"),
+                                   vm.count("modularity") || verbose);
+    }
     if (vm.count("community") && baseFileName.length() > 0) {
       write_graph(graph, baseFileName+".comm"+ext,
                   true, vertexOptions);
