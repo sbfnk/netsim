@@ -2,7 +2,7 @@
 
 CC         = g++
 #CPPFLAGS     = -Wall -O3 -g -I${CODEDIR} -Iinclude
-CPPFLAGS     = -Wall -I${CODEDIR} -Iinclude -g
+CPPFLAGS     = -Wall -I${CODEDIR} -Iinclude -O3 -g 
 
 LINKER      = g++
 LDFLAGS     = -lpng -lpngwriter -lfreetype -lboost_program_options \
