@@ -828,6 +828,14 @@ namespace boost {
       (trace / static_cast<double>(nEdges)) -
       (rowSqSum / static_cast<double>(4* nEdges * nEdges));
   }
+
+  template <typename Graph>
+  int num_components(const Graph& g)
+  {
+    std::vector<int> component(num_vertices(g));
+    int num = boost::connected_components(g, &component[0]);
+    return num;
+  }
 } // namespace boost
 
 //----------------------------------------------------------
