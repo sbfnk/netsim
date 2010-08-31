@@ -774,9 +774,13 @@ namespace boost {
         ++largest_comp;
       }
     }
-    
+
+    std::streambuf * buf;
+    std::ofstream distFile;
+
+    std::string init("");
+
     if (fileName != "") {
-      std::ofstream distFile;
       try {
         distFile.open(fileName.c_str(), std::ios::out);
       }
@@ -787,18 +791,24 @@ namespace boost {
         std::cerr << "... Standard exception: " << e.what() << std::endl;      
         return 0;
       }
-      for (std::vector<unsigned int>::iterator it = comp_dist.begin();
-           it != comp_dist.end(); it++) {
-        distFile << *it << std::endl;
-      }
-      distFile.close();
+      buf = distFile.rdbuf();
+    } else {
+      buf = std::cout.rdbuf();
+      init = "CD: ";
+      std::cout << std::endl;
     }
+    std::ostream output(buf);
+    for (std::vector<unsigned int>::iterator it = comp_dist.begin();
+         it != comp_dist.end(); it++) {
+      output << init << *it << std::endl;
+    }
+    if (distFile) distFile.close();
     
     return largest_comp;
   }
 
   template <typename Graph>
-  void write_components(const Graph& g, std::string fileName = "")
+  int write_components(const Graph& g, std::string fileName = "")
   {
     std::vector<int> component(num_vertices(g));
     int num = boost::connected_components(g, &component[0]);
@@ -821,7 +831,7 @@ namespace boost {
                   << fileName << " for writing the connected components."
                   << std::endl;
         std::cerr << "... Standard exception: " << e.what() << std::endl;      
-        return;
+        return -1;
       }
       for (int i = 0; i < num; ++i) {
 	for (unsigned int j = 0; j < components[i].size(); ++j) {
@@ -832,7 +842,9 @@ namespace boost {
       }
       compFile.close();
     }
+    return num;
   }
+
 }
   
 //----------------------------------------------------------
