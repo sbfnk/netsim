@@ -1412,11 +1412,24 @@ int main(int argc, char* argv[])
     graph = saved_graph;
   }
 
-  if (vm.count("component-dist") && baseFileName.length() > 0) {
-    write_component_dist(graph, baseFileName+".stat.compdist");
+  if (vm.count("component-dist") && (baseFileName.length() > 0 || verbose)) {
+    std::string fileName = "";
+    if (baseFileName.length() > 0) {
+      fileName = baseFileName+".stat.compdist";
+    }
+    write_component_dist(graph, fileName);
   }
-  if (vm.count("components") && baseFileName.length() > 0) {
-    write_components(graph, baseFileName+".stat.comp");
+  if (vm.count("components")) {
+    int num = 0;
+    if (baseFileName.length() > 0) {
+      num = write_components(graph, baseFileName+".stat.comp");
+    } else if (verbose) {
+      num = num_components(graph);
+    }
+    if (verbose) {
+    std::cout << "\nNumber of connected components: ";
+    std::cout << num_components(graph) << std::endl;
+    }        
   }
 
   if (vm.count("all-stats")) {
