@@ -52,7 +52,8 @@ my $tmpfile = "/tmp/outbreaks.$$";
 
 for ($alpha = $la; $alpha <= $ha; $alpha += $param_step) {
   my $davg = 0;
-  for ($beta = $lb; $beta <= $hb && ($cutoff == 0 || $current_avg < $cutoff); $beta += $beta_step) {
+#  for ($beta = $lb; $beta <= $hb && ($cutoff == 0 || $current_avg < $cutoff); $beta += $beta_step) {
+  for ($beta = $lb; $beta <= $hb && ($cutoff == 0 || $davg < $cutoff); $beta += $beta_step) {
 #    print("$param=$alpha beta--=$beta beta-+=$beta\n");
 #    $arguments = sprintf("--$param=%.2f --beta=%.2f",$alpha,$beta);
     $arguments = "--$param=$alpha --beta--=$beta --beta-+=$beta --r0 2";
