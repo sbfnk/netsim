@@ -25,7 +25,6 @@ public:
   virtual ~State() { std::cout << "delete " << reinterpret_cast<void*>(this) << std::endl;}
 
   virtual State* clone() const { State * s = new State(*this); std::cout << "State::clone, returning " << reinterpret_cast<void*>(s) << " from " << reinterpret_cast<const void*>(this) << std::endl; return s; }
-//  virtual State* clone() const { return new State(*this); }
 
   //! Print a coloured letter representing the vertex state.
   virtual void print(std::ostream &os) const
@@ -101,7 +100,6 @@ public:
   //! Constructor.
   Vertex()
     : state(new State(0)) {std::cout << "New di vertex " << reinterpret_cast<void*>(this) << " with state " << reinterpret_cast<void*>(state) << std::endl;}
-//    : state(new State(0)) {;}
   
   /*! \brief Constructor.
     \param[in] s state initialiser.
