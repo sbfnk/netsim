@@ -101,6 +101,20 @@ namespace Simulators {
       ("r0", po::value<unsigned int>(),
        "calculate r0 for arg generations")
       ;
+    this->knownModels.push_back
+      (std::make_pair("DimInfoSIRS", new Models::DimInfoSIRS<Graph>(this->getVerbose())));
+    this->knownModels.push_back
+      (std::make_pair("DimInfoVaccSIRS", new Models::DimInfoVaccSIRS<Graph>(this->getVerbose())));
+    this->knownModels.push_back
+      (std::make_pair("InfoSIRS", new Models::InfoSIRS<Graph>(this->getVerbose())));
+    this->knownModels.push_back
+      (std::make_pair("VaccinationSIRS", new Models::VaccinationSIRS<Graph>(this->getVerbose())));
+    this->knownModels.push_back
+      (std::make_pair("ProtectiveSIRS", new Models::ProtectiveSIRS<Graph>(this->getVerbose())));
+    this->knownModels.push_back
+      (std::make_pair("SingleSIRS", new Models::SingleSIRS<Graph>(this->getVerbose())));
+    this->knownModels.push_back
+      (std::make_pair("SIRInfo", new Models::SIRInfo<Graph>(this->getVerbose())));
   }
 
   template <typename RandomGenerator, typename Graph>
