@@ -1,6 +1,12 @@
 /*! \file simulate.cc
   \brief The main simulation program.
+
+  This is the main program for running network simulations of disease spread or
+  network evolution. It reads one or more graphs from a .dot file, sets or reads
+  the initial states of nodes, and runs a selected model according to the
+  parameters given to that model. 
 */
+
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -33,6 +39,7 @@
 #include "EpiSimulator.hh"
 #include "EpiRewireSimulator.hh"
 #include "ChrisSimulator.hh"
+#include "NetEvoSimulator.hh"
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
@@ -86,7 +93,7 @@ int main(int argc, char* argv[])
     ("very-verbose,V",
      "produce very verbose output")
     ("sim", po::value<std::string>()->default_value("EpiGillespie"),
-     "simulator to use (EpiGillespie, Chris, Rewire)")
+     "simulator to use (EpiGillespie, Chris, Rewire, NetEvo)")
     ("output-dir,o",po::value<std::string>(),
      "output directory for graph and data output (as subdir of $DATADIR)")
     ("nsims", po::value<unsigned int>()->default_value(1),
@@ -155,6 +162,9 @@ int main(int argc, char* argv[])
         (gen, graph, verbose);
     } else if (simType == "Rewire") {
       sim = new Simulators::RewireSimulator<boost::mt19937, multitype_graph>
+        (gen, graph, verbose);
+    } else if (simType == "NetEvo") {
+      sim = new Simulators::NetEvoSimulator<boost::mt19937, multitype_graph>
         (gen, graph, verbose);
     } else {
       std::cerr << "ERROR: unknown simulator: " << simType << std::endl;
@@ -270,17 +280,6 @@ int main(int argc, char* argv[])
     return 0;
   }
 
-//   if (vm.count("model-file")) {
-//     std::ifstream ifs(vm["model-file"].as<std::string>().c_str());
-//     try {
-//       po::store(po::parse_config_file(ifs, all_options), vm);
-//     }
-//     catch (std::exception& e) {
-//       std::cerr << "ERROR parsing model file: " << e.what() << std::endl;
-//       return 1;
-//     }
-//   }
-  
   po::notify(vm);
 
   /******************************************************************/
