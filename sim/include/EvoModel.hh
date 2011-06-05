@@ -54,6 +54,9 @@ namespace Models {
     void Init(const po::variables_map& vm,
               std::vector<StatRecorder<Graph>*>& rec);
 
+    virtual EvoModelState* newState() const
+    { EvoModelState* d = new EvoModelState(); return d; }
+
     unsigned int getEdgeEvents(eventList& events, State* state,
                                unsigned int edge, State* nbState,
                                unsigned int nb) const;
@@ -74,7 +77,8 @@ namespace Models {
     // define edge type
     /************************************/
     // just one edgetype
-    this->edgeTypes.push_back(Label("x", "", 0, "style=\"solid\""));
+    this->edgeTypes.push_back(Label("b", "", 0, "style=\"invis\""));
+    this->edgeTypes.push_back(Label("i", "", 1, "style=\"solid\""));
 
     /*************************************/
     // define model parameters
@@ -118,7 +122,7 @@ namespace Models {
       interaction.rate =
         static_cast<unsigned int>(1e+4*(1-abs(state->getTrait() -
                                               nbState->getTrait())));
-      EvoModelState* targetState = new EvoModelState();
+      EvoModelState* targetState = newState();
       targetState->setTrait(state->getTrait());
       targetState->setPending();
       targetState->setNewNb(nb);
