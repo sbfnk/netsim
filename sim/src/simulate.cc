@@ -223,7 +223,7 @@ int main(int argc, char* argv[])
     for (unsigned int i = 0; i < nEdgeTypes; ++i) {
       graph_options.add_options()
         ((edgeTypes[i].getText()+"-file").c_str(), po::value<std::string>(),
-         ("file to read "+edgeTypes[i].getText()+"-network from (.graph will be appended)").c_str());
+         ("file to read "+edgeTypes[i].getText()+"-network from").c_str());
     }
   }
   
@@ -295,19 +295,23 @@ int main(int argc, char* argv[])
         (vm["file"].as<std::string>());
     }
   } else if (edgeTypes.size() > 1) {
-    bool graphError = false;
+    bool graphError = true;
     for (unsigned int i = 0; i < edgeTypes.size(); i++) {
       std::stringstream s;
       s.str("");
       s << edgeTypes[i].getText() << "-file";
       if (vm.count(s.str())) {
-        fileNames.push_back(vm[s.str()].as<std::string>() + ".graph");
+        fileNames.push_back(vm[s.str()].as<std::string>());
+        graphError = false;
       } else {
-        std::cerr << "ERROR: no " << edgeTypes[i].getText()
+        fileNames.push_back("");
+        std::cerr << "WARNING: no " << edgeTypes[i].getText()
                   << "-graph file specified" << std::endl;
-        graphError = true;
       }
-      if (graphError) return 1;
+      if (graphError) {
+        std::cerr << "ERROR: no graphs" << std::endl;
+        return 1;
+      }
     }
   } else if (vm.count("init")) {
     for (unsigned int i = 0; i < edgeTypes.size(); i++) {
@@ -333,11 +337,6 @@ int main(int argc, char* argv[])
           std::cout << "Read " << edgesRead << " edges from graph file "
                     << fileNames[i] << std::endl;
         }
-        if (num_vertices(temp_graph) > num_vertices(graph)) {
-          boost::add_vertices(graph,
-                              num_vertices(temp_graph) - num_vertices(graph));
-          N = num_vertices(graph);
-        }
       } else if (edgesRead == 0) {
         std::cerr << "WARNING: no " << model->getEdgeTypes()[i] << "-edges to "
                   << "read from " << fileNames[i] << std::endl;
@@ -345,6 +344,11 @@ int main(int argc, char* argv[])
         std::cerr << "ERROR: Could not read from graph file "
                   << fileNames[i] << std::endl;
         return 1;
+      }
+      if (num_vertices(temp_graph) > num_vertices(graph)) {
+        boost::add_vertices(graph,
+                            num_vertices(temp_graph) - num_vertices(graph));
+        N = num_vertices(graph);
       }
     }
     
