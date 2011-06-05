@@ -21,10 +21,13 @@ public:
   /*! \brief Constructor.
       \param[in] b base state.
   */
-  State(int b = 0) : state(b) {std::cout << "Default state const " << reinterpret_cast<void*>(this) << std::endl;}
-  virtual ~State() { std::cout << "delete " << reinterpret_cast<void*>(this) << std::endl;}
+  // State(int b = 0) : state(b) {std::cout << "Default state const " << reinterpret_cast<void*>(this) << std::endl;}
+  State(int b = 0) : state(b) {}
+  // virtual ~State() { std::cout << "delete " << reinterpret_cast<void*>(this) << std::endl;}
+  virtual ~State() {}
 
-  virtual State* clone() const { State * s = new State(*this); std::cout << "State::clone, returning " << reinterpret_cast<void*>(s) << " from " << reinterpret_cast<const void*>(this) << std::endl; return s; }
+  // virtual State* clone() const { State * s = new State(*this); std::cout << "State::clone, returning " << reinterpret_cast<void*>(s) << " from " << reinterpret_cast<const void*>(this) << std::endl; return s; }
+  virtual State* clone() const { State * s = new State(*this); return s; }
 
   //! Print a coloured letter representing the vertex state.
   virtual void print(std::ostream &os) const
@@ -99,23 +102,27 @@ public:
 
   //! Constructor.
   Vertex()
-    : state(new State(0)) {std::cout << "New di vertex " << reinterpret_cast<void*>(this) << " with state " << reinterpret_cast<void*>(state) << std::endl;}
+    // : state(new State(0)) {std::cout << "New di vertex " << reinterpret_cast<void*>(this) << " with state " << reinterpret_cast<void*>(state) << std::endl;}
+    : state(new State(0)) {}
   
   /*! \brief Constructor.
     \param[in] s state initialiser.
   */
   Vertex(State* s)
-    : state(s) {std::cout << "New vertex " << reinterpret_cast<void*>(this) << " with state " << reinterpret_cast<void*>(s) << std::endl;}
+    // : state(s) {std::cout << "New vertex " << reinterpret_cast<void*>(this) << " with state " << reinterpret_cast<void*>(s) << std::endl;}
+    : state(s) {}
 
   Vertex(const Vertex& v)
-  { state = v.state->clone(); std::cout << "Clone (vertex " << reinterpret_cast<void*>(this) << ") " << reinterpret_cast<void*>(state) << " from " << reinterpret_cast<const void*>(v.state) << " (vertex " << reinterpret_cast<const void*>(&v) << ")" << std::endl; }
+  // { state = v.state->clone(); std::cout << "Clone (vertex " << reinterpret_cast<void*>(this) << ") " << reinterpret_cast<void*>(state) << " from " << reinterpret_cast<const void*>(v.state) << " (vertex " << reinterpret_cast<const void*>(&v) << ")" << std::endl; }
+  { state = v.state->clone(); }
 
   Vertex& operator=(const Vertex& v)
-
-  { std::cout << "= operator, assigning " << reinterpret_cast<const void*>(v.state) << " (vertex " << reinterpret_cast<const void*>(&v) << ") to " << reinterpret_cast<void*>(state) << " (vertex " << reinterpret_cast<void*>(this) << ")" << std::endl; if (&v != this) { if (state) {delete state;} state = v.state->clone();} return *this; }
+  // { std::cout << "= operator, assigning " << reinterpret_cast<const void*>(v.state) << " (vertex " << reinterpret_cast<const void*>(&v) << ") to " << reinterpret_cast<void*>(state) << " (vertex " << reinterpret_cast<void*>(this) << ")" << std::endl; if (&v != this) { if (state) {delete state;} state = v.state->clone();} return *this; }
+  { if (&v != this) { if (state) {delete state;} state = v.state->clone();} return *this; }
     
   //! Destructor
-  virtual ~Vertex() { std::cout << "Vertex delete " << reinterpret_cast<void*>(this) << std::endl; if (state) { delete state;}}
+  // virtual ~Vertex() { std::cout << "Vertex delete " << reinterpret_cast<void*>(this) << std::endl; if (state) { delete state;}}
+  virtual ~Vertex() { if (state) { delete state;}}
 
   void setStatePtr(State* newState) { if (state) delete state; state = newState; }
   State* state;
