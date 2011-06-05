@@ -75,6 +75,8 @@ namespace Simulators {
                            State* before, State* after);
     virtual void updateEventStats(State* before, State* after,
                                   vertex_descriptor v, vertex_descriptor nb) {;}
+
+    double getRandom() { return randGen(); }
   
     virtual bool stopCondition() const
     { return Simulator<Graph>::stopCondition(); }
