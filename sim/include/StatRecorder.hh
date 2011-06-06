@@ -53,9 +53,11 @@ public:
 
   void resetNextStep(double time)
   {
-    while (time > nextStep) {
-      nextStep += outputFreq;
-      ++seqNum;
+    if (outputFreq > 0) {
+      while (time > nextStep) {
+        nextStep += outputFreq;
+        ++seqNum;
+      }
     }
   }
 
