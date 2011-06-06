@@ -135,7 +135,7 @@ namespace boost {
   
   \ingroup graph_io
   */
-  template <class EdgeProperty>
+  template <class EdgeProperty, class EdgeProperty2>
   class edge_writer {
 
   public:
@@ -146,8 +146,8 @@ namespace boost {
     graphviz file
     \param[in] s Whether the edge type should be written or not.
     */
-    edge_writer(EdgeProperty newEdge, bool s)
-      : edge(newEdge), saveType(s)
+    edge_writer(EdgeProperty newEdge, EdgeProperty2 newEdge2, bool s)
+      : edge(newEdge), edge2(newEdge2), saveType(s)
     {}
 
     //! Operator for edge entries in graphviz files
@@ -157,12 +157,14 @@ namespace boost {
       out << "[";
       if (saveType) out << "type=" << edge[e] << " ";
 //      out << "len=0.1 color=white" << "]";
+      out << "weight=" << edge2[e];
       out << "color=black" << "]";
     }
 
   private:
 
     EdgeProperty edge; //!< The type of the edge
+    EdgeProperty2 edge2; //!< The weight of the edge
     bool saveType; //!< Whether to save the edge type into the file or not
 
   };
@@ -173,7 +175,7 @@ namespace boost {
   
     \ingroup graph_io
   */
-  template <class EdgeProperty, class Model>
+  template <class EdgeProperty, class EdgeProperty2, class Model>
   class edge_type_writer {
 
   public:
@@ -184,20 +186,24 @@ namespace boost {
     \param[in] newModel The model to be used for getting the graphviz option
     corresponding to an edge type
     */
-    edge_type_writer(EdgeProperty newEdge, const Model& newModel)
-      : edge(newEdge), model(newModel) {}
+    edge_type_writer(EdgeProperty newEdge,
+                     EdgeProperty2 newEdge2,
+                     const Model& newModel)
+      : edge(newEdge), edge2(newEdge2), model(newModel) {}
   
     //! Operator for edge entries in graphviz files
     template <class EdgeType>
     void operator()(std::ostream& out, const EdgeType& e) const
     {
-      out << "[" << model.getEdgeTypes()[edge[e]].getDrawOption()
-          << " color=black" << "]";
+      out << "[" << model.getEdgeTypes()[edge[e]].getDrawOption();
+      out << " weight=" << edge2[e];
+      out  << " color=black" << "]";
     }
   
   private:
   
     EdgeProperty edge; //!< The type of the edge
+    EdgeProperty2 edge2; //!< The weight of the edge
     const Model& model; //!< The model used for determining graphviz options
 
   };
@@ -209,10 +215,10 @@ namespace boost {
   \param[in] s Whether to put the type into the file or not
   \ingroup graph_io
   */
-  template <class EdgeProperty>
-  inline edge_writer<EdgeProperty>
-  make_edge_writer(EdgeProperty e, bool s) {
-    return edge_writer<EdgeProperty>(e, s);
+  template <class EdgeProperty, class EdgeProperty2>
+  inline edge_writer<EdgeProperty, EdgeProperty2>
+  make_edge_writer(EdgeProperty e, EdgeProperty2 e2, bool s) {
+    return edge_writer<EdgeProperty, EdgeProperty2>(e, e2, s);
   }
 
   //----------------------------------------------------------
@@ -222,10 +228,10 @@ namespace boost {
   \param[in] m The model to be passed to the edge_type_writer
   \ingroup graph_io
   */
-  template <class EdgeProperty, class Model>
-  inline edge_type_writer<EdgeProperty, Model>
-  make_edge_writer(EdgeProperty e, const Model& m) {
-    return edge_type_writer<EdgeProperty, Model>(e, m);
+  template <class EdgeProperty, class EdgeProperty2, class Model>
+  inline edge_type_writer<EdgeProperty, EdgeProperty2, Model>
+  make_edge_writer(EdgeProperty e, EdgeProperty2 e2, const Model& m) {
+    return edge_type_writer<EdgeProperty, EdgeProperty2, Model>(e, e2, m);
   }
 
   //----------------------------------------------------------
@@ -283,7 +289,9 @@ namespace boost {
 
     write_graphviz(out, g,
                    make_vertex_writer(vertexOptions),
-                   make_edge_writer(get(&edge_property_type::type, g), saveType),
+                   make_edge_writer(get(&edge_property_type::type, g),
+                                    get(&edge_property_type::weight, g),
+                                    saveType),
                    graph_writer());
   }
 
@@ -309,7 +317,9 @@ namespace boost {
 					  BOOST_IOS::trunc)); 
     write_graphviz(out, g,
                    make_vertex_writer(),
-                   make_edge_writer(get(&edge_property_type::type, g), saveType),
+                   make_edge_writer(get(&edge_property_type::type, g),
+                                    get(&edge_property_type::weight, g),
+                                    saveType),
                    graph_writer());
   }
 
@@ -346,7 +356,9 @@ namespace boost {
 
     write_graphviz(out, g,
                    make_vertex_writer(get(&vertex_property_type::state, g), m),
-                   make_edge_writer(get(&edge_property_type::type, g), m),
+                   make_edge_writer(get(&edge_property_type::type, g),
+                                    get(&edge_property_type::weight, g),
+                                    m),
                    graph_writer(s.str()));
   }
 
@@ -428,6 +440,7 @@ namespace boost {
     if (vertexOptions) vertexOptions->clear();
 
     bool compressed = false;
+    std::cout << graphFileName << std::endl;
     if (graphFileName.substr(graphFileName.length()-2) == "gz") {
       compressed = true;
     }
@@ -533,7 +546,7 @@ namespace boost {
             if (vertexOptions) {
               vertexOptions->push_back(line.substr(bpos, line.size()-bpos-1));
             }
-            
+
             if (addVertices) {
               // add vertices until we have enough to accomodate what is in graph file
               while (src >= num_vertices(g)) add_vertex(g);
