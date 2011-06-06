@@ -76,6 +76,7 @@ namespace Simulators {
       (std::make_pair("Evo",
                       new Models::EvoModel<Graph>
                       (this->getVerbose())));
+
   }
   
 
@@ -90,12 +91,9 @@ namespace Simulators {
   {
     bool result = true;
 
-    result &= GillespieSimulator<RandomGenerator, Graph>::initialise();
-
     Graph& graph = this->getGraph();
     
-    vertex_iterator vi, vi_end, vi2, vi_end2;
-    edge_iterator ei, ei_end;
+    vertex_iterator vi, vi2, vi_end;
 
     // give everyone a random trait
     for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
@@ -104,11 +102,13 @@ namespace Simulators {
     }
 
     // connect everyone on the base layer
-    for (tie(vi, vi_end) = vertices(graph); (vi + 1) != vi_end; ++vi) {
-      for (vi2 = (vi + 1); vi2 != vi_end;  ++vi2) {
+    for (tie(vi, vi_end) = vertices(graph); (vi + 1) != vi_end; vi++) {
+      for (vi2 = (vi + 1); vi2 != vi_end;  vi2++) {
         add_edge(*vi, *vi2, Edge(Models::EvoModel<Graph>::Base), graph);
       }
     }
+
+    result &= GillespieSimulator<RandomGenerator, Graph>::initialise();
 
     return result;
   }
@@ -130,8 +130,20 @@ namespace Simulators {
     for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
       EvoModelState* state = dynamic_cast<EvoModelState*>(graph[*vi].state);
       if (state->getPending() == true) {
-        add_edge(*vi, state->getNewNb(),
-                 Edge(Models::EvoModel<Graph>::Interaction), graph);
+        out_edge_iterator oi, oi_end;
+        bool found = false;
+        for (tie(oi, oi_end) = boost::out_edges(*vi, graph);
+             (oi != oi_end && !found); ++oi) {
+          if (graph[*oi].type == Models::EvoModel<Graph>::Interaction &&
+              target(*oi, graph) == state->getNewNb()) {
+            found = true;
+            graph[*oi].weight += 1.;
+          }
+        }
+        if (!found) {
+          add_edge(*vi, state->getNewNb(),
+                   Edge(Models::EvoModel<Graph>::Interaction), graph);
+        }          
         state->clearPending();
       }
     }
