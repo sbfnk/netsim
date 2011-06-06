@@ -12,7 +12,7 @@ class EvoModelState :
 public:
   
   EvoModelState(double trait = .0)
-    : State(), trait(trait), pendingConnection(false) {;}
+    : State(), trait(trait), pendingConnection(false), newNb(0) {;}
   ~EvoModelState() {;}
   
   virtual State* clone() const { return new EvoModelState(*this); }
@@ -66,7 +66,7 @@ namespace Models {
     
     
   private:
-    double assortativity;
+    double assortativity; //!< strength of assortativity
     bool cluster;
   };
 
@@ -120,8 +120,9 @@ namespace Models {
     if (edge == Base) { // nothing happens on the interaction layer
       Event interaction;
       interaction.rate =
-        static_cast<unsigned int>(1e+4*(1-abs(state->getTrait() -
-                                              nbState->getTrait())));
+        static_cast<unsigned int>
+        (1e+4*(pow(1-fabs(state->getTrait() - nbState->getTrait()),
+                     assortativity)));
       EvoModelState* targetState = newState();
       targetState->setTrait(state->getTrait());
       targetState->setPending();
@@ -153,14 +154,14 @@ namespace Models {
     
     rgb.push_back
       (static_cast<unsigned int>
-       (this->getVertexState(myState->getState()).getRGB(0 * darkening)));
+       (this->getVertexState(myState->getState()).getRGB(0) * darkening));
     rgb.push_back
       (static_cast<unsigned int>
        (this->getVertexState(myState->getState()).getRGB(1) * darkening));
     rgb.push_back
       (static_cast<unsigned int>
        (this->getVertexState(myState->getState()).getRGB(2) * darkening));
-    
+
     return rgb;
   }
 
@@ -174,6 +175,7 @@ namespace Models {
     std::streamsize prec = ss.precision();
     ss << std::setprecision(2) << myState->getTrait();
     ss << std::setprecision(prec);
+    ss << "<" << myState->getNewNb() << ">";
     ss.unsetf(std::ios::fixed);
     return ss.str();
   }
