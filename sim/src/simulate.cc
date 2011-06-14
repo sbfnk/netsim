@@ -4,7 +4,11 @@
   This is the main program for running network simulations of disease spread or
   network evolution. It reads one or more graphs from a .dot file, sets or reads
   the initial states of nodes, and runs a selected model according to the
-  parameters given to that model. 
+  parameters given to that model.
+
+  The program relies on an object of a Simulator class to run the
+  simulation. The object of the Simulator class in turn contains a Model object
+  which specifies which model exactly is to be run.
 */
 
 #include <iostream>
@@ -44,6 +48,8 @@
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
+// define two types of graph: multitype_graph for graphs with multiple types of
+// edges, and onetype_graph for graphs with just one type
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
                               Vertex, Edge> multitype_graph;
 typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
@@ -51,15 +57,15 @@ typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
 
 int main(int argc, char* argv[])
 {
-  const Model<multitype_graph>* model = 0;
-  Simulator<multitype_graph>* sim = 0;
+  const Model<multitype_graph>* model = 0; //!< the model to be run
+  Simulator<multitype_graph>* sim = 0; //!< the simulator to use
 
-  std::vector <unsigned int> init;
+  std::vector <unsigned int> init; //!< initial network state
   
   /******************************************************************/
-  // read parameters
+  // parameters
   /******************************************************************/
-  unsigned int N = 0;
+  unsigned int N = 0; //!< number of edges
 
   char* dataDirEnv = getenv("DATADIR");
   std::string outputDir = "";
@@ -68,18 +74,18 @@ int main(int argc, char* argv[])
     outputDir = dataDirEnv;
   } 
 
-  unsigned int verbose = 0;
-  bool printStats = false;
+  unsigned int verbose = 0; //!< Level of verbosity
 
-  unsigned int numSims = 1;
+  unsigned int numSims = 1; //!< Number of simulation runs
 
-  bool generateIC = true; // default is to generate initial conditions
-  bool keepIC = false; // default is not to keep initial conditions fro each run
+  bool generateIC = true; //!< Generate random initial network state?
+  bool keepIC = false; //!< Keep initial network state equal between runs
   
-  bool effective = true;
+  bool doIO = false; //!< Write something to disk?
 
-  bool doIO = false;
-
+  /******************************************************************/
+  // read main command line options
+  /******************************************************************/
   po::options_description main_options
     ("\nUsage: simulate [options]... \n\nMain options");
 
@@ -175,6 +181,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
+  // read additional simulation options
   po::options_description temp_options;
   temp_options.add(main_options).add(sim->getOptions());
   try {
@@ -189,7 +196,10 @@ int main(int argc, char* argv[])
   po::notify(vm);
   sim->parse_options(vm);
 
-  model = sim->getModel();
+  /******************************************************************/
+  // read model options
+  /******************************************************************/
+  model = sim->getModel(); // model is specified in Simulator options
   if (model == 0) {
     std::cerr << "ERROR: no model" << std::endl;
     return 1;
@@ -207,11 +217,17 @@ int main(int argc, char* argv[])
     return 1;
   }
 
+  // initialise model
   sim->InitModel(vm);
 
-  std::vector<Label> edgeTypes = model->getEdgeTypes();
-  unsigned int nEdgeTypes = edgeTypes.size();
+  std::vector<Label> edgeTypes = model->getEdgeTypes(); //!< available edge
+                                                        //!types 
+  unsigned int nEdgeTypes = edgeTypes.size(); //!< number of edge types
 
+  
+  /******************************************************************/
+  // read network
+  /******************************************************************/
   po::options_description graph_options
     ("\nGraph options");
 
@@ -227,6 +243,9 @@ int main(int argc, char* argv[])
     }
   }
   
+  /******************************************************************/
+  // determine initial conditions (read from file or randomise)
+  /******************************************************************/
   po::options_description ic_options
     ("\nInitial conditions");
 
@@ -274,7 +293,8 @@ int main(int argc, char* argv[])
        it != unregistered.end(); it++) {
     std::cerr << "WARNING: ignoring unknown option " << *it << std::endl;
   }
-  
+
+  // print long help with all options if requested
   if (vm.count("longhelp")) {
     std::cout << all_options << std::endl;
     return 0;
@@ -283,10 +303,11 @@ int main(int argc, char* argv[])
   po::notify(vm);
 
   /******************************************************************/
-  // read graph from file
+  // collect filenames for the different edge types
   /******************************************************************/
 
-  std::vector<std::string> fileNames;
+  std::vector<std::string> fileNames; //!< The filenames of the .dot files for
+                                      //!each edge type
 
   if (vm.count("file")) {
     // read all from one file
@@ -322,6 +343,10 @@ int main(int argc, char* argv[])
     std::cerr << "ERROR: no graph file specified" << std::endl;
     return 1;
   }
+
+  /******************************************************************/
+  // create network from the files for each edge type
+  /******************************************************************/
 
   for (unsigned int i = 0; i < edgeTypes.size(); i++) {
 
@@ -367,21 +392,11 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  // don't consider effective singles
-  if (vm.count("noeffective")) {
-    effective = false;
-  }
-  // print stats at end of run
-  if (vm.count("print-stats")) {
-    printStats = true;
-  }
-
-
   /******************************************************************/
   // mark parallel edges
   /******************************************************************/
 
-  // mark parallel edges
+  // mark parallel edges (to be used later for counting parallel edges)
   unsigned int parallel_edges = mark_parallel_edges(graph);
   if (verbose > 1 && nEdgeTypes > 1) {
     std::cout << "No. of parallel edges is: " << parallel_edges
@@ -391,7 +406,7 @@ int main(int argc, char* argv[])
 
   doIO = (sim->doIO());
 
-  unsigned int extLength = 0;
+  unsigned int extLength = 0; 
 
   if (numSims > 1) {
     std::stringstream ext;
@@ -400,6 +415,9 @@ int main(int argc, char* argv[])
     std::cout << "Running " << numSims << " simulations" << std::endl;
   }
 
+  /******************************************************************/
+  // set initial conditions
+  /******************************************************************/
   std::string baseString = vm["base"].as<std::string>();
   unsigned int baseState = 0;
 
@@ -477,6 +495,10 @@ int main(int argc, char* argv[])
     cmdLineFile << std::endl;
     cmdLineFile.close();
   }
+
+  /******************************************************************/
+  // run the simulations
+  /******************************************************************/
 
   for (unsigned int nSim = 1; nSim <= numSims; nSim++) {
     
