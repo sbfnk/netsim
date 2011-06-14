@@ -1,8 +1,7 @@
 #------ GNU g++ -----------------------------------------------------
 
 CC         = g++
-#CPPFLAGS     = -Wall -O3 -g -I${CODEDIR} -Iinclude
-CPPFLAGS     = -Wall -I${CODEDIR} -Iinclude -O3 -g 
+CPPFLAGS     = -Wall -I.. -Iinclude -O3 -g 
 
 LINKER      = g++
 LDFLAGS     = -lpng -lpngwriter -lfreetype -lboost_program_options \
@@ -68,11 +67,12 @@ out/simulate.o: include/Vertex.hh include/Simulator.hh \
 	include/ProtectiveSIRS.hh include/VaccinationSIRS.hh \
 	include/SingleSIRS.hh include/SIRInfo.hh \
         include/sim_statistics.hh include/RewireSimulator.hh \
-        include/GroupFormModel.hh \
-	${CODEDIR}/network/include/graph_structure.hh \
-	${CODEDIR}/network/include/graph_io.hh \
-	${CODEDIR}/network/include/nearest_infected.hh \
-	${CODEDIR}/network/include/Edge.hh \
-	${CODEDIR}/network/include/community_structure.hh \
-	${CODEDIR}/network/include/graph_structure.hh
+        include/GroupFormModel.hh include/NetEvoSimulator.hh \
+	include/EvoModel.hh \
+	/home/seb/Code/network/include/graph_structure.hh \
+	/home/seb/Code/network/include/graph_io.hh \
+	/home/seb/Code/network/include/nearest_infected.hh \
+	/home/seb/Code/network/include/Edge.hh \
+	/home/seb/Code/network/include/community_structure.hh \
+	/home/seb/Code/network/include/graph_structure.hh
 
