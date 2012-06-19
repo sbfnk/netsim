@@ -95,7 +95,7 @@ bool write_data(std::string fileName, TX x, std::vector<TY>& y_vect)
 Counts the number of vertices of a given state in a graph
 
 \param[in] g The graph containing the vertices
-\param[in] nVertexStates The number of vertex states.
+\param[in] m The model to consider
 \return A vector of state counts.
 \ingroup sim_statistics
 */

@@ -98,6 +98,7 @@ public:
   Here, all states, edge types and their corresponding Labels, as well as the
   model parameters are defined by the classes derived from Model.
 
+  \param[in] n name initialiser
   \param[in] v verbose initialiser
   */
   EpiModel(std::string n = "", unsigned int v = 0) : EpiModel_base<Graph>(n, v)

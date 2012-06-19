@@ -44,7 +44,8 @@ public:
   \param[in] t text initialiser
   \param[in] c colour initialiser
   \param[in] i id initialiser
-  \param[in] d drawOption initialiser
+  \param[in] drawOption drawOption initialiser
+  \param[in] r rgbColour initialiser
   */
   Label(std::string t, std::string c, unsigned int i,
         std::string drawOption = "",
@@ -377,7 +378,7 @@ void Model<Graph>::print(std::ostream &os) const
 
 Stream the model paramters.
 \param[in, out] os The stream to write the Model to
-\param[in] l The Model to stream
+\param[in] m The Model to stream
 
 \return A reference to the stream written to
 */

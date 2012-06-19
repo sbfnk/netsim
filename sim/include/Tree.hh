@@ -119,9 +119,9 @@ namespace Tree {
       // in the tree
     
       // call generateBinEntry for the Bin the lowest Bin is sitting in.
-      // This traverses the tree and accomodates gVertex in an empty slot
+      // This traverses the tree and accomodates newLeaf in an empty slot
       // and returns 0 or, if it cannot find an empty slot, creates a new
-      // top bin and a branch stretching down to gVertex, returning a
+      // top bin and a branch stretching down to newLeaf, returning a
       // pointer to the new top bin
       Bin* newTop =
         lastLeaf->getParent()->generateBinEntry(*newLeaf);
@@ -132,7 +132,7 @@ namespace Tree {
     } else {
       // no vertex exists yet, so create the first one
       Bin* newBin = new Bin();
-      // add gVertex to the new bin and
+      // add newLeaf to the new bin and
       // set the new bin as top-level bin for gVertex
       newBin->addChild(*newLeaf);
       newLeaf->setParent(newBin);
