@@ -4,8 +4,9 @@ CC         = g++
 CPPFLAGS     = -Wall -I/home/seb/.local/include/ -I.. -Iinclude -O3 -g 
 
 LINKER      = g++
-LDFLAGS     = -L/home/seb/.local/lib -lpng -lpngwriter -lfreetype \
-              -lboost_program_options -lboost_filesystem -lboost_iostreams  -g
+LDFLAGS     = -L/home/seb/.local/lib -lpngwriter -lpng -lfreetype \
+              -lboost_system -lboost_program_options -lboost_filesystem \
+              -lboost_iostreams  -g
 
 #--------------------------------------------------------------------
 
@@ -25,11 +26,11 @@ all:  bin/$(EXEC) bin/$(AVG)
 
 bin/$(EXEC): $(OBJECTS) 
 	@echo ... linking:
-	$(LINKER) $(LDFLAGS) $(OPTFLAGS) $(CPPFLAGS) $(OBJECTS) -o $@
+	$(LINKER) $(OPTFLAGS) $(CPPFLAGS) $(OBJECTS) -o $@ $(LDFLAGS)
 	@echo
 
 bin/$(AVG): out/average_runs.o
-	$(LINKER) $(LDFLAGS) $(OPTFLAGS) $(CPPFLAGS) $< -o $@
+	$(LINKER) $(OPTFLAGS) $(CPPFLAGS) $< -o $@ $(LDFLAGS)
 
 out/%.o : src/%.cc include/%.hh
 	@echo ... compiling $<:
