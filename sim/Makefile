@@ -1,11 +1,11 @@
 #------ GNU g++ -----------------------------------------------------
 
 CC         = g++
-CPPFLAGS     = -Wall -I.. -Iinclude -O3 -g 
+CPPFLAGS     = -Wall -I/home/seb/.local/include/ -I.. -Iinclude -O3 -g 
 
 LINKER      = g++
-LDFLAGS     = -lpng -lpngwriter -lfreetype -lboost_program_options \
-              -lboost_filesystem -lboost_iostreams  -g
+LDFLAGS     = -L/home/seb/.local/lib -lpng -lpngwriter -lfreetype \
+              -lboost_program_options -lboost_filesystem -lboost_iostreams  -g
 
 #--------------------------------------------------------------------
 
@@ -69,10 +69,10 @@ out/simulate.o: include/Vertex.hh include/Simulator.hh \
         include/sim_statistics.hh include/RewireSimulator.hh \
         include/GroupFormModel.hh include/NetEvoSimulator.hh \
 	include/EvoModel.hh \
-	/home/seb/Code/network/include/graph_structure.hh \
-	/home/seb/Code/network/include/graph_io.hh \
-	/home/seb/Code/network/include/nearest_infected.hh \
-	/home/seb/Code/network/include/Edge.hh \
-	/home/seb/Code/network/include/community_structure.hh \
-	/home/seb/Code/network/include/graph_structure.hh
+	../network/include/graph_structure.hh \
+	../network/include/graph_io.hh \
+	../network/include/nearest_infected.hh \
+	../network/include/Edge.hh \
+	../network/include/community_structure.hh \
+	../network/include/graph_structure.hh
 
