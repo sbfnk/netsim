@@ -476,9 +476,9 @@ int main(int argc, char* argv[])
     if (fs::exists(outputDir)) {
       fs::directory_iterator iter(outputDir), end_iter;
       for (; iter != end_iter; ++iter) {
-        if (iter->leaf().substr(0,3) == "run") {
+        if (iter->path().filename().string().substr(0,3) == "run") {
           if (fs::is_directory(*iter)) {
-            fs::remove_all(outputDir+"/"+(iter->leaf()));
+            fs::remove_all(outputDir+"/"+(iter->path().filename().string()));
           }
         }
       }
