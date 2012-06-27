@@ -1,11 +1,11 @@
 #------ GNU g++ -----------------------------------------------------
 
 CC         = g++
-CPPFLAGS     = -Wall -O3 -g -I${CODEDIR} -Iinclude
+CPPFLAGS     = -Wall -O3 -g -I${CODEDIR} -Iinclude -I/home/seb/.local/include
 
 LINKER      = g++
-LDFLAGS     = -lboost_program_options -lboost_iostreams -lpng -lpngwriter \
-               -lfreetype
+LDFLAGS     = -L/home/seb/.local/lib -lboost_program_options -lboost_iostreams \
+              -lpngwriter -lpng -lfreetype
 
 #--------------------------------------------------------------------
 
@@ -25,11 +25,11 @@ all:  bin/$(EXEC) bin/$(MANIP)
 
 bin/$(EXEC): $(OBJECTS) 
 	@echo ... linking:
-	$(LINKER) $(LDFLAGS) $(OPTFLAGS) $(CPPFLAGS) $(OBJECTS) -o $@
+	$(LINKER) $(OPTFLAGS) $(CPPFLAGS) $(OBJECTS) -o $@ $(LDFLAGS)
 	@echo
 
 bin/$(MANIP): out/pngmanip.o
-	$(LINKER) $(LDFLAGS) $(OPTFLAGS) $(CPPFLAGS) $< -o $@
+	$(LINKER) $(OPTFLAGS) $(CPPFLAGS) $< -o $@ $(LDFLAGS)
 
 out/%.o: src/%.cc include/%.hh
 	@echo ... compiling $<:
