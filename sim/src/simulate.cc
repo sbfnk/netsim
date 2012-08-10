@@ -78,8 +78,9 @@ int main(int argc, char* argv[])
 
   unsigned int numSims = 1; //!< Number of simulation runs
 
-  bool clearIC = true; //!< Generate random initial network state?
+  bool clearIC = true; //!< Clear initial conditions
   bool keepIC = false; //!< Keep initial network state equal between runs
+  bool randomIC = true; //!< Generate random initial conditions
   
   bool doIO = false; //!< Write something to disk?
 
@@ -458,8 +459,7 @@ int main(int argc, char* argv[])
       std::cout << "Read " << verticesRead << " initial states from "
                 << icFileName << std::endl;
     }
-  } else {
-    clearIC = true;
+    clearIC = false;
   }
   if (vm.count("same-ic")) {
     keepIC = true;
@@ -522,19 +522,20 @@ int main(int argc, char* argv[])
     /******************************************************************/
     
     init.clear();
-    // how many random vertices of each state are to be initialised
-    // over the background of the base state
-    for (unsigned int i = 0; i < model->getVertexStates().size(); i++) {
-      std::stringstream ss;
-      ss << model->getVertexStates()[i].getText();
-      std::string s(ss.str());
-      unsigned int random = 0;
-      if (vm.count(s.c_str())) {
-        random = vm[s.c_str()].as<unsigned int>();
+    if (randomIC) {
+      // how many random vertices of each state are to be initialised
+      // over the background of the base state
+      for (unsigned int i = 0; i < model->getVertexStates().size(); i++) {
+        std::stringstream ss;
+        ss << model->getVertexStates()[i].getText();
+        std::string s(ss.str());
+        unsigned int random = 0;
+        if (vm.count(s.c_str())) {
+          random = vm[s.c_str()].as<unsigned int>();
+        }
+        init.push_back(random);
       }
-      init.push_back(random);
     }
-    
     // // set random vertices of baseState to zero
     // init[baseState] = 0;
 
@@ -592,6 +593,7 @@ int main(int argc, char* argv[])
     
     if (keepIC) {
       clearIC = false;
+      randomIC = false;
     }
 
     std::stringstream runStr(std::ios::in | std::ios::out | std::ios::ate);
