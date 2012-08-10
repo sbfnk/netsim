@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
 
   unsigned int numSims = 1; //!< Number of simulation runs
 
-  bool generateIC = true; //!< Generate random initial network state?
+  bool clearIC = true; //!< Generate random initial network state?
   bool keepIC = false; //!< Keep initial network state equal between runs
   
   bool doIO = false; //!< Write something to disk?
@@ -458,8 +458,10 @@ int main(int argc, char* argv[])
       std::cout << "Read " << verticesRead << " initial states from "
                 << icFileName << std::endl;
     }
-    generateIC = false;
-  } else if (vm.count("same-ic")) {
+  } else {
+    clearIC = true;
+  }
+  if (vm.count("same-ic")) {
     keepIC = true;
   }
 
@@ -516,84 +518,80 @@ int main(int argc, char* argv[])
     }
 
     /******************************************************************/
-    // generate new initial state
+    // set initial vertex states
     /******************************************************************/
     
-    if (generateIC) { // generate new initial state
-      
-      /******************************************************************/
-      // set initial vertex states
-      /******************************************************************/
-      
-      init.clear();
-      // how many random vertices of each state are to be initialised
-      // over the background of the base state
-      for (unsigned int i = 0; i < model->getVertexStates().size(); i++) {
-        std::stringstream ss;
-        ss << model->getVertexStates()[i].getText();
-        std::string s(ss.str());
-        unsigned int random = 0;
-        if (vm.count(s.c_str())) {
-          random = vm[s.c_str()].as<unsigned int>();
-        }
-        init.push_back(random);
+    init.clear();
+    // how many random vertices of each state are to be initialised
+    // over the background of the base state
+    for (unsigned int i = 0; i < model->getVertexStates().size(); i++) {
+      std::stringstream ss;
+      ss << model->getVertexStates()[i].getText();
+      std::string s(ss.str());
+      unsigned int random = 0;
+      if (vm.count(s.c_str())) {
+        random = vm[s.c_str()].as<unsigned int>();
       }
+      init.push_back(random);
+    }
+    
+    // // set random vertices of baseState to zero
+    // init[baseState] = 0;
 
-      // set random vertices of baseState to zero
-      init[baseState] = 0;
+    /******************************************************************/
+    // generate vertices' state
+    /******************************************************************/
 
-      /******************************************************************/
-      // generate vertices' state
-      /******************************************************************/
-
+    if (clearIC) {
       // set the initial state of all vertices to the base state
       boost::graph_traits<multitype_graph>::vertex_iterator vi, vi_end;
       for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
         graph[*vi].setStatePtr(model->newState());
         graph[*vi].state->setState(baseState);
       }
-
-      // sum over vector init to make sure the sum is less than N
-      unsigned int initSum = 0;
-      for (std::vector<unsigned int>::iterator it = init.begin();
-           it != init.end(); it++) {
-        initSum += (*it);
-      }
-      if (initSum > N) {
-        std::cerr << "WARNING: number of vertices to select randomly ("
-                  << initSum << ") higher than number of total vertices ("
-                  << N << ")" << std::endl;
-      }
-
-      // initialise init[i] vertices of type i
-      boost::graph_traits<multitype_graph>::vertex_descriptor v;
-      for (unsigned int i = 0; i < model->getVertexStates().size(); i++) {
-        for (unsigned int j = 0; j < init[i]; j++) {
-          bool inserted = false;
-          while (!inserted) {
-            v = boost::random_vertex(graph, gen);
-            if (graph[v].state->getState() == baseState) {
-              graph[v].state->setState(i);
-              inserted = true;
-            }
-          }
-          if (verbose >= 2) {
-            std::cout << "Vertex #" << v << " is assigned state "
-                      << model->getVertexStates()[i] << std::endl;
-          }
-        }
-      }
-    } else {
-      keepIC = true;
     }
 
+    // sum over vector init to make sure the sum is less than N
+    unsigned int initSum = 0;
+    for (std::vector<unsigned int>::iterator it = init.begin();
+         it != init.end(); it++) {
+      initSum += (*it);
+    }
+    if (initSum > N) {
+      std::cerr << "WARNING: number of vertices to select randomly ("
+                << initSum << ") higher than number of total vertices ("
+                << N << ")" << std::endl;
+    }
+
+    std::vector <bool> touched(N, false);
+    // initialise init[i] vertices of type i
+    boost::graph_traits<multitype_graph>::vertex_descriptor v;
+    for (unsigned int i = 0; i < model->getVertexStates().size(); i++) {
+      for (unsigned int j = 0; j < init[i]; j++) {
+        bool inserted = false;
+        while (!inserted) {
+          v = boost::random_vertex(graph, gen);
+          if (touched[v] == false) {
+            graph[v].state->setState(i);
+            touched[v] = true;
+            inserted = true;
+          }
+        }
+        if (verbose >= 2) {
+          std::cout << "Vertex #" << v << " is assigned state "
+                    << model->getVertexStates()[i] << std::endl;
+        }
+      }
+    }
+    
+    
     if (nSim == 1) {
       // save graph states
       copy_graph(graph, saved_graph);
     }
     
     if (keepIC) {
-      generateIC = false;
+      clearIC = false;
     }
 
     std::stringstream runStr(std::ios::in | std::ios::out | std::ios::ate);
