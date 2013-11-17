@@ -24,7 +24,7 @@
 namespace Simulators {
 
   /*! \brief The Group formation simulation
-    
+
   \ingroup simulator
   */
   template <typename RandomGenerator, typename Graph>
@@ -45,13 +45,11 @@ namespace Simulators {
     adjacency_iterator;
     typedef typename boost::property_map<Graph, boost::vertex_index_t>::type
     vertex_index_type;
-    typedef typename boost::vertex_property_type<Graph>::type::value_type
-    vertex_property_type;
 
   public:
 
     /*! \brief Constructor
-    
+
     \param[in] r randGen initialiser
     \param[in] g graph initialiser
     \param[in] m model initialiser (in Simulator::Simulator)
@@ -59,12 +57,12 @@ namespace Simulators {
     */
     NetEvoSimulator(RandomGenerator& r, Graph& g, unsigned int v = 0);
     ~NetEvoSimulator() {;}
-      
+
     bool initialise();
     bool updateState();
-  
+
     void print();
-    
+
   };
 
   template <typename RandomGenerator, typename Graph>
@@ -78,12 +76,12 @@ namespace Simulators {
                       (this->getVerbose())));
 
   }
-  
+
 
   //----------------------------------------------------------
   /*! \brief Initialise the simulation.
-    
-  Initialises the graph with the rates for the possible processes and generates 
+
+  Initialises the graph with the rates for the possible processes and generates
   the Tree using these rates.
   */
   template <typename RandomGenerator, typename Graph>
@@ -92,7 +90,7 @@ namespace Simulators {
     bool result = true;
 
     Graph& graph = this->getGraph();
-    
+
     vertex_iterator vi, vi2, vi_end;
 
     // give everyone a random trait
@@ -112,20 +110,20 @@ namespace Simulators {
 
     return result;
   }
-  
+
   //----------------------------------------------------------
   /*! \brief Perform an update and process one event.
-  
+
   \return true if an event is processed, false if no events can happen or
-  something goes wrong 
+  something goes wrong
   */
   template <typename RandomGenerator, typename Graph>
   bool NetEvoSimulator<RandomGenerator, Graph>::updateState()
   {
     bool res = GillespieSimulator<RandomGenerator, Graph>::updateState();
-    
+
     Graph& graph = this->getGraph();
-    
+
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
       EvoModelState* state = dynamic_cast<EvoModelState*>(graph[*vi].state);
@@ -143,7 +141,7 @@ namespace Simulators {
         if (!found) {
           add_edge(*vi, state->getNewNb(),
                    Edge(Models::EvoModel<Graph>::Interaction), graph);
-        }          
+        }
         state->clearPending();
       }
     }
@@ -152,8 +150,8 @@ namespace Simulators {
   }
 
   //----------------------------------------------------------
-  /*! \brief Print the state of the simulation. 
-  
+  /*! \brief Print the state of the simulation.
+
   Prints the state of all vertices, as well as the events that can happen to
   them and at which rate.
   */
@@ -162,7 +160,7 @@ namespace Simulators {
   {
     std::cout << std::endl;
   }
-  
+
 }
 
 #endif

@@ -28,15 +28,15 @@
 //! \addtogroup gillespie_simulator Gillespie simulator
 
 namespace Simulators {
-  
+
   /*! \brief The Gillespie simulation
-    
+
   This contains the Gillespie simulation, able to run a simulation on a graph
   using a given model, with a sequential update rule according to
   Gillespie (1977). The rates of the events are stored in a Tree for quick
   access, which is generated using the member function initialise. The actual
   updating of the graph is done in updateState.
-  
+
   \ingroup epi_simulator
   \ingroup gillespie_simulator
   */
@@ -52,7 +52,7 @@ namespace Simulators {
     adjacency_iterator;
     typedef typename boost::property_map<Graph, boost::vertex_index_t>::type
     vertex_index_type;
-    typedef typename boost::vertex_property_type<Graph>::type::value_type
+    typedef typename boost::vertex_property_type<Graph>::type
     vertex_property_type;
     typedef typename boost::variate_generator
     <RandomGenerator&, boost::uniform_real<> > uniform_gen;
@@ -60,7 +60,7 @@ namespace Simulators {
   public:
 
     /*! \brief Constructor
-    
+
     \param[in] r randGen initialiser
     \param[in] g graph initialiser
     \param[in] v verbose initialiser (in Simulator::Simulator)
@@ -68,7 +68,7 @@ namespace Simulators {
     GillespieSimulator(RandomGenerator& r, Graph& g,
                        unsigned int v = 0);
     virtual ~GillespieSimulator() {;}
-      
+
     bool initialise();
     bool updateState();
     void changeVertexState(vertex_descriptor v, vertex_descriptor nb,
@@ -77,14 +77,14 @@ namespace Simulators {
                                   vertex_descriptor v, vertex_descriptor nb) {;}
 
     double getRandom() { return randGen(); }
-  
+
     virtual bool stopCondition() const
     { return Simulator<Graph>::stopCondition(); }
 
     void print();
 
   private:
-  
+
     uniform_gen randGen; //!< The random generator to be used for choosing events
     Tree::Tree<unsigned int> tree; //!< The tree holding the event rates
 
@@ -95,18 +95,18 @@ namespace Simulators {
   GillespieSimulator(RandomGenerator& r, Graph& g, unsigned int v) :
     Simulator<Graph>(g, v), randGen(r, boost::uniform_real<> (0,1))
   { }
-  
+
   //----------------------------------------------------------
   /*! \brief Initialise the simulation.
-  
-  Initialises the graph with the rates for the possible processes and generates 
+
+  Initialises the graph with the rates for the possible processes and generates
   the Tree using these rates.
   */
   template <typename RandomGenerator, typename Graph>
   bool GillespieSimulator<RandomGenerator, Graph>::initialise()
   {
     bool result = true;
-    
+
     result &= Simulator<Graph>::initialise();
 
     // get simulation variables
@@ -129,7 +129,7 @@ namespace Simulators {
     return result;
   }
 
-  
+
   template <typename RandomGenerator, typename Graph>
   void GillespieSimulator<RandomGenerator, Graph>::
   changeVertexState(vertex_descriptor v, vertex_descriptor nb,
@@ -164,13 +164,13 @@ namespace Simulators {
 
   //----------------------------------------------------------
   /*! \brief Perform an update and process one event.
-  
+
   Updates the state of the graph by advancing one time step
   and choosing a random event to process. After that, the list of events is
   updated for affected vertices.
 
   \return true if an event is processed, false if no events can happen or
-  something goes wrong 
+  something goes wrong
   */
   template <typename RandomGenerator, typename Graph>
   bool GillespieSimulator<RandomGenerator, Graph>::updateState()
@@ -191,21 +191,21 @@ namespace Simulators {
       this->updateStats(true);
       return false;
     }
-  
+
     if (verbose >= 2) {
       std::cout << "choose event, total sum of rates is "
                 << tree.getTopBin()->getRateSum()/1e+4 << std::endl;
       print();
     }
-         
+
     // draw a random number from [0,1) for the timestep advance
     double timeStep = 0;
-    do { 
+    do {
       errno = 0;
       timeStep = -log(randGen())*1e+4/tree.getTopBin()->getRateSum();
     } while (errno > 0);
     this->updateTime(timeStep);
-         
+
     // draw another random number from [0,rateSum) for picking the event
     unsigned int randEvent =
       static_cast<unsigned int>((randGen)() * tree.getTopBin()->getRateSum())+1;
@@ -227,22 +227,22 @@ namespace Simulators {
         return false;
       }
       it--;
-            
+
       changeVertexState(v, it->nb, graph[v].state, it->newState);
 
       // update vertex event list
       int rateDiff = generateEventList(graph, v, *model, verbose);
-            
+
       // update sum of rates for the vertex
       vertex_index_type index = get(boost::vertex_index, graph);
       if (!tree.getLeaves()[index[v]]->updateRateSum(rateDiff)) {
         std::cerr << "ERROR: Overflow in rate sum, choose smaller rates" << std::endl;
         return false;
       }
-            
+
       //update neighbours
       out_edge_iterator oi, oi_end;;
-   
+
       for (tie(oi, oi_end) = boost::out_edges(v, graph);
            oi != oi_end; ++oi) {
         rateDiff = updateEventList(graph, *oi, *model, verbose);
@@ -260,8 +260,8 @@ namespace Simulators {
   }
 
   //----------------------------------------------------------
-  /*! \brief Print the state of the simulation. 
-  
+  /*! \brief Print the state of the simulation.
+
   Prints the state of all vertices, as well as the events that can happen to
   them and at which rate.
   */
@@ -294,7 +294,7 @@ namespace Simulators {
     }
     std::cout << std::endl;
   }
-  
+
 }
 
 //----------------------------------------------------------
@@ -324,9 +324,9 @@ unsigned int generateEventList(Graph& graph,
   typedef typename boost::graph_traits<Graph>::vertex_descriptor
     vertex_descriptor;
 
-  typename boost::property_map<Graph, boost::vertex_index_t>::type 
+  typename boost::property_map<Graph, boost::vertex_index_t>::type
     id = get(boost::vertex_index, graph);
-   
+
   // temporary sum for the new sum of rates of all events
   // that can affect the vertex v
   unsigned int tempSum = 0;
@@ -339,13 +339,13 @@ unsigned int generateEventList(Graph& graph,
 
   // clear event list
   graph[v].events.clear();
-   
+
   // get node events
   tempSum += model.getNodeEvents(graph[v].events, graph[v].state, id[v]);
-   
+
   // get edge events
   out_edge_iterator oi, oi_end;;
-   
+
   for (tie(oi, oi_end) = boost::out_edges(v, graph);
        oi != oi_end; ++oi) {
     edge_descriptor e = *oi;
@@ -353,14 +353,14 @@ unsigned int generateEventList(Graph& graph,
     tempSum +=
       model.getEdgeEvents(graph[v].events, graph[v].state, graph[e].type,
                           graph[t].state, id[t]);
-     
+
   }
-   
+
   // calculate difference between new and old sum of rates
   unsigned int diff = tempSum - graph[v].rateSum;
   // set rateSum to new value
   graph[v].rateSum = tempSum;
-   
+
   return diff;
 }
 
@@ -386,10 +386,10 @@ int updateEventList(Graph& graph,
 {
   typename boost::graph_traits<Graph>::vertex_descriptor v = target(e, graph);
   typename boost::graph_traits<Graph>::vertex_descriptor n = source(e, graph);
-  
-  typename boost::property_map<Graph, boost::vertex_index_t>::type 
+
+  typename boost::property_map<Graph, boost::vertex_index_t>::type
     id = get(boost::vertex_index, graph);
-   
+
   // temporary sum for the new sum of rates of all events
   // that can affect the vertex v
   int tempSum = 0;
@@ -414,10 +414,10 @@ int updateEventList(Graph& graph,
   tempSum +=
     model.getEdgeEvents(graph[v].events, graph[v].state,
                         graph[e].type, graph[n].state, id[n]);
-  
+
   // update rateSum
   graph[v].rateSum += tempSum;
-    
+
   return tempSum;
 }
 
