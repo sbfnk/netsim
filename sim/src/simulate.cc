@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
   Simulator<multitype_graph>* sim = 0; //!< the simulator to use
 
   std::vector <unsigned int> init; //!< initial network state
-  
+
   /******************************************************************/
   // parameters
   /******************************************************************/
@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
   if (dataDirEnv) {
     mkdir(dataDirEnv, 0755);
     outputDir = dataDirEnv;
-  } 
+  }
 
   unsigned int verbose = 0; //!< Level of verbosity
 
@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
   bool clearIC = true; //!< Clear initial conditions
   bool keepIC = false; //!< Keep initial network state equal between runs
   bool randomIC = true; //!< Generate random initial conditions
-  
+
   bool doIO = false; //!< Write something to disk?
 
   /******************************************************************/
@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
     ("nsims", po::value<unsigned int>()->default_value(1),
      "number of simulation runs to produce (on a given graph)")
     ;
-  
+
   po::variables_map vm;
   try {
     po::store(po::command_line_parser(argc, argv).options(main_options).
@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
   // create graph variable
   /******************************************************************/
   multitype_graph graph, saved_graph;
-  
+
   /******************************************************************/
   // initialise random generator
   /******************************************************************/
@@ -222,10 +222,10 @@ int main(int argc, char* argv[])
   sim->InitModel(vm);
 
   std::vector<Label> edgeTypes = model->getEdgeTypes(); //!< available edge
-                                                        //!types 
+                                                        //!types
   unsigned int nEdgeTypes = edgeTypes.size(); //!< number of edge types
 
-  
+
   /******************************************************************/
   // read network
   /******************************************************************/
@@ -243,7 +243,7 @@ int main(int argc, char* argv[])
          ("file to read "+edgeTypes[i].getText()+"-network from").c_str());
     }
   }
-  
+
   /******************************************************************/
   // determine initial conditions (read from file or randomise)
   /******************************************************************/
@@ -253,15 +253,15 @@ int main(int argc, char* argv[])
   ic_options.add_options()
     ("init,i", po::value<std::string>(),
      "file to get initial conditions from")
-    ("init-lattice", 
+    ("init-lattice",
      "init file is png lattice rather than graphviz")
-    ("same-ic", 
+    ("same-ic",
      "start with the same initial conditions for each run")
     ("base,b", po::value<std::string>()->default_value
      (model->getVertexStates().begin()->getText()),
      "base state of individuals")
     ;
-  
+
   for (std::vector<Label>::const_iterator it =
          model->getVertexStates().begin();
        it != model->getVertexStates().end(); it++) {
@@ -269,13 +269,13 @@ int main(int argc, char* argv[])
       (it->getText().c_str(), po::value<unsigned int>()->default_value(0),
        ("number of randomly chosen " + it->getText()).c_str());
   }
-  
+
   // read options from command line
   po::options_description all_options;
   all_options.add(temp_options).add(ic_options).add(graph_options);
 
   std::vector<std::string> unregistered;
-  
+
   try {
     po::parsed_options parsed = po::command_line_parser(argc, argv).
       options(all_options).allow_unregistered().run();
@@ -377,7 +377,7 @@ int main(int argc, char* argv[])
         N = num_vertices(graph);
       }
     }
-    
+
     // copy edges to main graph
     boost::graph_traits<multitype_graph>::edge_iterator ei, ei_end;
     for (tie(ei, ei_end) = edges(temp_graph); ei != ei_end; ei++) {
@@ -385,7 +385,7 @@ int main(int argc, char* argv[])
                temp_graph[*ei], graph);
     }
   }
-  
+
   // checking graph
   if (num_vertices(graph) == 0) {
     std::cerr << "ERROR: no vertices" << std::endl;
@@ -407,7 +407,7 @@ int main(int argc, char* argv[])
 
   doIO = (sim->doIO());
 
-  unsigned int extLength = 0; 
+  unsigned int extLength = 0;
 
   if (numSims > 1) {
     std::stringstream ext;
@@ -441,7 +441,11 @@ int main(int argc, char* argv[])
     std::string icFileName = vm["init"].as<std::string>();
     int verticesRead;
     if (vm.count("init-lattice")) {
-      verticesRead = read_initial_lattice(graph, icFileName, *model);
+      // verticesRead = read_initial_lattice(graph, icFileName, *model);
+      std::cerr << "ERROR: cannot read initial lattices at the moment "
+                << "because of clang/pngwriter incompatibilities."
+                << std::endl;
+      return 1;
     } else {
       verticesRead = read_initial_graph(graph, icFileName, *model, baseState,
                                         verbose);
@@ -503,7 +507,7 @@ int main(int argc, char* argv[])
   /******************************************************************/
 
   for (unsigned int nSim = 1; nSim <= numSims; nSim++) {
-    
+
     if (verbose >= 1) {
       std::cout << "----- " << "run #" << nSim << std::endl;
     } else if (numSims > 0 && !verbose) {
@@ -520,7 +524,7 @@ int main(int argc, char* argv[])
     /******************************************************************/
     // set initial vertex states
     /******************************************************************/
-    
+
     init.clear();
     if (randomIC) {
       // how many random vertices of each state are to be initialised
@@ -584,13 +588,13 @@ int main(int argc, char* argv[])
         }
       }
     }
-    
-    
+
+
     if (nSim == 1) {
       // save graph states
       copy_graph(graph, saved_graph);
     }
-    
+
     if (keepIC) {
       clearIC = false;
       randomIC = false;
@@ -659,7 +663,7 @@ int main(int argc, char* argv[])
       if (sim->getTime() > 0) {
         std::ofstream gpFile;
         std::string gpFileName = runOutputDir+"/"+runStr.str()+".gp";
-        
+
         try {
           gpFile.open(gpFileName.c_str(), std::ios::out);
         }
@@ -669,12 +673,12 @@ int main(int argc, char* argv[])
           std::cerr << "... Standard exception: " << e.what() << std::endl;
           return 1;
         }
-        
+
         gpFile << "### model parameters generated by simulate" << std::endl;
         gpFile << "N=" << num_vertices(graph) << std::endl;
         gpFile << "Tmax=" << sim->getTime() << std::endl;
         gpFile << "### end of model parameters" << std::endl;
-        
+
         try {
           gpFile.close();
         }
@@ -686,14 +690,14 @@ int main(int argc, char* argv[])
         }
       }
     }
-    
+
   }
-  
+
   // free memory
   delete sim;
-  
+
   std::cout << std::endl;
-  
+
   return 0;
-  
+
 }
