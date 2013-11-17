@@ -14,12 +14,14 @@ namespace Models {
   with information-dependent infection, recovery and loss of immunity, as well as
   information transmission and forgetting, local information generation and
   information generation over i links.
-  
+
   */
   template <class Graph>
   class InfoSIRS :
     public EpiModel<State, Graph>
   {
+
+    using EpiModel<State, Graph>::newState;
 
     //! Possible disease states.
     enum diseaseStatesEnum {Susceptible,Infected,Recovered};
@@ -27,7 +29,7 @@ namespace Models {
     enum infoStatesEnum {Uninformed, Informed};
     //! Possible edge types.
     enum edgeTypesEnum {Disease, Information};
-    
+
   public:
 
     InfoSIRS(unsigned int v = 0);
@@ -40,11 +42,11 @@ namespace Models {
 
     void Init(const po::variables_map& vm,
               std::vector<StatRecorder<Graph>*>& rec);
-  
+
     unsigned int getNodeEvents(eventList& events, State* currentState,
                          unsigned int nb) const;
     unsigned int getEdgeEvents(eventList& events, State* currentState,
-                         unsigned int edge, State* currentNbState, 
+                         unsigned int edge, State* currentNbState,
                          unsigned int nb) const;
 
     bool isInfection(State* before_state, State* after_state) const
@@ -75,11 +77,11 @@ namespace Models {
     unsigned int getState(State* dState, State* iState) const
     { return dState->getState()+iState->getState()*3; }
 
-    std::vector<StatRecorder<Graph>*> 
+    std::vector<StatRecorder<Graph>*>
     getStatRecorders(const po::variables_map& vm) const
     {;}
 
-    
+
 
   private:
 
@@ -90,8 +92,8 @@ namespace Models {
     unsigned int lambda; //!< Rate of forgetting.
     unsigned int omega; //!< Local infromation generation rate.
     unsigned int nu; //!< Information generation rate over i-edges.
-    double sigma; //!< Ratio between informed and uninformed susceptibility. 
-  
+    double sigma; //!< Ratio between informed and uninformed susceptibility.
+
   };
 
 }
@@ -213,7 +215,7 @@ unsigned int Models::InfoSIRS<Graph>::getNodeEvents(eventList& events,
         events.push_back(immunityLoss);
         rateSum += immunityLoss.rate;
         if (this->getVerbose() >= 2) {
-          std::cout << "Adding loss of immunity event with rate " 
+          std::cout << "Adding loss of immunity event with rate "
 	            << immunityLoss.rate/1e+4 << std::endl;
         }
       }
@@ -242,7 +244,7 @@ unsigned int Models::InfoSIRS<Graph>::getNodeEvents(eventList& events,
           events.push_back(localInfo);
           rateSum += localInfo.rate;
           if (this->getVerbose() >= 2) {
-            std::cout << "Adding local information event with rate " 
+            std::cout << "Adding local information event with rate "
 	              << localInfo.rate/1e+4 << std::endl;
           }
         }
@@ -252,14 +254,14 @@ unsigned int Models::InfoSIRS<Graph>::getNodeEvents(eventList& events,
    if (getInfo(state) == Informed) {
       Event infoLoss;
       infoLoss.rate = lambda;
-      infoLoss.newState = 
+      infoLoss.newState =
         this->newState(getDisease(state), Uninformed);
       infoLoss.nb = nb;
       if (infoLoss.rate > 0) {
         events.push_back(infoLoss);
         rateSum += infoLoss.rate;
         if (this->getVerbose() >= 2) {
-          std::cout << "Adding information loss event with rate " 
+          std::cout << "Adding information loss event with rate "
 	            << infoLoss.rate/1e+4 << std::endl;
         }
       }
@@ -301,7 +303,7 @@ unsigned int Models::InfoSIRS<Graph>::getEdgeEvents(eventList& events,
       }
    } else if (edge == Information) {
       // information transmission
-      if (getInfo(state) == Uninformed && 
+      if (getInfo(state) == Uninformed &&
 	  getInfo(nbState) == Informed) {
          Event infoTransmission;
          infoTransmission.rate = alpha;
@@ -313,24 +315,24 @@ unsigned int Models::InfoSIRS<Graph>::getEdgeEvents(eventList& events,
            events.push_back(infoTransmission);
            rateSum += infoTransmission.rate;
            if (this->getVerbose() >= 2) {
-             std::cout << "Adding information transmission event with rate " 
+             std::cout << "Adding information transmission event with rate "
                        << infoTransmission.rate/1e+4 << std::endl;
            }
          }
       }
       // information generation
-      if (getInfo(state) == Uninformed && 
+      if (getInfo(state) == Uninformed &&
 	  getDisease(nbState) == Infected) {
          Event infoGeneration;
          infoGeneration.rate = nu;
-         infoGeneration.newState = 
+         infoGeneration.newState =
 	   this->newState(getDisease(state), Informed);
          infoGeneration.et = edge;
          if (infoGeneration.rate > 0) {
            events.push_back(infoGeneration);
            rateSum += infoGeneration.rate;
            if (this->getVerbose() >= 2) {
-             std::cout << "Adding information generation event with rate " 
+             std::cout << "Adding information generation event with rate "
                        << infoGeneration.rate/1e+4 << std::endl;
            }
          }
