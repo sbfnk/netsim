@@ -1,17 +1,18 @@
 #------ GNU g++ -----------------------------------------------------
 
 CC         = g++
-CPPFLAGS     = -Wall -I/home/seb/.local/include/ -I.. -Iinclude -O3 -g 
+CPPFLAGS     = -Wall -I$(HOME)/.local/include/ -I.. -Iinclude -O3 -g
 
 LINKER      = g++
-LDFLAGS     = -L/home/seb/.local/lib -lpngwriter -lpng -lfreetype \
+LDFLAGS     = -L$(HOME)/.local/lib \
+              -lpng -lfreetype \
               -lboost_system -lboost_program_options -lboost_filesystem \
               -lboost_iostreams  -g
 
 #--------------------------------------------------------------------
 
 MAKEDEPEND  = makedepend
-DEPENDFLAGS = -m 
+DEPENDFLAGS = -m
 
 #--------------------------------------------------------------------
 
@@ -24,7 +25,7 @@ AVG         = average_runs
 
 all:  bin/$(EXEC) bin/$(AVG)
 
-bin/$(EXEC): $(OBJECTS) 
+bin/$(EXEC): $(OBJECTS)
 	@echo ... linking:
 	$(LINKER) $(OPTFLAGS) $(CPPFLAGS) $(OBJECTS) -o $@ $(LDFLAGS)
 	@echo
@@ -76,4 +77,3 @@ out/simulate.o: include/Vertex.hh include/Simulator.hh \
 	../network/include/Edge.hh \
 	../network/include/community_structure.hh \
 	../network/include/graph_structure.hh
-
