@@ -16,7 +16,7 @@ namespace po = boost::program_options;
 //! \addtogroup simulator Simulator
 
 /*! \brief Base class for epidemic simulation classes
-  
+
 Classes derived from this class implement a given simulation algorithm, e.g. the
 Gillespie algorithm or, possibly, other algorithms with different waiting times
 etc. Most importantly, this class provides a declaration for the updateState and
@@ -45,7 +45,7 @@ public:
         ;
     po::options_description new_options2("\nStats options");
     new_options2.add_options()
-      ("data,d", po::value<double>(), 
+      ("data,d", po::value<double>(),
        "write output data at arg timesteps")
       ("pairs",
        "count pairs")
@@ -71,12 +71,12 @@ public:
   }
 
   //! Destructor.
-  virtual ~Simulator() 
-  { 
+  virtual ~Simulator()
+  {
     if (model) delete model;
     for (unsigned int i = 0; i < statRecorders.size(); ++i) {
       delete statRecorders[i];
-    } 
+    }
   }
 
   //! Initialise the simulation. Implemented by derived classes.
@@ -91,7 +91,7 @@ public:
     }
     return true;
   }
-  
+
   //! Perform an update. Implemented by derived classes.
   virtual bool updateState() = 0;
 
@@ -108,7 +108,7 @@ public:
   */
   void updateTime(double t) { time += t; };
 
-  //! Check if conditions to stop a run have been reached. 
+  //! Check if conditions to stop a run have been reached.
   virtual bool stopCondition() const
   { return (((stopTime > 0 && getTime() >= stopTime)) || stopTime < 0); }
 
@@ -173,9 +173,11 @@ public:
                                  vm["graphviz"].as<double>(), "graphviz"));
       }
       if (vm.count("lattice")) {
-        statRecorders.push_back(new StatRecorder<Graph>
-                                (new write_sim_lattice<Graph, Model<Graph> >(*model),
-                                 vm["lattice"].as<double>(), "lattice"));
+        // statRecorders.push_back(new StatRecorder<Graph>
+        //                         (new write_sim_lattice<Graph, Model<Graph> >(*model),
+        //                          vm["lattice"].as<double>(), "lattice"));
+        std::cerr << "WARNING: writing lattice currently deactivated because of "
+                  << "clang miscompatibilities" << std::endl;
       }
       if (verbose>=1) {
         double freq;
@@ -190,7 +192,7 @@ public:
                                  freq));
       }
     }
-    
+
     return true;
   }
 
@@ -212,7 +214,7 @@ public:
     }
   }
 
-  Graph& getGraph() 
+  Graph& getGraph()
   { return graph; }
 
   const Graph& getGraph() const
@@ -249,7 +251,7 @@ protected:
   Graph& graph; //!< The graph determining how vertices can effect another
 
   std::vector<std::pair<std::string, Model<Graph>*> > knownModels;
-  
+
 private:
 
   Model<Graph>* model;

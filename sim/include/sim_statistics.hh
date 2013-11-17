@@ -25,7 +25,7 @@ namespace fs = boost::filesystem;
 
 //----------------------------------------------------------
 /*! \brief Write data to file
-  
+
 Writes a line of data to a file
 
 \param[in] fileName The name of the file to write to
@@ -38,7 +38,7 @@ template<typename TX, typename TY>
 bool write_data(std::string fileName, TX x, TY y)
 {
   std::ofstream outputFile;
-  
+
   try {
     outputFile.open(fileName.c_str(),
 		    std::ios::out | std::ios::app | std::ios::ate);
@@ -47,16 +47,16 @@ bool write_data(std::string fileName, TX x, TY y)
     std::cerr << "Unable to open output file: " << e.what() << std::endl;
     return false;
   }
-  
+
   outputFile << x << '\t' << y << std::endl;
   outputFile.close();
 
   return true;
 }
-    
+
 //----------------------------------------------------------
 /*! \brief Write data to file
-  
+
 Writes a line of multiple column data to a file
 
 \param[in] fileName The name of the file to write to
@@ -69,7 +69,7 @@ template<typename TX, typename TY>
 bool write_data(std::string fileName, TX x, std::vector<TY>& y_vect)
 {
   std::ofstream outputFile;
-  
+
   try {
     outputFile.open(fileName.c_str(),
 		    std::ios::out | std::ios::app | std::ios::ate);
@@ -78,7 +78,7 @@ bool write_data(std::string fileName, TX x, std::vector<TY>& y_vect)
     std::cerr << "Unable to open output file: " << e.what() << std::endl;
     return false;
   }
-  
+
   outputFile << x << '\t';
   BOOST_FOREACH(TY y, y_vect) {
     outputFile << y << '\t';
@@ -88,10 +88,10 @@ bool write_data(std::string fileName, TX x, std::vector<TY>& y_vect)
 
   return true;
 }
-    
+
 //----------------------------------------------------------
 /*! \brief Count vertices.
-  
+
 Counts the number of vertices of a given state in a graph
 
 \param[in] g The graph containing the vertices
@@ -112,15 +112,15 @@ count_vertices(Graph& g, const Model& m)
   for (boost::tie(vi, vi_end) = vertices(g); vi != vi_end; vi++) {
     ++counts[g[*vi].state->getState()];
   }
-   
+
   return counts;
 }
 
 //----------------------------------------------------------
 /*! \brief Count effective vertices.
-  
+
 Counts the effecitve number of vertices (weighted by the detailed state) of a
-given state in a graph 
+given state in a graph
 
 \param[in] g The graph containing the vertices
 \param[in] nVertexStates The number of vertex states.
@@ -145,7 +145,7 @@ count_effective_vertices(const Graph& g, unsigned int nVertexStates)
     state_type* s = dynamic_cast<state_type*>(g[*vi].state);
     counts[s->getState()] += (1-s->getInfo());
   }
-   
+
   return counts;
 }
 
@@ -180,13 +180,13 @@ calc_avg_trait(const Graph& g, unsigned int nVertexStates)
   for (unsigned int i = 0; i < nVertexStates; ++i) {
     if (avgs[i] > 0) avgs[i] /= counts[i];
   }
-   
+
   return avgs;
 }
 
 //----------------------------------------------------------
 /*! \brief Count state pairs.
-  
+
 Counts the number of pairs of states in a graph.
 
 \param[in] g The graph containing the vertices and edges
@@ -209,7 +209,7 @@ count_state_pairs(Graph& g, unsigned int nVertexStates,
                     [nEdgeTypes]
                     [nVertexStates]
                     [nVertexStates]);
-    
+
   // count all edges of type et, including parallel
   edge_iterator ei, ei_end;
   for (boost::tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
@@ -228,7 +228,7 @@ count_state_pairs(Graph& g, unsigned int nVertexStates,
 
 //----------------------------------------------------------
 /*! \brief Count state pairs indiscriminately.
-  
+
 Counts the number of pairs of states in a graph, without accounting for the
 exact states.
 
@@ -265,12 +265,12 @@ count_state_pairs_indiscriminately(Graph& g, unsigned int nVertexStates,
     reverseMap.insert(std::make_pair<unsigned int, unsigned int>(*it, index));
     ++index;
   }
-  
+
   array_type counts(boost::extents
                     [nEdgeTypes]
                     [nStates]
                     [nStates]);
-    
+
   // count all edges of type et, including parallel
   edge_iterator ei, ei_end;
   for (boost::tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
@@ -289,9 +289,9 @@ count_state_pairs_indiscriminately(Graph& g, unsigned int nVertexStates,
 
 //----------------------------------------------------------
 /*! \brief Count parallel edges.
-  
+
 Loops over all edges and counts for which edges there is another edge
-connecting the same two vertices. 
+connecting the same two vertices.
 
 \param[in] g The graph containing the vertices and edges.
 \param[in] nVertexStates The number of vertex states.
@@ -332,7 +332,7 @@ count_parallel_edges(Graph& g, unsigned int nVertexStates)
 
 //----------------------------------------------------------
 /*! \brief Count state triples.
-  
+
 Counts the number of triples of states in the network.
 
 \param[in] g The graph containing the vertices.
@@ -353,14 +353,14 @@ count_state_triples(Graph& g, unsigned int nVertexStates,
     vertex_iterator;
 
   typedef boost::multi_array<unsigned int, 5> array_type;
-    
+
   array_type counts(boost::extents
                     [nEdgeTypes]
                     [nEdgeTypes]
                     [nVertexStates]
                     [nVertexStates]
                     [nVertexStates]);
-    
+
   vertex_iterator vi, vi_end;
   out_edge_iterator oi, oi_end, oi2;
 
@@ -378,7 +378,7 @@ count_state_triples(Graph& g, unsigned int nVertexStates,
             states[1] = g[target(*oi2, g)].state->getState();
             std::sort(edges.begin(), edges.end());
             std::sort(states.begin(), states.end());
-            
+
             ++counts
               [edges[0]]
               [edges[1]]
@@ -393,12 +393,12 @@ count_state_triples(Graph& g, unsigned int nVertexStates,
   }
 
   return counts;
-    
+
 }
 
 //----------------------------------------------------------
 /*! \brief Print simulation status.
-  
+
 Prints the number of vertices in all possible states and, if desired, the
 number of edges of all types connecting vertices of all possible states, as
 well as the number of parallel edges connecting such vertices.
@@ -427,7 +427,7 @@ public:
     std::cout << "Time elapsed: " << time << std::endl;
     std::cout << std::endl;
     std::cout << "Vertex count: " << std::endl;
-    
+
     // count states
     std::vector<unsigned int> vertexCount = count_vertices(g, m);
     unsigned int nVertexStates = vertexCount.size();
@@ -437,12 +437,12 @@ public:
                   << std::endl;
       }
     }
-    
+
     std::cout << std::endl;
     if (pairs) {
-      
+
       std::cout << "Pair count: " << std::endl;
-      
+
       // count state pairs
       boost::multi_array<unsigned int, 3> pairCount =
         count_state_pairs(g, nVertexStates, nEdgeTypes);
@@ -461,10 +461,10 @@ public:
       if (m.getEdgeTypes().size() > 1) {
         // count parallel pairs
         std::cout << "parallel:" << std::endl;
-        
+
         boost::multi_array<unsigned int, 2> parallelCount =
           count_parallel_edges(g, nVertexStates);
-        
+
         for (unsigned int j=0; j < nVertexStates; j++) {
           for (unsigned int k=j; k < nVertexStates; k++) {
             if (parallelCount[j][k] > 0) {
@@ -476,13 +476,13 @@ public:
         std::cout << std::endl;
       }
     }
-    
+
     if (triples) {
       std::cout << "Triple count: " << std::endl;
-      
+
       boost::multi_array<unsigned int, 5> tripleCount =
         count_state_triples(g, nVertexStates, nEdgeTypes);
-      
+
       for (unsigned int i=0; i < nEdgeTypes; i++) {
         for (unsigned int j=i; j < nEdgeTypes; j++) {
           std::cout << m.getEdgeTypes()[i] << m.getEdgeTypes()[j] << "-triples: "
@@ -502,12 +502,12 @@ public:
     }
   }
 
-private: 
+private:
 
   const Model& m;
   bool pairs;
   bool triples;
-  
+
 };
 
 template <typename Graph, typename Simulator>
@@ -546,7 +546,7 @@ public:
                   << statsFileName << std::endl;
         std::cerr << "... Standard exception: " << e.what() << std::endl;
       }
-      
+
       if (verbose) {
         std::cout << "Cumulative number of infections: " << sim.getNumInfections()
                   << std::endl;
@@ -556,11 +556,11 @@ public:
     }
   }
 
-private: 
+private:
 
   const Simulator& sim;
   bool verbose;
-  
+
 };
 
 template <typename Graph, typename Simulator>
@@ -614,25 +614,25 @@ public:
                   << r0FileName << std::endl;
         std::cerr << "... Standard exception: " << e.what() << std::endl;
       }
-      
-      
+
+
     }
   }
 
-private: 
+private:
 
   const std::vector<std::vector<unsigned int> >& generations;
   const std::vector<unsigned int>& genInf;
   bool verbose;
-  
+
 };
 
 
 //----------------------------------------------------------
 /*! \brief Write simulations data statistics to a file
-  
+
 Writes a line containing the current time (passed as a parameter) to a file,
-as well as the number of vertices in all possible states and, if desired, the 
+as well as the number of vertices in all possible states and, if desired, the
 number of edges of all types connecting vertices of all possible states, as
 well as the number of parallel edges connecting such vertices.
 
@@ -641,26 +641,26 @@ well as the number of parallel edges connecting such vertices.
 \param[in] t The current time to be written to the first column
 \param[in] ofile A stream to the output file
 \param[in] pairs Whether pairs should be counted as well (intensive on
-computation) or not 
+computation) or not
 \param[in] triples Whether triples should be counted as well (intensive on
-computation) or not 
+computation) or not
 \ingroup sim_statistics
 */
 template <typename Graph, typename Model>
 class write_sim_data:
   public Funct<Graph>
 {
-  
+
 public:
 
   write_sim_data(const Model& m, bool pairs = false, bool triples = false)
     : m(m), pairs(pairs), triples(triples)
   {;}
-  
+
   virtual void doit(const Graph& g, std::string dir, double time,
                     unsigned int count)
   {
-  
+
     unsigned int nEdgeTypes = m.getEdgeTypes().size();
     unsigned int nVertexStates = m.getVertexStates().size();
 
@@ -680,12 +680,12 @@ public:
 	  }
 	}
       }
-      
+
       // count parallel pairs
       if (nEdgeTypes > 1) {
 	boost::multi_array<unsigned int, 2> parallelCount =
 	  count_parallel_edges(g, nVertexStates);
-	
+
 	for (unsigned int j = 0; j < nVertexStates; j++) {
 	  for (unsigned int k = j; k < nVertexStates; k++) {
 	    data.push_back(parallelCount[j][k]);
@@ -697,10 +697,10 @@ public:
 
     if (triples) {
       data.clear();
-      
+
       boost::multi_array<unsigned int, 5> tripleCount =
         count_state_triples(g, nVertexStates, nEdgeTypes);
-      
+
       for (unsigned int i=0; i < nEdgeTypes; i++) {
         for (unsigned int j=i; j < nEdgeTypes; j++) {
           for (unsigned int k=0; k < nVertexStates; k++) {
@@ -718,11 +718,11 @@ public:
   }
 
 private:
-  
+
   const Model& m;
   bool pairs;
   bool triples;
-  
+
 };
 
 
@@ -734,15 +734,15 @@ public:
   write_effective_data(const Model& m)
     : m(m)
   {;}
-  
+
   virtual void doit(const Graph& g, std::string dir, double time,
                     unsigned int count)
   {
     std::vector<double> effVertexCount =
       count_effective_vertices<Graph, Model>(g, m.getVertexStates().size());
     write_data((dir + "/effective.sim.dat"), time, effVertexCount);
-  }    
-  
+  }
+
 private:
 
   const Model& m;
@@ -757,15 +757,15 @@ public:
   write_avg_trait(const Model& m)
     : m(m)
   {;}
-  
+
   virtual void doit(const Graph& g, std::string dir, double time,
                     unsigned int count)
   {
     std::vector<double> avgTrait =
       calc_avg_trait<Graph, Model>(g, m.getVertexStates().size());
     write_data((dir + "/avg_trait.sim.dat"), time, avgTrait);
-  }    
-  
+  }
+
 private:
 
   const Model& m;
@@ -774,7 +774,7 @@ private:
 
 //----------------------------------------------------------
 /*! \brief Detail states in pair participants
-  
+
 Calculate the average detailed state in on part of a given pair of states.
 
 \param[in] g The graph containing the vertices and edges
@@ -793,7 +793,7 @@ std::vector<double> pair_detail_states(const Graph& g, unsigned int edgeType,
   typedef typename Model::StateType state_type;
 
   std::vector<double> detail_states;
-    
+
   // count all edges of type et, including parallel
   edge_iterator ei, ei_end;
   for (boost::tie(ei, ei_end) = edges(g); ei != ei_end; ei++) {
@@ -827,7 +827,7 @@ class write_risk_info:
     if (!fs::exists(dir+"/risk")) {
       try {
         mkdir((dir+"/risk").c_str(), 0755);
-      } 
+      }
       catch (std::exception &e) {
         std::cerr << "... unable to create directory "
                   << dir << "/risk" << std::endl;
@@ -838,15 +838,15 @@ class write_risk_info:
       riskFile.open(fileName.c_str(), std::ios::out);
     }
     catch (std::exception &e) {
-      std::cerr << "... unable to open risk-info output file " 
+      std::cerr << "... unable to open risk-info output file "
                 << fileName << std::endl;
-      std::cerr << "... Standard exception: " << e.what() << std::endl;      
+      std::cerr << "... Standard exception: " << e.what() << std::endl;
       return;
     }
-    
+
     std::vector<double> detail_states =
       pair_detail_states<Graph, Model>(g, 0, 1, 0);
-    
+
     for (std::vector<double>::iterator vi = detail_states.begin();
          vi != detail_states.end(); ++vi) {
       riskFile << *vi << std::endl;
@@ -856,12 +856,12 @@ class write_risk_info:
       riskFile.close();
     }
     catch (std::exception &e) {
-      std::cerr << "... unable to close risk-info output file " 
+      std::cerr << "... unable to close risk-info output file "
                 << fileName << std::endl;
-      std::cerr << "... Standard exception: " << e.what() << std::endl;      
+      std::cerr << "... Standard exception: " << e.what() << std::endl;
       return;
     }
-    
+
   }
 };
 
@@ -876,13 +876,13 @@ class write_detail_dist:
     typedef typename boost::graph_traits<Graph>::vertex_iterator
       vertex_iterator;
     typedef typename Model::StateType state_type;
-    
+
     std::string fileName = generateFileName(dir + "/dist/dist", count);
     std::ofstream distFile;
     if (!fs::exists(dir+"/dist")) {
       try {
         mkdir((dir+"/dist").c_str(), 0755);
-      } 
+      }
       catch (std::exception &e) {
         std::cerr << "... unable to create directory "
                   << dir << "/dist" << std::endl;
@@ -893,13 +893,13 @@ class write_detail_dist:
       distFile.open(fileName.c_str(), std::ios::out);
     }
     catch (std::exception &e) {
-      std::cerr << "... unable to open output file " 
+      std::cerr << "... unable to open output file "
                 << fileName << " for writing the information distribution"
                 << std::endl;
-      std::cerr << "... Standard exception: " << e.what() << std::endl;      
+      std::cerr << "... Standard exception: " << e.what() << std::endl;
       return;
     }
-    
+
     vertex_iterator vi, vi_end;
     state_type* s = dynamic_cast<state_type*>(g[*vi].state);
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi) {
@@ -910,9 +910,9 @@ class write_detail_dist:
       distFile.close();
     }
     catch (std::exception &e) {
-      std::cerr << "... unable to close output file " 
+      std::cerr << "... unable to close output file "
                 << fileName << std::endl;
-      std::cerr << "... Standard exception: " << e.what() << std::endl;      
+      std::cerr << "... Standard exception: " << e.what() << std::endl;
       return;
     }
   }
@@ -932,7 +932,7 @@ public:
   {
     typedef typename boost::graph_traits<Graph>::vertex_iterator
       vertex_iterator;
-    typedef typename boost::edge_property_type<Graph>::type::value_type
+    typedef typename boost::edge_property_type<Graph>::type
       edge_property_type;
     typedef typename Model::StateType state_type;
 
@@ -941,7 +941,7 @@ public:
     if (!fs::exists(dir+"/corr")) {
       try {
         mkdir((dir+"/corr").c_str(), 0755);
-      } 
+      }
       catch (std::exception &e) {
         std::cerr << "... unable to create directory "
                   << dir << "/corr" << std::endl;
@@ -952,17 +952,17 @@ public:
       corrFile.open(fileName.c_str(), std::ios::out);
     }
     catch (std::exception &e) {
-      std::cerr << "... unable to open correlation output file " 
+      std::cerr << "... unable to open correlation output file "
                 << fileName << std::endl;
-      std::cerr << "... Standard exception: " << e.what() << std::endl;      
+      std::cerr << "... Standard exception: " << e.what() << std::endl;
       return;
     }
-      
+
     std::vector<unsigned int> infected_distances =
       boost::nearest_infected<Graph, edge_property_type, Model>
       (g, edge_property_type(et), m);
     unsigned int vertex_counter = 0;
-      
+
     vertex_iterator vi, vi_end;
     for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi) {
       state_type* s = dynamic_cast<state_type*>(g[*vi].state);
@@ -975,14 +975,14 @@ public:
       corrFile.close();
     }
     catch (std::exception &e) {
-      std::cerr << "... unable to close correlation output file " 
+      std::cerr << "... unable to close correlation output file "
                 << fileName << std::endl;
-      std::cerr << "... Standard exception: " << e.what() << std::endl;      
+      std::cerr << "... Standard exception: " << e.what() << std::endl;
       return;
     }
-      
+
   }
-    
+
 private:
   const Model& m;
   unsigned int et;
@@ -1003,51 +1003,51 @@ public:
     if (!fs::exists(dir+"/images")) {
       try {
         mkdir((dir+"/images").c_str(), 0755);
-      } 
+      }
       catch (std::exception &e) {
         std::cerr << "... unable to create directory "
                   << dir << "/images" << std::endl;
         return;
       }
     }
-    std::string fileName = generateFileName(dir + "/images/frame", count, 
+    std::string fileName = generateFileName(dir + "/images/frame", count,
                                             "graph");
     write_graph(g, fileName, m,time);
   }
-    
+
 private:
   const Model& m;
 };
 
-template <typename Graph, typename Model>
-class write_sim_lattice
-  : public Funct<Graph>
-{
-public:
-  write_sim_lattice(const Model& m)
-    : m(m)
-  {;}
+// template <typename Graph, typename Model>
+// class write_sim_lattice
+//   : public Funct<Graph>
+// {
+// public:
+//   write_sim_lattice(const Model& m)
+//     : m(m)
+//   {;}
 
-  virtual void doit(const Graph& g, std::string dir, double time,
-                    unsigned int count)
-  {
-    if (!fs::exists(dir+"/images")) {
-      try {
-        mkdir((dir+"/images").c_str(), 0755);
-      } 
-      catch (std::exception &e) {
-        std::cerr << "... unable to create directory "
-                  << dir << "/images" << std::endl;
-        return;
-      }
-    }
-    std::string fileName = generateFileName(dir + "/images/frame", count);
-    write_png(g, fileName, m, time);
-  }
-    
-private:
-  const Model& m;
-};
+//   virtual void doit(const Graph& g, std::string dir, double time,
+//                     unsigned int count)
+//   {
+//     if (!fs::exists(dir+"/images")) {
+//       try {
+//         mkdir((dir+"/images").c_str(), 0755);
+//       }
+//       catch (std::exception &e) {
+//         std::cerr << "... unable to create directory "
+//                   << dir << "/images" << std::endl;
+//         return;
+//       }
+//     }
+//     std::string fileName = generateFileName(dir + "/images/frame", count);
+//     write_png(g, fileName, m, time);
+//   }
+
+// private:
+//   const Model& m;
+// };
 
 template <typename Graph>
 class write_comp_dist
@@ -1056,14 +1056,14 @@ class write_comp_dist
 public:
 
   write_comp_dist(const Graph& g) : largestComponent(boost::num_vertices(g)) {;}
-  
+
   virtual void doit(const Graph& g, std::string dir, double time,
                     unsigned int count)
   {
     if (!fs::exists(dir+"/CompDist")) {
       try {
         mkdir((dir+"/CompDist").c_str(), 0755);
-      } 
+      }
       catch (std::exception &e) {
         std::cerr << "... unable to create directory "
                   << dir << "/CompDist" << std::endl;
@@ -1094,7 +1094,7 @@ public:
                             unsigned int verbose = 0) :
     m(m), graphs(graphs), modularity(modularity), verbose(verbose)
   {}
-  
+
   virtual void doit(const Graph& g, std::string dir, double time,
                     unsigned int count)
   {
@@ -1107,7 +1107,7 @@ public:
       if (!fs::exists(dir+"/comm")) {
         try {
           mkdir((dir+"/comm").c_str(), 0755);
-        } 
+        }
         catch (std::exception &e) {
           std::cerr << "... unable to create directory "
                     << dir << "/comm" << std::endl;
@@ -1138,7 +1138,7 @@ public:
   write_same_state_components(Graph& g, unsigned int verbose = 0) :
     verbose(verbose)
   {}
-  
+
   virtual void doit(const Graph& g, std::string dir, double time,
                     unsigned int count)
   {
@@ -1149,7 +1149,7 @@ public:
     if (verbose >=2 ) {
       std::cout << num << " components:" << std::endl;;
     }
-    
+
     double fraction = 0.;
     unsigned int nonZeroVertices = 0;
     // loop over components and calculate state fractions
@@ -1197,14 +1197,14 @@ public:
   write_comp(Graph& g, unsigned int verbose = 0) :
     verbose(verbose)
   {}
-  
+
   virtual void doit(const Graph& g, std::string dir, double time,
                     unsigned int count)
   {
     if (!fs::exists(dir+"/comp")) {
         try {
           mkdir((dir+"/comp").c_str(), 0755);
-        } 
+        }
         catch (std::exception &e) {
           std::cerr << "... unable to create directory "
                     << dir << "/comm" << std::endl;
@@ -1212,7 +1212,7 @@ public:
         }
     }
     std::string fileName = generateFileName(dir + "/comp/comp", count);
-    
+
     write_components(g, fileName);
   }
 
@@ -1230,14 +1230,14 @@ public:
 			 unsigned int edgeType = 0) :
     m(m), verbose(verbose), edgeType(edgeType)
   {}
-  
+
   virtual void doit(const Graph& g, std::string dir, double time,
                     unsigned int count)
   {
 
     unsigned int nEdgeTypes = m.getEdgeTypes().size();
     unsigned int nVertexStates = m.getVertexStates().size();
-    
+
     double modularity = 0.;
 
     boost::multi_array<unsigned int, 3> pairCount =
@@ -1260,7 +1260,7 @@ public:
       modularity += (intraCount / static_cast<double>(num_edges(g)))
 	- pow((intraCount + interCount) / (2*num_edges(g)), 2);
     }
-    
+
     write_data((dir + "/groupmod.sim.dat"), time, modularity);
   }
 
