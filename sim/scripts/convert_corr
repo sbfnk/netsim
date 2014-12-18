@@ -1,0 +1,20 @@
+#!/bin/sh
+
+for I in "$@"
+do
+        /home/seb/Code/analysis/compress_corr.pl $I 0.9 > $I.dat
+	echo "set terminal postscript enhanced color landscape;"\
+             "set output '$I.eps';"\
+#	echo "set terminal gif ;"\
+#             "set output '$I.gif';"\
+             "set pm3d;"\
+             "set xlabel 'info generation';"\
+             "set ylabel 'distance from infection';"\
+             "set xrange [0:100];"\
+             "set yrange [0:80];"\
+	     "set cbrange [0:20];"\
+	     "set view map;"\
+	     "unset colorbox;"\
+	     "set palette rgbformulae -21,-22,-23;"\
+             "splot '$I.dat' w p palette title '' " | gnuplot
+done

@@ -1,0 +1,10 @@
+# Ode parameters: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+file-id      = try1
+ic-file      = try1.init
+tmax         = 30
+dt           = 1e-6
+nsave        = 1
+step-algo    = rkf45
+abs-tol      = 1e-8
+rel-tol      = 1e-8
+

@@ -26,3 +26,8 @@
 *.exe
 *.out
 *.app
+
+# ignored directories
+bin
+out
+doc
